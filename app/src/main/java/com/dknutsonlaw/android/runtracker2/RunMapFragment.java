@@ -233,6 +233,9 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         //when the MapFragment resumes.
         if (mGoogleMap != null)
             mGoogleMap.clear();
+        //Close the location cursor before shutting down
+        if (!mLocationCursor.isClosed())
+            mLocationCursor.close();
         super.onStop();
     }
 
@@ -364,13 +367,13 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 mLastLocation = mLocationCursor.getLocation();
                 latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                 mPoints.add(latLng);
-                mPolyline.setPoints(mPoints);
                 mBounds = mBounds.including(latLng);
                 if (mLocationCursor.isLast()){
                     mEndMarkerOptions.position(latLng);
                 }
                 mLocationCursor.moveToNext();
             }
+            mPolyline.setPoints(mPoints);
         } else {
             Log.i(TAG, "Cursor is equal in size to existing mPoints");
         }
