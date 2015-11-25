@@ -1,0 +1,54 @@
+package com.dknutsonlaw.android.runtracker2;
+
+/**
+ * Created by dck on 9/6/15.
+ */
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.location.Location;
+import android.util.Log;
+
+import com.google.android.gms.location.LocationResult;
+
+import java.util.List;
+
+/* added by dck 1/15/2015
+ * A subclass of Broadcast Receiver to receive Location updates for use in updating the database,
+ * with separate instantiations to provide "live" updates directly to the UIs in RunFragment and
+ * RunMapFragment.
+ *
+ * 2/12/2015
+ * No longer used for "live" UI updates after implementation of MyLocationListCursorLoader that
+ * supplies "live" updates from the database, so the only instance left is TrackingLocationReceiver
+ * that supplies Location updates to the database.
+ */
+
+public class LocationReceiver extends BroadcastReceiver {
+    private static final String TAG = "LocationReceiver";
+
+    public LocationReceiver() {
+    }
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        // TODO: This method is called when the BroadcastReceiver is receiving
+        // an Intent broadcast. Extract the results and use them.
+        if (LocationResult.hasResult(intent)) {
+            Log.i(TAG, "Intent has a Location Result");
+            LocationResult locationResult = LocationResult.extractResult(intent);
+            List<Location> locationList = locationResult.getLocations();
+            for (int i = 0; i < locationList.size(); i++) {
+                onLocationReceived(context, locationList.get(i));
+            }
+
+        } else {
+            Log.i(TAG, "Intent has no LocationResult");
+        }
+    }
+    //The next two methods should be overridden in any actual implementation.
+    void onLocationReceived(Context context, Location loc) {
+        Log.d(TAG, this + " Got location from " + loc.getProvider() + ": "
+                + loc.getLatitude() + ", " + loc.getLongitude());
+    }
+}

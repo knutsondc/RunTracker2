@@ -1,0 +1,38 @@
+<menu xmlns:tools="http://schemas.android.com/tools"
+      xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/run_pager_menu_item_new_run"
+          android:icon="@android:drawable/ic_menu_add"
+          android:title="@string/new_run"
+          android:showAsAction="ifRoom|withText"
+          tools:ignore="AppCompatResource" />
+    <item android:id="@+id/menu_item_pager_delete_run"
+          android:icon="@android:drawable/ic_menu_delete"
+          android:title="@string/run_pager_delete_run"
+          android:showAsAction="ifRoom|withText"
+          tools:ignore="AppCompatResource"/>
+    <item android:id="@+id/run_pager_menu_item_sort_runs"
+          android:icon="@android:drawable/ic_menu_sort_by_size"
+          android:title="@string/sort"
+          android:showAsAction="ifRoom|withText"
+          tools:ignore="AppCompatResource">
+        <menu>
+            <item
+                android:title="@string/by_date_asc"
+                android:id="@+id/run_pager_menu_item_sort_by_date_asc"/>
+            <item
+                android:title="@string/by_date_desc"
+                android:id="@+id/run_pager_menu_item_sort_by_date_desc"/>
+            <item
+                android:title="@string/by_distance_asc"
+                android:id="@+id/run_pager_menu_item_sort_by_distance_asc"/>
+            <item
+                android:title="@string/by_distance_desc"
+                android:id="@+id/run_pager_menu_item_sort_by_distance_desc"/>
+            <item
+                android:title="@string/by_duration_asc"
+                android:id="@+id/run_pager_menu_item_sort_by_duration_asc"/>
+            <item
+                android:title="@string/by_duration_desc"
+                android:id="@+id/run_pager_menu_item_sort_by_duration_desc"/></menu>
+    </item>
+</menu>

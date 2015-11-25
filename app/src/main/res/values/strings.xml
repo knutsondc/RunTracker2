@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">RunTracker2</string>
+    <string name="run_fragment_started">Started:</string>
+    <string name="started">Started: %1$s</string>
+    <string name="starting_latitude">Starting Latitude:</string>
+    <string name="starting_longitude">Starting Longitude:</string>
+    <string name="starting_altitude">Starting Altitude:</string>
+    <string name="elapsed_time">Elapsed Time:</string>
+    <string name="run_fragment_ended">Ended:</string>
+    <string name="ended">Ended: %1$s</string>
+    <string name="ending_latitude">Ending Latitude:</string>
+    <string name="ending_longitude">Ending Longitude:</string>
+    <string name="ending_altitude">Ending Altitude:</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="list_date_text">Run at %1$s</string>
+    <string name="list_distance_text">Distance: %1$.2f miles</string>
+    <string name="list_duration_text">Duration: %1$s</string>
+    <string name="new_run">New Run</string>
+    <string name="sort">Sort Runs</string>
+    <string name="by_date_asc">By Date, Ascending</string>
+    <string name="by_date_desc">By Date, Descending</string>
+    <string name="by_distance_asc">By Distance, Ascending</string>
+    <string name="by_distance_desc">By Distance, Descending</string>
+    <string name="by_duration_asc">By Duration, Ascending</string>
+    <string name="by_duration_desc">By Duration, Descending</string>
+    <string name="no_runs_recorded">No Runs Recorded</string>
+    <plurals name="subtitle_date_asc">
+        <item quantity="one">%1$d Run</item>
+        <item quantity="other">%1$d Runs Sorted by Date, Ascending Order</item>
+    </plurals>
+    <plurals name="subtitle_date_desc">
+        <item quantity="one">%1$d Run</item>
+        <item quantity="other">%1$d Runs Sorted by Date, Descending Order</item>
+    </plurals>
+    <plurals name="subtitle_distance_asc">
+        <item quantity="one">%1$d Run</item>
+        <item quantity="other">%1$d Runs Sorted by Distance, Ascending Order</item>
+    </plurals>
+    <plurals name="subtitle_distance_desc">
+        <item quantity="one">%1$d Run</item>
+        <item quantity="other">%1$d Runs Sorted by Distance, Descending Order</item>
+    </plurals>
+    <plurals name="subtitle_duration_asc">
+        <item quantity="one">%1$d Run</item>
+        <item quantity="other">%1$d Runs Sorted by Duration, Ascending Order</item>
+    </plurals>
+    <plurals name="subtitle_duration_desc">
+        <item quantity="one">%1$d Run</item>
+        <item quantity="other">%1$d Runs Sorted by Duration, Descending Order</item>
+    </plurals>
+    <string name="goof_up">You must have goofed up somewhere!</string>
+    <string name="no_runs">No runs are recorded. Get out and get moving! Press the button below or
+        select "New Run" from the overflow menu to record a run.</string>
+    <string name="notification_title">Run Monitor</string>
+    <string name="notification_text">Your run is being monitored in the background</string>
+    <string name="map">Map</string>
+    <string name="run_start">Run Start</string>
+    <string name="run_finish">Run Finish</string>
+    <string name="run_started_at_format">Started at %s</string>
+    <string name="run_finished_at_format">Finished at %s</string>
+    <string name="delete_run">Delete Runs</string>
+    <string name="run_pager_delete_run">Delete Run</string>
+    <string name="distance_covered">Distance covered:</string>
+    <string name="miles_travelled_format">%s miles</string>
+    <string name="altitude_format">%s feet</string>
+    <string name="current_location_too_distant">You are more than 100 meters from where this run
+                    originally ended; you can\'t \"continue\" it from here. Cancelling further
+                    tracking of this run.</string>
+    <string name="distance_traveled_format">Distance traveled: %s miles</string>
+    <string name="run_duration_format">Run duration: %s</string>
+    <string name="location_insert_failed">Insertion of location failed!</string>
+    <string name="update_run_start_date_failed">Starting Date update failed! No rows were updated!</string>
+    <string name="update_run_start_address_failed">Starting Address update failed! No rows were updated!</string>
+    <string name="multiple_start_addresses_error">Starting Address update failed! Multiple rows were updated!</string>
+    <string name="unknown_start_address_error">Error! Unknown return value from Starting Address update!</string>
+    <string name="multiple_runs_dates_updated">Starting Date and Starting Address update failed! Multiple rows were updated!</string>
+    <string name="unknown_start_date_error">Error! Unknown return value from Starting Date update!</string>
+    <string name="update_end_address_failed">Ending Address update failed! No rows were updated!</string>
+    <string name="multiple_runs_end_addresses_updated">Ending Address update failed! Multiple rows were updated!</string>
+    <string name="unknown_end_address_update_error">Error! Unknown return value from Ending Address update!</string>
+    <string name="delete_runs_error">Error deleting Runs!</string>
+    <string name="delete_run_error">Error deleting the Run!</string>
+    <string name="update_run_error">Error updating Run!</string>
+    <string name="delete_locations_error">Error deleting Locations!</string>
+    <plurals name="runs_deletion_results">
+        <item quantity="one">Deleted %1$d Run, together with %2$d associated Locations</item>
+        <item quantity="other">Deleted %1$d Runs, together with %2$d associated Locations</item>
+    </plurals>
+    <string name="insert_run_error">Error inserting new Run!</string>
+    <string name="starting_address">Start Address:</string>
+    <string name="ending_address">End Address:</string>
+    <string name="lastlocation_null">Geocoder location is null!</string>
+    <string name="get_address_function_unavailable">Geocoding currently unavailable.</string>
+    <string name="geocoder_io_error">IO error in geocoder!</string>
+    <string name="geocoder_bad_argument_error">Bad latitude or longitude argument!</string>
+    <string name="map_view">Map View</string>
+    <string name="show_entire_route">Show Entire Route</string>
+    <string name="track_end_point">Track End Point</string>
+    <string name="track_start_point">Track Starting Point</string>
+    <string name="tracking_off">Tracking Off</string>
+    <string name="empty_view_button_text">Press here to start recording a run!</string>
+    <string name="connection_suspended_service_disconnected">GoogleApiClient connection suspended - Remote service disconnected! Trying to fix…</string>
+    <string name="connection_suspended_network_lost">GoogleApiClient suspended - network connection lost! Trying to fix …</string>
+    <string name="alert_dialog_title">This app needs location access</string>
+    <string name="alert_dialog_message">Please grant location access so this app can track your runs!</string>
+    <string name="location_access_granted">Fine location access granted</string>
+    <string name="functionality_limited">Functionality limited</string>
+    <string name="no_tracking">Because location access has not been granted, this app will not be able to track new runs.</string>
+</resources>
