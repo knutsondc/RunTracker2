@@ -60,8 +60,8 @@ public class RunFragment extends Fragment {
     private static final String TAG = "RunFragment";
 
     private RunManager mRunManager;
-    private BoundsHolder mBoundsHolder;
-    private PointsHolder mPointsHolder;
+    //private BoundsHolder mBoundsHolder;
+    //private PointsHolder mPointsHolder;
     private Run mRun;
     private long mRunId;
     private Location mStartLocation, mLastLocation = null;
@@ -145,8 +145,8 @@ public class RunFragment extends Fragment {
         //setRetainInstance(true);
         setHasOptionsMenu(true);
         mRunManager = RunManager.get(getActivity());
-        mBoundsHolder = BoundsHolder.get(getActivity());
-        mPointsHolder = PointsHolder.get(getActivity());
+        //mBoundsHolder = BoundsHolder.get(getActivity());
+        //mPointsHolder = PointsHolder.get(getActivity());
 
         if (NavUtils.getParentActivityName(getActivity()) != null && ((AppCompatActivity)getActivity()).getSupportActionBar() != null) {
             ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -517,8 +517,10 @@ public class RunFragment extends Fragment {
             }
 
         }
-        mBoundsHolder.save(mRunId, mBounds);
-        mPointsHolder.save(mRunId, mPoints);
+        //mBoundsHolder.save(mRunId, mBounds);
+        mRunManager.saveBounds(mRunId, mBounds);
+        //mPointsHolder.save(mRunId, mPoints);
+        mRunManager.savePoints(mRunId, mPoints);
         //If we have at least one location in addition to the mStartLocation, we can make a map, so
         //enable the map button
         //boolean enableMapButton = (mLastLocation == null) ? false : true;

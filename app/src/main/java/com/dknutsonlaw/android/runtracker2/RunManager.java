@@ -18,10 +18,14 @@ import android.util.Log;
 import android.view.Display;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -38,6 +42,8 @@ public class RunManager {
     private static RunManager sRunManager;
     //mAppContext is public so that TrackingLocationIntentService can access it
     public final Context mAppContext;
+    private static Map<Long, WeakReference<LatLngBounds>> sBoundsMap = new HashMap<>();
+    private static Map<Long, WeakReference<List<LatLng>>> sPointsMap = new HashMap<>();
     private final NotificationManager mNotificationManager;
     //Handle for the recurring task of updating Ending Addresses; needed so task can be cancelled
     //when we're not tracking runs
@@ -278,6 +284,24 @@ public class RunManager {
             location = cursor.getLocation();
         cursor.close();
         return location;
+    }
+
+    public void saveBounds(Long runId, LatLngBounds bounds){
+        sBoundsMap.put(runId, new WeakReference<LatLngBounds>(bounds));
+    }
+
+    public LatLngBounds retrieveBounds(Long runId){
+        WeakReference<LatLngBounds> latLngBoundsWeakReference = sBoundsMap.get(runId);
+        return latLngBoundsWeakReference.get();
+    }
+
+    public void savePoints(Long runId, List<LatLng> points){
+        sPointsMap.put(runId, new WeakReference<List<LatLng>>(points));
+    }
+
+    public List<LatLng> retrievePoints(Long runId){
+        WeakReference<List<LatLng>> listWeakReference = sPointsMap.get(runId);
+        return listWeakReference.get();
     }
 
     /*Function to return the street address of the nearest building to the LatLng object

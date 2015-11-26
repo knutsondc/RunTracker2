@@ -47,8 +47,6 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
     private static final String TAG = "RunMapFragment";
 
     private final RunManager mRunManager = RunManager.get(getActivity());
-    private final BoundsHolder mBoundsHolder = BoundsHolder.get(getActivity());
-    private final PointsHolder mPointsHolder = PointsHolder.get(getActivity());
     private long mRunId;
     //Instance variable to hold a reference to the fragment we can use to retrieve a retained
     //instance upon configuration change.
@@ -117,8 +115,8 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 LoaderManager lm = getLoaderManager();
                 lm.initLoader(Constants.LOAD_LOCATION, args, this);
             }
-            mPoints = mPointsHolder.retrieve(mRunId);
-            mBounds = mBoundsHolder.retrieve(mRunId);
+            mPoints = mRunManager.retrievePoints(mRunId);
+            mBounds = mRunManager.retrieveBounds(mRunId);
         }
     }
 
@@ -341,126 +339,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         }
     }
 
-    //If were reusing an old map, we already have data in memory that can be used to reconstitute
-    //some or all of the graphic elements of the map, thereby avoiding the cost of reloading all that
-    //data from the database. This is called from prepareMap(), which is called when the map view
-    //needs to be constructed from scratch upon initial opening, configuration change, etc.
-    private void reinstateMap() {
-        Log.i(TAG, "Entered reinstateMap()");
-        mLine = new PolylineOptions();
-        //mPoints is the List of LatLngs used to create mPolyline. If mPoints represents all the
-        //location data we've collected, use the last element of mPoints to set the position of
-        //mEndMarker.
-        mLine.addAll(mPoints);
-        //LatLng latLng = mPoints.get(mPoints.size() - 1);
-        //Create mPolyline using the existing mPoints - if additional location points have been
-        //recorded since the map was last created, we will add those points to mPoints and mPolyline
-        //rather than going to the database for all the location data
-        mPolyline = mGoogleMap.addPolyline(mLine);
-        //The data needed to set up the StartMarker never change after it's initially determined, so
-        //we can just reuse the existing mStartMarkerOptions to recreate the Marker.
-        mLocationCursor.moveToFirst();
-        mStartLocation = mLocationCursor.getLocation();
-        mStartDate = Constants.DATE_FORMAT.format(mStartLocation.getTime());
-        Log.i(TAG, "mStartDate is " + mStartDate);
-        Resources r = getActivity().getResources();
-        //Get the address where we started the Run from the geocoder
-        String snippetAddress = mRunManager.getAddress(mPoints.get(0));
-        //Now create a marker for the starting point and put it on the map.
-        //The starting marker doesn't need to be updated, so we don't even need to keep
-        //the return value from the call to mGoogleMap.addMarker().
-        mStartMarkerOptions = new MarkerOptions()
-                .position(mPoints.get(0))
-                .title(r.getString(R.string.run_start))
-                .snippet(mStartDate + "\n" + snippetAddress)
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-                .flat(false);
-        mGoogleMap.addMarker(mStartMarkerOptions);
-        mLocationCursor.moveToLast();
-        mLastLocation = mLocationCursor.getLocation();
-        String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
-        Log.i(TAG, "endDate is " + endDate);
-        LatLng latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-        snippetAddress = mRunManager.getAddress(latLng);
-        //We use the default red icon for the EndMarker
-        mEndMarkerOptions = new MarkerOptions()
-                .position(latLng)
-                .title(r.getString(R.string.run_finish))
-                .snippet(endDate + "\n" + snippetAddress)
-                .flat(false);
-        //mEndMarker = mGoogleMap.addMarker(mEndMarkerOptions);
-        //Update mPoints, mPolyline, mBounds and the position of mEndMarker with additional location
-        //data if the number of locations in the cursor exceeds the number of locations already in
-        //memory.
-        if (mLocationCursor.getCount() > mPoints.size()){
-            Log.i(TAG, "Cursor is larger than existing mPoints");
-            //Set the cursor to the first location after the locations already in memory
-            mLocationCursor.moveToPosition(mPoints.size());
-            //LatLng latLng;
-            //Iterate over the remaining location points in the cursor, updating mPoints, mPolyline,
-            //and mBounds; fix position of mEndMarker when we get to the last entry in the cursor.
-            while (!mLocationCursor.isAfterLast()){
-                Log.i(TAG, "Entered reinstateMap loop");
-                mLastLocation = mLocationCursor.getLocation();
-                latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-                mPoints.add(latLng);
-                mBounds = mBounds.including(latLng);
-                if (mLocationCursor.isLast()){
-                    mEndMarkerOptions.position(latLng);
-                }
-                mLocationCursor.moveToNext();
-            }
-            mPolyline.setPoints(mPoints);
-        } else {
-            Log.i(TAG, "Cursor is equal in size to existing mPoints");
-        }
-        //Now that we've fixed the position of mEndMarker, add it to the map.
-        mEndMarker = mGoogleMap.addMarker(mEndMarkerOptions);
-        //Set the camera according to the View Mode selected and the zoom level last set for the
-        //FOLLOW_END_POINT and FOLLOW_START_POINT modes.
-        CameraUpdate movement;
-        switch (mViewMode){
-            case Constants.SHOW_ENTIRE_ROUTE:
-                //Set the camera over the center of a map Bounds large enough to take in all the
-                //points in mPolyline. First, get the size of the display
-                Display display = getActivity().getWindowManager().getDefaultDisplay();
-                Point point = new Point();
-                display.getSize(point);
-                //Place the Bounds so that it takes up the whole screen with a 110 pixel pad at the
-                //edges. The map hasn't been rendered yet, so we need to tell it about the display
-                //size.
-                movement = CameraUpdateFactory.newLatLngBounds(mBounds,
-                        point.x, point.y, 110);
-                //Move the camera to set the map within the bounds we set.
-                mGoogleMap.animateCamera(movement);
-                //The zoom level is set at the level needed to fit the Bounds in the display area
-                //set aside for it. When view mode switches to FOLLOW_END_POINT, the zoom level is
-                //set to mZoomLevel, which may have been modified from its original value of 17.0 by
-                //the zoom buttons.
-                Log.i(TAG, "In ReinstateMap, ViewMode SHOW_ENTIRE_ROUTE mZoomLevel is " + mZoomLevel);
-                break;
-            case Constants.FOLLOW_END_POINT:
-                //Center the camera over the last point in mPoints and mPolyline at the zoom level
-                //last fixed by the zoom controls.
-                movement = CameraUpdateFactory.newLatLngZoom(latLng, mZoomLevel);
-                mGoogleMap.animateCamera(movement);
-                Log.i(TAG, "In ReinstateMap, ViewMode FOLLOW_END_POINT mZoomLevel is " + mZoomLevel);
-                break;
-            case Constants.FOLLOW_STARTING_POINT:
-                latLng = new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude());
-                movement = CameraUpdateFactory.newLatLngZoom(latLng, mZoomLevel);
-                mGoogleMap.animateCamera(movement);
-                Log.i(TAG, "In ReinstateMap, ViewMode FOLLOW_STARTING_POINT mZoomLevel is " + mZoomLevel);
-            case Constants.NO_UPDATES:
-                break;
-            default:
-                break;
-        }
-        setupWidgets();
-    }
-
-    //Method to initialize the map when we have to construct the map view from scratch upon initial
-    //opening of the MapFragment, configuration change, etc.
+    //Method to initialize the map
     private void prepareMap() {
         Log.i(TAG, "Entered prepareMap()");
 
@@ -500,98 +379,90 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 return layout;
             }
         });
-        //If we already have an instance of PolylineOptions, that means we already have in memory
-        //at least some of the data needed to reconstitute the map, so we need merely "reinstate" the
-        //map and update the data already in memory with location data subsequently recorded to the
-        //database..
-        //if (mLine != null) {
-        if (mPoints != null && mPoints.size() > 0 && mBounds != null){
-            reinstateMap();
-            return;
-        }
-        //Create a polyline that will contain all the location update points.
         mLine = new PolylineOptions();
-        //Also create a LatLngBounds so you can zoom to fit
-        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
-        //Iterate over all the locations to build a Polyline, create a Bounds, and place the Markers
-        //appropriately.
-        mLocationCursor.moveToFirst();
-        Resources r = getResources();
-        LatLng latLng;
-        while (!mLocationCursor.isAfterLast()) {
-            Log.i(TAG, "Entered mLocationCursor loop in prepareMap()");
-            //Fetch the location from the cursor
-            Location loc = mLocationCursor.getLocation();
-            //Construct a LatLng object to add to the list of them used in creating the map's
-            //camera bounds
-            latLng = new LatLng(loc.getLatitude(), loc.getLongitude());
-
-            //If this is the first location, add a marker for it
-            if (mLocationCursor.isFirst()) {
-                Log.i(TAG, "Entered mLocationCursor.isFirst() if block in prepareMap");
-                //The Start Date could also be retrieved from the database Run entry's StartDate
-                //field, but we already have the same data here in the cursor - no need for another
-                //database access
-                mStartLocation = loc;
-                mStartDate = Constants.DATE_FORMAT.format(loc.getTime());
-                Log.i(TAG, "mStartDate is " + mStartDate);
-                //Get the address where we started the Run from the geocoder
-                String snippetAddress = mRunManager.getAddress(latLng);
-                //Now create a marker for the starting point and put it on the map.
-                //The starting marker doesn't need to be updated, so we don't even need to keep
-                //the return value from the call to mGoogleMap.addMarker().
-                mStartMarkerOptions = new MarkerOptions()
-                        .position(latLng)
-                        .title(r.getString(R.string.run_start))
-                        .snippet(mStartDate + "\n" + snippetAddress)
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-                        .flat(false);
-                //We never change the StartMarker's properties, so no need to keep a handle for it.
-                mGoogleMap.addMarker(mStartMarkerOptions);
-            //Create a marker for the last point in the run.
-            } else if (mLocationCursor.isLast()) {
-                Log.i(TAG, "Entered mLocationCursor.isLast() block of prepareMap()");
-                //If this is the last location and not also the first, add a marker
-                //mEndMarker is an instance variable so we can update it live as we're moving.
-                String endDate = Constants.DATE_FORMAT.format(loc.getTime());
-                Log.i(TAG, "endDate is " + endDate);
-                mLastLocation = loc;
-                String snippetAddress = mRunManager.getAddress(latLng);
-                //We use the default red icon for the EndMarker
-                mEndMarkerOptions = new MarkerOptions()
-                        .position(latLng)
-                        .title(r.getString(R.string.run_finish))
-                        .snippet(endDate + "\n" + snippetAddress)
-                        .flat(false);
-                mEndMarker = mGoogleMap.addMarker(mEndMarkerOptions);
-            }
-            //Update the data for the polyline and the map bounds with the LatLng we created from
-            //this location
-            mLine.add(latLng);
-            latLngBuilder.include(latLng);
-            mLocationCursor.moveToNext();
-        }
-        //Now that we've summed up all the data needed to create the polyline and the map bounds,
-        //construct them, add them to the map, and initialize instance variables for them to
-        //make them available for live update and for reuse when the map is reused in a subsequent
-        //instance of the underlying Activity.
+        //mPoints is the List of LatLngs used to create mPolyline. If mPoints represents all the
+        //location data we've collected, use the last element of mPoints to set the position of
+        //mEndMarker.
+        mLine.addAll(mPoints);
+        //Create mPolyline using the List of LatLngs RunFragment stored for us in the singleton
+        //class rather than reading them in again from the database.
         mPolyline = mGoogleMap.addPolyline(mLine);
-        //Initialize the list of LatLngs to use for updating or recreating the Polyline.
-        mPoints = mPolyline.getPoints();
-        //Make the map zoom to show the entire track, with some padding
-        //Use the size of the current display in pixels to define a bounding box
+        //We need to use the LocationCursor for the map markers  because we need time data.
+        mLocationCursor.moveToFirst();
+        mStartLocation = mLocationCursor.getLocation();
+        mStartDate = Constants.DATE_FORMAT.format(mStartLocation.getTime());
+        Log.i(TAG, "mStartDate is " + mStartDate);
+        Resources r = getActivity().getResources();
+        //Get the address where we started the Run from the geocoder
+        String snippetAddress = mRunManager.getAddress(mPoints.get(0));
+        //Now create a marker for the starting point and put it on the map.
+        //The starting marker doesn't need to be updated, so we don't even need to keep
+        //the return value from the call to mGoogleMap.addMarker(). Note we can use the
+        //first element of mPoints to set the position.
+        mStartMarkerOptions = new MarkerOptions()
+                .position(mPoints.get(0))
+                .title(r.getString(R.string.run_start))
+                .snippet(mStartDate + "\n" + snippetAddress)
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+                .flat(false);
+        mGoogleMap.addMarker(mStartMarkerOptions);
+        mLocationCursor.moveToLast();
+        mLastLocation = mLocationCursor.getLocation();
+        String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
+        Log.i(TAG, "endDate is " + endDate);
+        LatLng latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+        snippetAddress = mRunManager.getAddress(latLng);
+        //We use the default red icon for the EndMarker. We need to keep a reference to it because
+        //it will be updated as the Run progresses
+        mEndMarkerOptions = new MarkerOptions()
+                .position(latLng)
+                .title(r.getString(R.string.run_finish))
+                .snippet(endDate + "\n" + snippetAddress)
+                .flat(false);
+        //mEndMarker = mGoogleMap.addMarker(mEndMarkerOptions);
+        //Update mPoints, mPolyline, mBounds and the position of mEndMarker with additional location
+        //data if the number of locations in the cursor exceeds the number of locations already in
+        //memory.
+        if (mLocationCursor.getCount() > mPoints.size()){
+            Log.i(TAG, "Cursor is larger than existing mPoints");
+            //Set the cursor to the first location after the locations already in memory
+            mLocationCursor.moveToPosition(mPoints.size());
+            //LatLng latLng;
+            //Iterate over the remaining location points in the cursor, updating mPoints, mPolyline,
+            //and mBounds; fix position of mEndMarker when we get to the last entry in the cursor.
+            while (!mLocationCursor.isAfterLast()){
+                Log.i(TAG, "Entered reinstateMap loop");
+                mLastLocation = mLocationCursor.getLocation();
+                latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                mPoints.add(latLng);
+                mBounds = mBounds.including(latLng);
+                if (mLocationCursor.isLast()){
+                    mEndMarkerOptions.position(latLng);
+                }
+                mLocationCursor.moveToNext();
+            }
+            mPolyline.setPoints(mPoints);
+        } else {
+            Log.i(TAG, "Cursor is equal in size to existing mPoints");
+        }
+        //Now that we've fixed the position of mEndMarker, add it to the map.
+        mEndMarker = mGoogleMap.addMarker(mEndMarkerOptions);
+        //Set the camera according to the View Mode selected and the zoom level last set for the
+        //FOLLOW_END_POINT and FOLLOW_START_POINT modes.
+        CameraUpdate movement;
+        //Set the camera over the center of a map Bounds large enough to take in all the
+        //points in mPolyline. First, get the size of the display
         Display display = getActivity().getWindowManager().getDefaultDisplay();
         Point point = new Point();
         display.getSize(point);
-        mBounds = latLngBuilder.build();
-        //Construct a movement instruction for the map camera based upon the bounding box we set.
-        //with 110 pixels of padding, enough to ensure that markers at the top of the map will be
-        //displayed.
-        CameraUpdate movement = CameraUpdateFactory.newLatLngBounds(mBounds,
+        //Place the Bounds so that it takes up the whole screen with a 110 pixel pad at the
+        //edges. The map hasn't been rendered yet, so we need to tell it about the display
+        //size.
+        movement = CameraUpdateFactory.newLatLngBounds(mBounds,
                 point.x, point.y, 110);
         //Move the camera to set the map within the bounds we set.
         mGoogleMap.animateCamera(movement);
-        //Finally, initialize the widgets that appear on this fragment.
+        //Finally, initialize the widgets that qppear on this fragment
         setupWidgets();
     }
 
