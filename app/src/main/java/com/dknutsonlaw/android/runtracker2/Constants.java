@@ -90,6 +90,7 @@ final class Constants {
             "com.dknutsonlaw.androoid.runtracker2.adapter.item.count";
     //Label used to pass ID of run to use in a new instance of RunFragment
     public static final String ARG_RUN_ID = "RUN_ID";
+    public static final String MAP_BOUNDS = "map_bounds";
     //Labels for columns in the Location table
     public static final String COLUMN_LOCATION_ALTITUDE = "altitude";
     public static final String COLUMN_LOCATION_LATITUDE = "latitude";
@@ -117,6 +118,7 @@ final class Constants {
     //and vice-versa
     public static final String EXTRA_SORT_ORDER = "com.dknutsonlaw.android.runtracker2.sort_order";
     public static final String LAST_LOCATION = "last_location";
+    public static final String LATLNG_LIST = "latlng_list";
     //Label used to communicate a location parameter in an Intent or a Bundle
     public static final String PARAM_LOCATION =
             "com.dknutsonlaw.android.runtracker.param.location";

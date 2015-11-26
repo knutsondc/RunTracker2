@@ -7,6 +7,12 @@ package com.dknutsonlaw.android.runtracker2;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+
 /**
  * Created by dck on 1/15/15.
  *

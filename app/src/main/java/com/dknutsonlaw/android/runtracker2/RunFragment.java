@@ -41,9 +41,13 @@ import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -56,6 +60,8 @@ public class RunFragment extends Fragment {
     private static final String TAG = "RunFragment";
 
     private RunManager mRunManager;
+    private BoundsHolder mBoundsHolder;
+    private PointsHolder mPointsHolder;
     private Run mRun;
     private long mRunId;
     private Location mStartLocation, mLastLocation = null;
@@ -79,6 +85,9 @@ public class RunFragment extends Fragment {
     private ResultsReceiver mResultsReceiver;
     //Set up Service Connection for BackgroundLocationService
     private BackgroundLocationService mLocationService;
+    public ArrayList<LatLng> mPoints = new ArrayList<>();
+    private LatLngBounds mBounds = null;
+    private LatLngBounds.Builder mBuilder = new LatLngBounds.Builder();
     boolean mIsBound = false;
     boolean mStarted, mIsTrackingThisRun, mMapButtonEnabled = false;
     private ServiceConnection mLocationServiceConnection = new ServiceConnection() {
@@ -124,6 +133,8 @@ public class RunFragment extends Fragment {
         out.putBoolean(Constants.TRACKING, mStarted);
         out.putParcelable(Constants.STARTING_LOCATION, mStartLocation);
         out.putParcelable(Constants.LAST_LOCATION, mLastLocation);
+        out.putParcelableArrayList(Constants.LATLNG_LIST, mPoints);
+        out.putParcelable(Constants.MAP_BOUNDS, mBounds);
     }
 
     @Override
@@ -134,6 +145,8 @@ public class RunFragment extends Fragment {
         //setRetainInstance(true);
         setHasOptionsMenu(true);
         mRunManager = RunManager.get(getActivity());
+        mBoundsHolder = BoundsHolder.get(getActivity());
+        mPointsHolder = PointsHolder.get(getActivity());
 
         if (NavUtils.getParentActivityName(getActivity()) != null && ((AppCompatActivity)getActivity()).getSupportActionBar() != null) {
             ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -146,6 +159,35 @@ public class RunFragment extends Fragment {
             mStarted = savedInstanceState.getBoolean(Constants.TRACKING);
             mStartLocation = savedInstanceState.getParcelable(Constants.STARTING_LOCATION);
             mLastLocation = savedInstanceState.getParcelable(Constants.LAST_LOCATION);
+            mPoints = savedInstanceState.getParcelableArrayList(Constants.LATLNG_LIST);
+            mBounds = savedInstanceState.getParcelable(Constants.MAP_BOUNDS);
+        } else {
+            Bundle args = getArguments();
+            if (args != null) {
+                long runId = args.getLong(Constants.ARG_RUN_ID, -1);
+                Log.i(TAG, "onCreate() runId is " + runId);
+                //If the run already has an id, it will have database records associated with it that
+                //need to be loaded using Loaders.
+                if (runId != -1) {
+                    mRunId = runId;
+                    mRun = mRunManager.getRun(mRunId);
+                    Log.i(TAG, "mRunId is " + mRunId);
+                }
+            }
+            RunDatabaseHelper.LocationCursor locationCursor = mRunManager.queryLocationsForRun(mRunId);
+            Location location;
+            LatLng latLng;
+            locationCursor.moveToFirst();
+            while (!locationCursor.isAfterLast()){
+                location = locationCursor.getLocation();
+                latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                mPoints.add(latLng);
+                mBuilder.include(latLng);
+                locationCursor.moveToNext();
+            }
+            if (mPoints.size() > 0) {
+                mBounds = mBuilder.build();
+            }
         }
         //Set up Broadcast Receiver to get reports of results from TrackingLocationIntentService
         //First set up the IntentFilter for the Receiver so it will receive the Intents intended for it
@@ -155,19 +197,6 @@ public class RunFragment extends Fragment {
         //Register the IntentFilter and ResultsReceiver with the LocalBroadcastManager
         //LocalBroadcastManager broadcastManager = LocalBroadcastManager.getInstance((AppCompatActivity)getActivity());
         //broadcastManager.registerReceiver(mResultsReceiver, mResultsFilter);
-        Bundle args = getArguments();
-        if (args != null) {
-            long runId = args.getLong(Constants.ARG_RUN_ID, -1);
-            Log.i(TAG, "onCreate() runId is " + runId);
-            //If the run already has an id, it will have database records associated with it that
-            //need to be loaded using Loaders.
-            if (runId != -1) {
-                mRunId = runId;
-                mRun = mRunManager.getRun(mRunId);
-                Log.i(TAG, "mRunId is " + mRunId);
-            }
-        }
-
     }
 
     @Override
@@ -416,6 +445,15 @@ public class RunFragment extends Fragment {
                     mStartingAddressTextView.setText(mRun.getStartAddress());
                     //Log.i(TAG, "New Starting Address for Run " + mRun.getId() + " is "  + mStartingAddressTextView.getText());
                     //Log.i(TAG, "In updateUI() at end of section concerning mStartLocation. mRunId is " +  mRunId);
+                    //If we get here, mBounds should be null, but better to check. Put the starting location into the LatLngBounds
+                    //Builder and later, when at least one additional location has also been included, build mBounds.
+                    if (mBounds == null){
+                        mBuilder.include(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
+                    }
+                    if (mPoints.size() == 0){
+                        mPoints.add(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
+                    }
+
                 } else {
                     Log.i(TAG, "getStartLocationForRun returned null for Run " + mRun.getId());
                 }
@@ -467,9 +505,20 @@ public class RunFragment extends Fragment {
                 //Log.i(TAG, "New Ending Date for Run " + mRun.getId() + " is " + mEndedTextView.getText());
                 mEndingAddressTextView.setText(mRun.getEndAddress());
                 //Log.i(TAG, "New Ending Address for Run " + mRun.getId() + " is " + mEndingAddressTextView.getText());
+                //If mBounds hasn't been initialized yet, add this location to the Builder and create
+                //mBounds. If mBounds has been created, simply add this point to it.
+                if (mBounds == null) {
+                    mBuilder.include(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                    mBounds = mBuilder.build();
+                } else {
+                    mBounds.including(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                }
+                mPoints.add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
             }
 
         }
+        mBoundsHolder.save(mRunId, mBounds);
+        mPointsHolder.save(mRunId, mPoints);
         //If we have at least one location in addition to the mStartLocation, we can make a map, so
         //enable the map button
         //boolean enableMapButton = (mLastLocation == null) ? false : true;
