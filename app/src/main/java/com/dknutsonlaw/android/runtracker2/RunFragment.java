@@ -11,6 +11,7 @@ import android.content.DialogInterface;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.app.FragmentTransaction;
@@ -174,29 +175,17 @@ public class RunFragment extends Fragment {
                     Log.i(TAG, "mRunId is " + mRunId);
                 }
             }
+            //Load a cursor with all the locations for this Run and hand it to an AsyncTask to initialize
+            //the LatLngBounds and List<LatLng> we're going to store for the RunMapFragment to use.
             RunDatabaseHelper.LocationCursor locationCursor = mRunManager.queryLocationsForRun(mRunId);
-            Location location;
-            LatLng latLng;
-            locationCursor.moveToFirst();
-            while (!locationCursor.isAfterLast()){
-                location = locationCursor.getLocation();
-                latLng = new LatLng(location.getLatitude(), location.getLongitude());
-                mPoints.add(latLng);
-                mBuilder.include(latLng);
-                locationCursor.moveToNext();
-            }
-            if (mPoints.size() > 0) {
-                mBounds = mBuilder.build();
-            }
+            LoadPointsAndBounds initTask = new LoadPointsAndBounds(locationCursor);
+            initTask.execute();
         }
         //Set up Broadcast Receiver to get reports of results from TrackingLocationIntentService
         //First set up the IntentFilter for the Receiver so it will receive the Intents intended for it
         mResultsFilter = new IntentFilter(Constants.SEND_RESULT_ACTION);
         //Now instantiate the Broadcast Receiver
         mResultsReceiver = new ResultsReceiver();
-        //Register the IntentFilter and ResultsReceiver with the LocalBroadcastManager
-        //LocalBroadcastManager broadcastManager = LocalBroadcastManager.getInstance((AppCompatActivity)getActivity());
-        //broadcastManager.registerReceiver(mResultsReceiver, mResultsFilter);
     }
 
     @Override
@@ -910,5 +899,31 @@ public class RunFragment extends Fragment {
             }
         }
 
+    }
+    //Simple AsyncTask to load the locations for this Run into a LatLngBounds and a List<LatLng> for
+    //the use of the RunMapFragment for this RunId
+    private class LoadPointsAndBounds extends AsyncTask<Void, Void, Void>{
+        private RunDatabaseHelper.LocationCursor mCursor;
+
+        public LoadPointsAndBounds(RunDatabaseHelper.LocationCursor cursor){
+            mCursor = cursor;
+        }
+        @Override
+        protected Void doInBackground(Void... params){
+            Location location;
+            LatLng latLng;
+            mCursor.moveToFirst();
+            while (!mCursor.isAfterLast()) {
+                location = mCursor.getLocation();
+                latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                mPoints.add(latLng);
+                mBuilder.include(latLng);
+                mCursor.moveToNext();
+            }
+            if (mPoints.size() > 0){
+                mBounds = mBuilder.build();
+            }
+            return null;
+        }
     }
 }
