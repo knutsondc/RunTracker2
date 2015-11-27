@@ -426,7 +426,13 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                         //Report results to the user upon successful deletions and reset the Adapter,
                         //Subtitle and Loader.
                     } else {
-                        //Use the position in the ViewPager held by the Run we just deleted to select
+                        //Trying to delete the last Run from this Activity after having deleted other
+                        //Runs results in a problem: mRunId remains set to the last previous Run that
+                        //was deleted, so we get an error for trying to delete a Run that's already
+                        //been deleted. Thus, we need some technique to set a valid RunId for the
+                        //new current view after deleting a Run.
+
+                        //We use the position in the ViewPager held by the Run we just deleted to select
                         //what RunId should be after the deletion. If the ViewPager held only one
                         //child view before the deletion, we know we just deleted the last Run so we
                         //can just finish this activity and go back to RunRecyclerView
@@ -437,11 +443,13 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                         //current view item to the view that's in the next higher position in the
                         //ViewPager unless we were already at the highest position, in which case
                         //set the ViewPager's current view item to the view that's in the next lower
-                        //position in the ViewPager
+                        //position in the ViewPager.
                         } else {
                             int currentPosition = mViewPager.getCurrentItem();
                             Log.i(TAG, "In ResultsReceiver, currentPosition is " + currentPosition + " and getChildCount() is " + mViewPager.getChildCount());
-
+                            //Get the fragment associated with the child view we're going to move
+                            //to and get its RunId from the arguments that were attached to the
+                            //fragment when it was created. Is there a better way to do this?
                             if (currentPosition < mViewPager.getChildCount() - 1) {
                                 int index = currentPosition + 1;
                                 mViewPager.setCurrentItem(index);
