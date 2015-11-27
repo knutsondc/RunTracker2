@@ -352,6 +352,7 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
 
     //Method to delete one specified Run and all its associated Location entries.
     public int[] deleteRun(Context context, long runId){
+        Log.i(TAG, "In RunDataBaseHelper deleteRun(), runId is " + runId);
         RunManager runManager = RunManager.get(context);
 
         int[] result = {-1, -1};
@@ -362,6 +363,7 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
                     Constants.COLUMN_LOCATION_RUN_ID + " = ?",//Limit to this Run
                     new String[]{String.valueOf(runId)}
             );
+            Log.i(TAG, locationsDeleted + " locations deleted for Run " + runId + " in RunDataBaseHelper.DeleteRun()");
             switch (locationsDeleted) {
                 case Constants.DELETION_ERROR:
                     //Upon error in deleting Locations, stop the delete operation and
@@ -371,7 +373,7 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
                     //return result;
                     break;
                 case 0:
-                    //This isn't an error; a Run without associated Location entries can
+                    //This isn't necessarily an error; a Run without associated Location entries can
                     //exist, such as when the user stops tracking a Run before GPS lock
                     //and reporting of Locations. If this is the first run through the
                     //for loop, result[LOCATION_DELETIONS] will be -1, signifying an error,
