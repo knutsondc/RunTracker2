@@ -1,6 +1,5 @@
 package com.dknutsonlaw.android.runtracker2;
 
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -9,13 +8,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
-import android.graphics.Point;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.view.Display;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -42,8 +39,8 @@ public class RunManager {
     private static RunManager sRunManager;
     //mAppContext is public so that TrackingLocationIntentService can access it
     public final Context mAppContext;
-    private static Map<Long, WeakReference<LatLngBounds>> sBoundsMap = new HashMap<>();
-    private static Map<Long, WeakReference<List<LatLng>>> sPointsMap = new HashMap<>();
+    private static final Map<Long, WeakReference<LatLngBounds>> sBoundsMap = new HashMap<>();
+    private static final Map<Long, WeakReference<List<LatLng>>> sPointsMap = new HashMap<>();
     private final NotificationManager mNotificationManager;
     //Handle for the recurring task of updating Ending Addresses; needed so task can be cancelled
     //when we're not tracking runs
@@ -82,7 +79,7 @@ public class RunManager {
 
     //public void startTrackingRun(Run run) {
     public void startTrackingRun(long runId){
-        //Location updates get started from the RunFragment by starting the BackgroundLoactionService
+        //Location updates get started from the RunFragment by starting the BackgroundLocationService
         //and instructing it to start supplying the updates. This method handles the other
         //housekeeping associated with starting to track a run.
         //We get here from the RunFragment's Start Button.
@@ -176,7 +173,7 @@ public class RunManager {
     }
     //Invoke various methods to update the database by invoking the Intent service, thereby
     //taking those tasks off the main, UI thread.
-    public void updateRunStartDate(Run run, Location location) {
+    public void updateRunStartDate(Run run) {
         TrackingLocationIntentService.startActionUpdateStartDate(mAppContext, run);
     }
 
@@ -287,7 +284,7 @@ public class RunManager {
     }
 
     public void saveBounds(Long runId, LatLngBounds bounds){
-        sBoundsMap.put(runId, new WeakReference<LatLngBounds>(bounds));
+        sBoundsMap.put(runId, new WeakReference<>(bounds));
     }
 
     public LatLngBounds retrieveBounds(Long runId){
@@ -296,7 +293,7 @@ public class RunManager {
     }
 
     public void savePoints(Long runId, List<LatLng> points){
-        sPointsMap.put(runId, new WeakReference<List<LatLng>>(points));
+        sPointsMap.put(runId, new WeakReference<>(points));
     }
 
     public List<LatLng> retrievePoints(Long runId){
@@ -351,7 +348,7 @@ public class RunManager {
             Log.i(TAG, "Address is lastlocation_null");
             return true;
         } else if (address.compareToIgnoreCase(r.getString(R.string.get_address_function_unavailable)) == 0){
-            Log.i(TAG, "Address is get_address_functiion_unavailable");
+            Log.i(TAG, "Address is get_address_function_unavailable");
             return true;
         } else {
             Log.i(TAG, "Address is good");

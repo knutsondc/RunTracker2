@@ -12,7 +12,7 @@
             android:paddingRight="5sp"
             android:paddingEnd="5sp"
             android:text="@string/run_fragment_started"
-            tools:ignore="RtlSymmetry"/>
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
         <TextView android:id="@+id/run_startedTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -37,7 +37,7 @@
             android:paddingRight="5sp"
             android:paddingEnd="5sp"
             android:text="@string/starting_latitude"
-            tools:ignore="RtlSymmetry"/>
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
         <TextView android:id="@+id/run_starting_latitudeTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -62,7 +62,7 @@
             android:paddingRight="5sp"
             android:paddingEnd="5sp"
             android:text="@string/starting_altitude"
-            tools:ignore="RtlSymmetry"/>
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
         <TextView android:id="@+id/run__starting_altitudeTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -76,26 +76,29 @@
         style="?android:attr/buttonBarStyle"
         -->
         <Button android:id="@+id/run_startButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/start"/>
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/start"
+                tools:ignore="ButtonStyle"/>
         <!--
         style="?android:attr/buttonBarButtonStyle"
         -->
         <Button android:id="@+id/run_stopButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/stop"/>
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/stop"
+                tools:ignore="ButtonStyle"/>
         <!--
         style="?android:attr/buttonBarButtonStyle"
         -->
         <Button android:id="@+id/run_mapButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/map"/>
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/map"
+                tools:ignore="ButtonStyle"/>
         <!--
         style="?android:attr/buttonBarButtonStyle"
         -->
@@ -108,7 +111,7 @@
             android:paddingRight="5sp"
             android:paddingEnd="5sp"
             android:text="@string/run_fragment_ended"
-            tools:ignore="RtlSymmetry"/>
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
         <TextView
             android:id="@+id/run_endedTextView"
             android:layout_width="wrap_content"
@@ -134,7 +137,7 @@
             android:paddingRight="5sp"
             android:paddingEnd="5sp"
             android:text="@string/ending_latitude"
-            tools:ignore="RtlSymmetry"/>
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
         <TextView android:id="@+id/run_ending_latitudeTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -159,7 +162,7 @@
             android:paddingRight="5sp"
             android:paddingEnd="5sp"
             android:text="@string/ending_altitude"
-            tools:ignore="RtlSymmetry"/>
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
         <TextView android:id="@+id/run__ending_altitudeTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -173,7 +176,7 @@
             android:paddingRight="5sp"
             android:paddingEnd="5sp"
             android:text="@string/elapsed_time"
-            tools:ignore="RtlSymmetry"/>
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
         <TextView android:id="@+id/run_durationTextView"
                   android:layout_width="fill_parent"
                   android:layout_height="wrap_content"
@@ -188,7 +191,7 @@
             android:paddingRight="5sp"
             android:paddingEnd="5sp"
             android:text="@string/distance_covered"
-            tools:ignore="RtlSymmetry"/>
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
         <TextView android:id="@+id/distance_coveredTextView"
                   android:layout_width="fill_parent"
                   android:layout_height="wrap_content"

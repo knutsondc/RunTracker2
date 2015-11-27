@@ -87,7 +87,7 @@ final class Constants {
     //Label for saving adapter item count to SharedPreferences and in savedInstanceState
     //Bundles
     public static final String ADAPTER_ITEM_COUNT =
-            "com.dknutsonlaw.androoid.runtracker2.adapter.item.count";
+            "com.dknutsonlaw.android.runtracker2.adapter.item.count";
     //Label used to pass ID of run to use in a new instance of RunFragment
     public static final String ARG_RUN_ID = "RUN_ID";
     public static final String MAP_BOUNDS = "map_bounds";
@@ -107,7 +107,6 @@ final class Constants {
     public static final String COLUMN_RUN_START_DATE = "start_date";
     //Label for name of database
     public static final String DB_NAME = "runs.sqlite";
-    public static final String ENDING_ADDRESS = "ending_address";
     //Label used to pass along extra info about results of TrackingLocationIntentService operation
     public static final String EXTENDED_RESULTS_DATA =
             "com.dknutsonlaw.android.runtracker.extended.results.data";
@@ -133,10 +132,9 @@ final class Constants {
     public static final String PREFS_FILE = "runs";
     //Label used to identify run id retrieved from SystemPreferences
     public static final String SAVED_RUN_ID = "com.dknutsonlaw.com.android.runtracker2.saved_run_id";
-    //Label used to communicaate results of TrackingLocationIntentService operations in response Intents
+    //Label used to communicate results of TrackingLocationIntentService operations in response Intents
     public static final String SEND_RESULT_ACTION =
             "com.dknutsonlaw.android.runtracker.send.result.action";
-    public static final String STARTING_ADDRESS = "starting_address";
     public static final String STARTING_LOCATION = "starting_location";
     //Label used to store and retrieve the run sort order in Intents and Bundles
     public static final String SORT_ORDER = "sort";

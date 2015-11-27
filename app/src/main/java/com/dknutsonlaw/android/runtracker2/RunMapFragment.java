@@ -40,7 +40,6 @@ import com.google.android.gms.maps.model.Polyline;
 
 import com.google.android.gms.maps.model.PolylineOptions;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class RunMapFragment extends SupportMapFragment implements LoaderManager.LoaderCallbacks<Cursor>{
@@ -53,13 +52,10 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
     private static RunMapFragment sRunMapFragment;
     private GoogleMap mGoogleMap;
     private RunDatabaseHelper.LocationCursor mLocationCursor;
-    private PolylineOptions mLine;
     private Polyline mPolyline;
     private List<LatLng> mPoints;
     private LatLngBounds mBounds;
-    private MarkerOptions mStartMarkerOptions, mEndMarkerOptions;
     private Marker mEndMarker;
-    private TextView mStartDateTextView;
     private TextView mEndDateTextView;
     private TextView mDistanceTextView;
     private TextView mDurationTextView;
@@ -379,14 +375,14 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 return layout;
             }
         });
-        mLine = new PolylineOptions();
+        PolylineOptions line = new PolylineOptions();
         //mPoints is the List of LatLngs used to create mPolyline. If mPoints represents all the
         //location data we've collected, use the last element of mPoints to set the position of
         //mEndMarker.
-        mLine.addAll(mPoints);
+        line.addAll(mPoints);
         //Create mPolyline using the List of LatLngs RunFragment stored for us in the singleton
         //class rather than reading them in again from the database.
-        mPolyline = mGoogleMap.addPolyline(mLine);
+        mPolyline = mGoogleMap.addPolyline(line);
         //We need to use the LocationCursor for the map markers  because we need time data.
         mLocationCursor.moveToFirst();
         mStartLocation = mLocationCursor.getLocation();
@@ -399,13 +395,13 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         //The starting marker doesn't need to be updated, so we don't even need to keep
         //the return value from the call to mGoogleMap.addMarker(). Note we can use the
         //first element of mPoints to set the position.
-        mStartMarkerOptions = new MarkerOptions()
+        MarkerOptions startMarkerOptions = new MarkerOptions()
                 .position(mPoints.get(0))
                 .title(r.getString(R.string.run_start))
                 .snippet(mStartDate + "\n" + snippetAddress)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                 .flat(false);
-        mGoogleMap.addMarker(mStartMarkerOptions);
+        mGoogleMap.addMarker(startMarkerOptions);
         mLocationCursor.moveToLast();
         mLastLocation = mLocationCursor.getLocation();
         String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
@@ -414,7 +410,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         snippetAddress = mRunManager.getAddress(latLng);
         //We use the default red icon for the EndMarker. We need to keep a reference to it because
         //it will be updated as the Run progresses
-        mEndMarkerOptions = new MarkerOptions()
+        MarkerOptions endMarkerOptions = new MarkerOptions()
                 .position(latLng)
                 .title(r.getString(R.string.run_finish))
                 .snippet(endDate + "\n" + snippetAddress)
@@ -437,7 +433,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 mPoints.add(latLng);
                 mBounds = mBounds.including(latLng);
                 if (mLocationCursor.isLast()){
-                    mEndMarkerOptions.position(latLng);
+                    endMarkerOptions.position(latLng);
                 }
                 mLocationCursor.moveToNext();
             }
@@ -446,7 +442,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
             Log.i(TAG, "Cursor is equal in size to existing mPoints");
         }
         //Now that we've fixed the position of mEndMarker, add it to the map.
-        mEndMarker = mGoogleMap.addMarker(mEndMarkerOptions);
+        mEndMarker = mGoogleMap.addMarker(endMarkerOptions);
         //Set the camera according to the View Mode selected and the zoom level last set for the
         //FOLLOW_END_POINT and FOLLOW_START_POINT modes.
         CameraUpdate movement;
@@ -462,7 +458,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 point.x, point.y, 110);
         //Move the camera to set the map within the bounds we set.
         mGoogleMap.animateCamera(movement);
-        //Finally, initialize the widgets that qppear on this fragment
+        //Finally, initialize the widgets that appear on this fragment
         setupWidgets();
     }
 
@@ -522,8 +518,8 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
             }
         });
 
-        mStartDateTextView = (TextView) getActivity().findViewById(R.id.startDateTextView);
-        mStartDateTextView.setText(getString(R.string.started, mStartDate));
+        TextView startDateTextView = (TextView) getActivity().findViewById(R.id.startDateTextView);
+        startDateTextView.setText(getString(R.string.started, mStartDate));
         mEndDateTextView = (TextView) getActivity().findViewById(R.id.endDateTextView);
         if (mLastLocation != null) {
             mEndDateTextView.setText(getString(R.string.ended,
@@ -549,7 +545,6 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
             @Override
             public boolean onMarkerClick(Marker marker) {
                 if (marker.equals(mEndMarker)) {
-                    Resources r = getResources();
                     String endDate = "";
                     if (mRunManager.getLastLocationForRun(mRunId) != null) {
                         endDate = Constants.DATE_FORMAT.format(

@@ -11,7 +11,8 @@
         android:layout_marginTop="@dimen/activity_vertical_margin"
         android:layout_marginStart="@dimen/activity_horizontal_margin"
         android:layout_marginLeft="@dimen/activity_horizontal_margin"
-        style="@android:style/TextAppearance.Medium"/>
+        style="@android:style/TextAppearance.Medium"
+        tools:ignore="RtlHardcoded"/>
     <LinearLayout
         android:id="@+id/list_item_start_layout"
         android:layout_width="wrap_content"
@@ -19,7 +20,8 @@
         android:orientation="horizontal"
         android:layout_marginStart="@dimen/activity_horizontal_margin"
         android:layout_marginLeft="@dimen/activity_horizontal_margin"
-        android:layout_below="@id/list_item_date_textview">
+        android:layout_below="@id/list_item_date_textview"
+        tools:ignore="RtlHardcoded">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -41,7 +43,8 @@
         style="@android:style/TextAppearance.Medium"
         android:layout_below="@id/list_item_start_layout"
         android:layout_marginStart="@dimen/activity_horizontal_margin"
-        android:layout_marginLeft="@dimen/activity_horizontal_margin"/>
+        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+        tools:ignore="RtlHardcoded"/>
     <TextView
         android:id="@+id/list_item_duration_textview"
         android:layout_width="match_parent"
@@ -49,7 +52,8 @@
         style="@android:style/TextAppearance.Medium"
         android:layout_below="@id/list_item_distance_textview"
         android:layout_marginStart="@dimen/activity_horizontal_margin"
-        android:layout_marginLeft="@dimen/activity_horizontal_margin"/>
+        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+        tools:ignore="RtlHardcoded"/>
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -57,7 +61,8 @@
         android:layout_marginBottom="@dimen/activity_vertical_margin"
         android:layout_below="@id/list_item_duration_textview"
         android:layout_marginStart="@dimen/activity_horizontal_margin"
-        android:layout_marginLeft="@dimen/activity_horizontal_margin">
+        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+        tools:ignore="RtlHardcoded">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

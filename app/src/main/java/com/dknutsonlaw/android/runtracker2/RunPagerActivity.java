@@ -12,7 +12,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v4.content.LocalBroadcastManager;
@@ -123,7 +122,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         getSupportLoaderManager().initLoader(Constants.RUN_LIST_LOADER, args, this);
     }
 
-    public Bundle setupAdapterLoaderAndSubtitle(){
+    private Bundle setupAdapterLoaderAndSubtitle(){
         //Set up the Adapter, Loader and Subtitle by constructing the initial data cursor based upon
         //the selected sort order
         Resources r = getResources();
@@ -418,65 +417,69 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         public void onReceive(Context context, Intent intent){
             String action = intent.getAction();
             Log.i(TAG, "Action in ResultsReceiver is " + action);
-            if (action.equals(Constants.SEND_RESULT_ACTION)){
-                Log.i(TAG, "RunPagerActivity action is SEND_RESULT_ACTION");
-                String actionAttempted = intent.getStringExtra(Constants.ACTION_ATTEMPTED);
-                Log.i(TAG, "actionAttempted is " + actionAttempted);
-                if (actionAttempted.equals(Constants.ACTION_INSERT_RUN)){
-                    Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
-                    if (run.getId() != -1) {
-                        //Now that the new Run has been added to the database, we need to tell the
-                        //adapter that its update has been completed and its dataset changed.
-                        mRunId = run.getId();
-                        setupAdapterLoaderAndSubtitle();
+            switch (action) {
+                case Constants.SEND_RESULT_ACTION:
+                    Log.i(TAG, "RunPagerActivity action is SEND_RESULT_ACTION");
+                    String actionAttempted = intent.getStringExtra(Constants.ACTION_ATTEMPTED);
+                    Log.i(TAG, "actionAttempted is " + actionAttempted);
+                    if (actionAttempted.equals(Constants.ACTION_INSERT_RUN)) {
+                        Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
+                        if (run.getId() != -1) {
+                            //Now that the new Run has been added to the database, we need to tell the
+                            //adapter that its update has been completed and its dataset changed.
+                            mRunId = run.getId();
+                            setupAdapterLoaderAndSubtitle();
+                        } else {
+                            Toast.makeText(RunPagerActivity.this, R.string.insert_run_error,
+                                    Toast.LENGTH_LONG).show();
+                        }
+                        //mViewPager.getAdapter().finishUpdate(mViewPager);
+                        //mViewPager.getAdapter().notifyDataSetChanged();
+                        Log.i(TAG, "in ResultsReceiver on Insert Run, Runs in adapter: " + mViewPager.getAdapter().getCount());
+                    } //ViewPager isn't interested in any other ACTION_ATTEMPTED, so no "else" clauses
+                    //specifying what to do with them needed.
+                    break;
+                case Constants.ACTION_DELETE_RUN:
+                    Log.i(TAG, "RunPagerActivity action is ACTION_DELETE_RUN");
+                    //RunDataBaseHelper's deleteRun() function returns to the IntentService
+                    //an int[] with two members,the number of Locations deleted as element 0
+                    //(LOCATION_DELETIONS) and the number of Runs deleted as element 1 (RUN_DELETIONS).
+                    //That array is passed along here for display to the user.
+                    int[] results =
+                            intent.getIntArrayExtra(Constants.EXTENDED_RESULTS_DATA);
+                    //The getWritableDatabase().delete() method returns the number of rows affected upon
+                    //success and -1 upon error. Check if either result returned is an error.
+                    if (results[Constants.RUN_DELETIONS] == -1 ||
+                            results[Constants.LOCATION_DELETIONS] == -1) {
+                        //Tell the user if there was an error deleting a Run entry.
+                        if (results[Constants.RUN_DELETIONS] == -1) {
+                            Toast.makeText(RunPagerActivity.this, R.string.delete_run_error,
+                                    Toast.LENGTH_LONG).show();
+                        }
+                        //Tell the user if there was an error deleting a Location entry.
+                        if (results[Constants.LOCATION_DELETIONS] == -1) {
+                            Toast.makeText(RunPagerActivity.this, R.string.delete_locations_error,
+                                    Toast.LENGTH_LONG).show();
+                        }
+                        //Report results to the user upon successful deletions.
                     } else {
-                        Toast.makeText(RunPagerActivity.this, R.string.insert_run_error,
-                                Toast.LENGTH_LONG).show();
-                    }
-                    //mViewPager.getAdapter().finishUpdate(mViewPager);
-                    //mViewPager.getAdapter().notifyDataSetChanged();
-                    Log.i(TAG, "in ResultsReceiver on Insert Run, Runs in adapter: " + mViewPager.getAdapter().getCount());
-                } //ViewPager isn't interested in any other ACTION_ATTEMPTED, so no "else" clauses
-                  //specifying what to do with them needed.
-            } else if (action.equals(Constants.ACTION_DELETE_RUN)){
-                Log.i(TAG, "RunPagerActivity action is ACTION_DELETE_RUN");
-                //RunDataBaseHelper's deleteRun() function returns to the IntentService
-                //an int[] with two members,the number of Locations deleted as element 0
-                //(LOCATION_DELETIONS) and the number of Runs deleted as element 1 (RUN_DELETIONS).
-                //That array is passed along here for display to the user.
-                int [] results =
-                        intent.getIntArrayExtra(Constants.EXTENDED_RESULTS_DATA);
-                //The getWritableDatabase().delete() method returns the number of rows affected upon
-                //success and -1 upon error. Check if either result returned is an error.
-                if (results[Constants.RUN_DELETIONS] == -1 ||
-                        results[Constants.LOCATION_DELETIONS] == -1) {
-                    //Tell the user if there was an error deleting a Run entry.
-                    if (results[Constants.RUN_DELETIONS] == -1) {
-                        Toast.makeText(RunPagerActivity.this, R.string.delete_run_error,
-                                Toast.LENGTH_LONG).show();
-                    }
-                    //Tell the user if there was an error deleting a Location entry.
-                    if (results[Constants.LOCATION_DELETIONS] == -1) {
-                        Toast.makeText(RunPagerActivity.this, R.string.delete_locations_error,
-                                Toast.LENGTH_LONG).show();
-                    }
-                    //Report results to the user upon successful deletions.
-                } else {
-                    setupAdapterLoaderAndSubtitle();
-                    Resources r = getResources();
+                        setupAdapterLoaderAndSubtitle();
+                        Resources r = getResources();
 
-                    Toast.makeText(RunPagerActivity.this, r.getQuantityString(R.plurals.runs_deletion_results,
-                                    results[Constants.RUN_DELETIONS],
-                                    results[Constants.RUN_DELETIONS],
-                                    results[Constants.LOCATION_DELETIONS]),
-                            Toast.LENGTH_LONG).show();
-                }
+                        Toast.makeText(RunPagerActivity.this, r.getQuantityString(R.plurals.runs_deletion_results,
+                                results[Constants.RUN_DELETIONS],
+                                results[Constants.RUN_DELETIONS],
+                                results[Constants.LOCATION_DELETIONS]),
+                                Toast.LENGTH_LONG).show();
+                    }
 
-                Log.i(TAG, "In ResultsReceiver ACTION_RUN_DELETE, Runs in adapter: " + mViewPager.getAdapter().getCount());
-            } else {
-                //Shouldn't ever get here - intent filter limits us to SEND_RESULT_ACTION
-                //and ACTION_DELETE_RUN
-                Log.i(TAG, "Intent Action wasn't SEND_RESULT_ACTION or ACTION_DELETE_RUN");
+                    Log.i(TAG, "In ResultsReceiver ACTION_RUN_DELETE, Runs in adapter: " + mViewPager.getAdapter().getCount());
+                    break;
+                default:
+                    //Shouldn't ever get here - intent filter limits us to SEND_RESULT_ACTION
+                    //and ACTION_DELETE_RUN
+                    Log.i(TAG, "Intent Action wasn't SEND_RESULT_ACTION or ACTION_DELETE_RUN");
+                    break;
             }
         }
     }

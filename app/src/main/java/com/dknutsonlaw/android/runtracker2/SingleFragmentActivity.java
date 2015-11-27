@@ -1,6 +1,5 @@
 package com.dknutsonlaw.android.runtracker2;
 
-import android.*;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
@@ -8,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
@@ -69,7 +69,7 @@ import android.util.Log;
     }
     @TargetApi(Build.VERSION_CODES.M)
     @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults){
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults){
         switch (requestCode){
             case PERMISSION_REQUEST_FINE_LOCATION:{
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED){
@@ -87,7 +87,6 @@ import android.util.Log;
                     });
                     builder.show();
                 }
-                return;
             }
         }
     }

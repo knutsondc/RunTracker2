@@ -245,8 +245,14 @@ public class RunRecyclerListFragment extends Fragment
         //noinspection ConstantConditions
         saveInstanceState.putString(Constants.SUBTITLE,
                 ((AppCompatActivity) getActivity()).getSupportActionBar().getSubtitle().toString());
-        mRunManager.mPrefs.edit().putString(Constants.SUBTITLE,
-                ((AppCompatActivity) getActivity()).getSupportActionBar().getSubtitle().toString());
+        try {
+            //noinspection ConstantConditions,ConstantConditions
+            mRunManager.mPrefs.edit().putString(Constants.SUBTITLE,
+                    ((AppCompatActivity) getActivity()).getSupportActionBar().getSubtitle().toString());
+        } catch (NullPointerException npe){
+            Log.i(TAG, "Couldn't write subtitle to default preferences file - attempt to get SupportActionBar" +
+                    "returned a null pointer");
+        }
         saveInstanceState.putInt(Constants.ADAPTER_ITEM_COUNT, mAdapter.getItemCount());
         mRunManager.mPrefs.edit().putInt(Constants.ADAPTER_ITEM_COUNT, mAdapter.getItemCount());
     }
@@ -323,7 +329,6 @@ public class RunRecyclerListFragment extends Fragment
     }
 
     public boolean onOptionsItemSelected(MenuItem item) {
-        Resources r = getActivity().getResources();
 
         switch (item.getItemId()) {
             case R.id.menu_item_new_run:
@@ -370,7 +375,13 @@ public class RunRecyclerListFragment extends Fragment
         mSortOrder = sortOrder;
         mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, sortOrder).commit();
         setSubtitle();
-        mSubtitle = (String)((AppCompatActivity) getActivity()).getSupportActionBar().getSubtitle();
+        try {
+            //noinspection ConstantConditions
+            mSubtitle = (String) ((AppCompatActivity) getActivity()).getSupportActionBar().getSubtitle();
+        } catch (NullPointerException npe){
+            Log.i(TAG, "Couldn't write new subtitle - attempt to get SupportActionBar returned a " +
+                    "null pointer");
+        }
         mRunManager.mPrefs.edit().putString(Constants.SUBTITLE, mSubtitle).commit();
         args.putInt(Constants.SORT_ORDER, sortOrder);
         getLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
@@ -379,7 +390,6 @@ public class RunRecyclerListFragment extends Fragment
 
     @Override
     public void onResume() {
-        Resources r = getActivity().getResources();
         super.onResume();
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(
                 mResultsReceiver,

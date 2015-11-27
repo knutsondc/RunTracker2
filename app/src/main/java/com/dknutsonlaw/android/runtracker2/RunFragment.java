@@ -1,20 +1,12 @@
 package com.dknutsonlaw.android.runtracker2;
 
-import android.*;
-import android.Manifest;
-import android.app.AlertDialog;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.IBinder;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.Loader;
 import android.support.v4.app.LoaderManager;
 import android.content.Intent;
@@ -36,20 +28,11 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * Created by dck on 9/6/15.
@@ -78,26 +61,26 @@ public class RunFragment extends Fragment {
     //loader for a cursor of each of them so that the loading takes place on a different thread.
     //private final RunLoaderCallbacks mRunLoaderCallbacks = new RunLoaderCallbacks();
     //private final LastLocationLoaderCallbacks mLastLocationLoaderCallbacks = new LastLocationLoaderCallbacks();
-    private RunCursorLoaderCallbacks mRunCursorLoaderCallbacks = new RunCursorLoaderCallbacks();
-    private LastLocationCursorCallbacks mLastLocationCursorCallbacks = new LastLocationCursorCallbacks();
+    private final RunCursorLoaderCallbacks mRunCursorLoaderCallbacks = new RunCursorLoaderCallbacks();
+    private final LastLocationCursorCallbacks mLastLocationCursorCallbacks = new LastLocationCursorCallbacks();
     //Data structures needed to select and receive local broadcast messages sent by the Intent
     //Service
     private IntentFilter mResultsFilter;
     private ResultsReceiver mResultsReceiver;
     //Set up Service Connection for BackgroundLocationService
     private BackgroundLocationService mLocationService;
-    public ArrayList<LatLng> mPoints = new ArrayList<>();
+    private ArrayList<LatLng> mPoints = new ArrayList<>();
     private LatLngBounds mBounds = null;
-    private LatLngBounds.Builder mBuilder = new LatLngBounds.Builder();
-    boolean mIsBound = false;
-    boolean mStarted, mIsTrackingThisRun, mMapButtonEnabled = false;
-    private ServiceConnection mLocationServiceConnection = new ServiceConnection() {
+    private final LatLngBounds.Builder mBuilder = new LatLngBounds.Builder();
+    private boolean mStarted;
+    private boolean mIsTrackingThisRun;
+    private boolean mMapButtonEnabled = false;
+    private final ServiceConnection mLocationServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             BackgroundLocationService.LocalBinder binder =
                     (BackgroundLocationService.LocalBinder)service;
             mLocationService = binder.getService();
-            mIsBound = true;
             //Following is needed when the Activity is destroyed and recreated so that the Fragment
             //in the foreground will have a Run in mRun and thereby present the user with location
             //updates
@@ -109,7 +92,6 @@ public class RunFragment extends Fragment {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            mIsBound = false;
             updateUI();
         }
     };
@@ -150,7 +132,12 @@ public class RunFragment extends Fragment {
         //mPointsHolder = PointsHolder.get(getActivity());
 
         if (NavUtils.getParentActivityName(getActivity()) != null && ((AppCompatActivity)getActivity()).getSupportActionBar() != null) {
-            ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            try {
+                //noinspection ConstantConditions
+                ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            } catch (NullPointerException npe){
+                Log.i(TAG, "Couldn't setDisplayHomeAsUpEnabled(true) - attempt to get SupportActionBar returned a null pointer");
+            }
         }
 
         if (savedInstanceState != null){
@@ -234,7 +221,7 @@ public class RunFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 Log.i(TAG, "Run Id in StartButton is " + mRun.getId());
-                //Start housekeeeping for tracking a run
+                //Start housekeeping for tracking a run
                 mRunManager.startTrackingRun(mRunId);
                 //start BackgroundLocationService so we'll get location updates until we explicitly stop
                 //them, even if this fragment goes away.
@@ -248,7 +235,7 @@ public class RunFragment extends Fragment {
                 Log.i(TAG, "Stop Button Pressed. Run is " + mRunId);
                 //Do housekeeping for stopping tracking a run.
                 mRunManager.stopRun(mRunId);
-                //Use binding to BackgroundLocationservice to stop location updates because simply calling
+                //Use binding to BackgroundLocationService to stop location updates because simply calling
                 //stopService() won't work if any component is still bound to the service.
                 mLocationService.stopLocationUpdates();
                 //Call stopService() so the BackgroundLocationService will stop if nothing is still bound to it.
@@ -317,7 +304,7 @@ public class RunFragment extends Fragment {
         //If we have at least one location in addition to the mStartLocation, we can make a map, so
         //enable the map button
         //boolean enableMapButton = (mLastLocation == null) ? false : true;
-        mMapButtonEnabled = (mLastLocation == null) ? false : true;
+        mMapButtonEnabled = mLastLocation != null;
         //Log.i(TAG, "enableMapButton for Run " + mRun.getId() + " is " + enableMapButton);
         //mMapButton.setEnabled(enableMapButton);
         mMapButton.setEnabled(mMapButtonEnabled);
@@ -346,8 +333,8 @@ public class RunFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
-                Intent runPagerActivityIntent = NavUtils.getParentActivityIntent((AppCompatActivity)getActivity());
-                if (NavUtils.shouldUpRecreateTask((AppCompatActivity)getActivity(), runPagerActivityIntent)) {
+                Intent runPagerActivityIntent = NavUtils.getParentActivityIntent(getActivity());
+                if (NavUtils.shouldUpRecreateTask(getActivity(), runPagerActivityIntent)) {
                     //If no instance of RunPagerActivity can be found in the backstack,
                     //create a new one.
                     Log.d(TAG, "Recreating RunPagerActivity");
@@ -356,13 +343,13 @@ public class RunFragment extends Fragment {
                     return true;
                 }
 
-                if (NavUtils.getParentActivityName((AppCompatActivity)getActivity()) != null) {
+                if (NavUtils.getParentActivityName(getActivity()) != null) {
                     //If we get here, this condition *should* always be true, but better
                     //to check anyway.
                     //noinspection ConstantConditions
                     Log.i(TAG, "onOptionsItemSelected: parent activity name is " +
-                            NavUtils.getParentActivityName((AppCompatActivity)getActivity()));
-                    NavUtils.navigateUpFromSameTask((AppCompatActivity)getActivity());
+                            NavUtils.getParentActivityName(getActivity()));
+                    NavUtils.navigateUpFromSameTask(getActivity());
                     return true;
                 }
             default:
@@ -372,7 +359,7 @@ public class RunFragment extends Fragment {
 
     private void updateUI() {
         //Are we tracking ANY run? We call the RunManager method because the PendingIntent that
-        //the BackgrounLocationService uses to request and remove location updates is supplied by
+        //the BackgroundLocationService uses to request and remove location updates is supplied by
         //RunManager's getLocationPendingIntent(boolean) method.
         //boolean started = mRunManager.isTrackingRun();
         mStarted = mRunManager.isTrackingRun();
@@ -419,7 +406,7 @@ public class RunFragment extends Fragment {
                     mRun.setStartDate(new Date(mStartLocation.getTime()));
                     //Log.i(TAG, "Setting Start Date for Run " + mRun.getId() + " to " + new Date(mStartLocation.getTime()).toString());
                     //Now write the new start date to the database
-                    mRunManager.updateRunStartDate(mRun, mStartLocation);
+                    mRunManager.updateRunStartDate(mRun);
                     //Log.i(TAG, "Wrote new Start Date for Run " + mRun.getId() + " to database.");
                     //Finally, display the new start date
                     mStartedTextView.setText(Constants.DATE_FORMAT.format(mRun.getStartDate()));
@@ -513,7 +500,7 @@ public class RunFragment extends Fragment {
         //If we have at least one location in addition to the mStartLocation, we can make a map, so
         //enable the map button
         //boolean enableMapButton = (mLastLocation == null) ? false : true;
-        mMapButtonEnabled = (mLastLocation == null) ? false : true;
+        mMapButtonEnabled = mLastLocation != null;
         //Log.i(TAG, "enableMapButton for Run " + mRun.getId() + " is " + enableMapButton);
         //mMapButton.setEnabled(enableMapButton);
         mMapButton.setEnabled(mMapButtonEnabled);
@@ -546,14 +533,6 @@ public class RunFragment extends Fragment {
                 Log.i(TAG, "mLoaderManager is null for Run " + mRunId);
                 return;
             }
-            if(mRunCursorLoaderCallbacks == null){
-                Log.i(TAG, "mRunLoaderCallbacks is null for Run " + mRunId);
-                return;
-            }
-            if(mLastLocationCursorCallbacks == null){
-                Log.i(TAG, "mLastLocationLoaderCallbacks is null for Run " + mRunId);
-                return;
-            }
             mLoaderManager.restartLoader(Constants.LOAD_RUN, args, mRunCursorLoaderCallbacks);
             mLoaderManager.restartLoader(Constants.LOAD_LOCATION, args, mLastLocationCursorCallbacks);
             //updateUI();
@@ -572,7 +551,6 @@ public class RunFragment extends Fragment {
     public void onStop(){
         //Unbind from BackgroundLocationService in matching lifecycle callback to onStart()
         getActivity().unbindService(mLocationServiceConnection);
-        mIsBound = false;
         super.onStop();
     }
 
@@ -820,7 +798,7 @@ public class RunFragment extends Fragment {
                         }
                         if (result != 1) {
                             if (isAdded()) {
-                                Toast.makeText((AppCompatActivity) (getActivity()), toastTextRes, Toast.LENGTH_LONG).show();
+                                Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
                             }
                         }
                         break;
@@ -853,7 +831,7 @@ public class RunFragment extends Fragment {
                         //If an error occurred, put up a Toast advising the user of how things went wrong.
                         if (result != 1) {
                             if (isAdded()) {
-                                Toast.makeText((AppCompatActivity) (getActivity()), toastTextRes, Toast.LENGTH_LONG).show();
+                                Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
                             }
                         }
                         break;
@@ -882,7 +860,7 @@ public class RunFragment extends Fragment {
                         } else {
                             //Upon error, throw up a Toast advising the user.
                             toastTextRes = R.string.location_insert_failed;
-                            Toast.makeText((AppCompatActivity) (getActivity()), toastTextRes, Toast.LENGTH_LONG).show();
+                            Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
                         }
                         if (result[Constants.RUN_UPDATE_RESULT] != -1) {
                             Log.i(TAG, "Successfully updated Run " + result[Constants.RUN_UPDATE_RESULT]);
@@ -903,7 +881,7 @@ public class RunFragment extends Fragment {
     //Simple AsyncTask to load the locations for this Run into a LatLngBounds and a List<LatLng> for
     //the use of the RunMapFragment for this RunId
     private class LoadPointsAndBounds extends AsyncTask<Void, Void, Void>{
-        private RunDatabaseHelper.LocationCursor mCursor;
+        private final RunDatabaseHelper.LocationCursor mCursor;
 
         public LoadPointsAndBounds(RunDatabaseHelper.LocationCursor cursor){
             mCursor = cursor;

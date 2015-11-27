@@ -15,7 +15,6 @@
     <string name="ending_altitude">Ending Altitude:</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
-    <string name="list_date_text">Run at %1$s</string>
     <string name="list_distance_text">Distance: %1$.2f miles</string>
     <string name="list_duration_text">Duration: %1$s</string>
     <string name="new_run">New Run</string>
@@ -59,8 +58,6 @@
     <string name="map">Map</string>
     <string name="run_start">Run Start</string>
     <string name="run_finish">Run Finish</string>
-    <string name="run_started_at_format">Started at %s</string>
-    <string name="run_finished_at_format">Finished at %s</string>
     <string name="delete_run">Delete Runs</string>
     <string name="run_pager_delete_run">Delete Run</string>
     <string name="distance_covered">Distance covered:</string>
@@ -106,7 +103,6 @@
     <string name="connection_suspended_network_lost">GoogleApiClient suspended - network connection lost! Trying to fix …</string>
     <string name="alert_dialog_title">This app needs location access</string>
     <string name="alert_dialog_message">Please grant location access so this app can track your runs!</string>
-    <string name="location_access_granted">Fine location access granted</string>
     <string name="functionality_limited">Functionality limited</string>
     <string name="no_tracking">Because location access has not been granted, this app will not be able to track new runs.</string>
 </resources>

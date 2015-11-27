@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 
 import java.util.HashMap;
 
+@SuppressWarnings("ALL")
 abstract class CursorFragmentStatePagerAdapter extends FragmentStatePagerAdapter {
 
     private boolean mDataValid;
