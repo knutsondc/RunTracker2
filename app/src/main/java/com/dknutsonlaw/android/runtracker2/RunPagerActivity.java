@@ -449,7 +449,9 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                             Log.i(TAG, "In ResultsReceiver, currentPosition is " + currentPosition + " and getChildCount() is " + mViewPager.getChildCount());
                             //Get the fragment associated with the child view we're going to move
                             //to and get its RunId from the arguments that were attached to the
-                            //fragment when it was created. Is there a better way to do this?
+                            //fragment when it was created. Is there a better way to do this? Why
+                            //doesn't the onPageChangeListener correctly report the fragment displayed
+                            //in the last remaining page of a ViewPager?
                             if (currentPosition < mViewPager.getChildCount() - 1) {
                                 int index = currentPosition + 1;
                                 mViewPager.setCurrentItem(index);
