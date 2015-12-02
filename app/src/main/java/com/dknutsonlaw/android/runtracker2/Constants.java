@@ -68,6 +68,8 @@ final class Constants {
             "com.dknutsonlaw.android.runtracker.action.attempted";
     public static final String ACTION_CHECK_END_ADDRESS =
             "com.dknutsonlaw.android.runtracker.action.check.end.address";
+    public static final String ACTION_CHECK_START_ADDRESS =
+            "com.dknutsonlaw.android.runtracker.action.check.start.address";
     public static final String ACTION_DELETE_RUN =
             "com.dknutsonlaw.android.runtracker.action.delete.run";
     public static final String ACTION_DELETE_RUNS =

@@ -30,7 +30,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by dck on 9/6/15.
+ * Created by dck on 9/6/15. Basic set of methods for creating, updating and deleting Runs and their
+ * constituent fields.
  */
 public class RunManager {
 
@@ -179,6 +180,10 @@ public class RunManager {
 
     public void updateRunStartAddress(Run run, Location location){
         TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, run, location);
+    }
+
+    public void checkStartAddress(Run run, Location location){
+        TrackingLocationIntentService.startActionCheckStartAddress(mAppContext, run, location);
     }
 
     public void updateRunEndAddress(Run run, Location location){

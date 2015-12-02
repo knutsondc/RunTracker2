@@ -1,7 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
 /**
- * Created by dck on 9/6/15.
+ * Created by dck on 9/6/15. An {@link IntentService} subclass for handling database task requests asynchronously in
+ * a service on a separate handler thread.
  */
 import android.app.IntentService;
 import android.content.Intent;
@@ -108,6 +109,19 @@ public class TrackingLocationIntentService extends IntentService{
         context.startService(intent);
     }
 
+    /*
+     * Starts this service to check whether the Starting Address displayed in a RunFragment corresponds
+     * to the address associated with the first location recorded for the run.
+     */
+
+    public static void startActionCheckStartAddress(Context context, Run run, Location location){
+        Intent intent = new Intent(context, TrackingLocationIntentService.class);
+        intent.setAction(Constants.ACTION_CHECK_START_ADDRESS);
+        intent.putExtra(Constants.PARAM_RUN, run);
+        intent.putExtra(Constants.PARAM_LOCATION, location);
+        context.startService(intent);
+    }
+
     /* Starts this service to change the Ending Address of the run to the address obtained from the
      * reverse geocoding function using the last location obtained while the user is tracking the run.
      * seconds. Largely replaced by the ScheduledThreadPoolExecutor calling UpdateEndAddressTask */
@@ -170,6 +184,10 @@ public class TrackingLocationIntentService extends IntentService{
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
                 handleActionUpdateStartAddress(run, location);
+            } else if (Constants.ACTION_CHECK_START_ADDRESS.equals(action)){
+                final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
+                final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
+                handleActionCheckStartAddress(run, location);
             } else if (Constants.ACTION_UPDATE_END_ADDRESS.equals(action)) {
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
@@ -277,6 +295,25 @@ public class TrackingLocationIntentService extends IntentService{
         boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
         if (!receiver)
             Log.i(TAG, "No receiver for Update Start Date responseIntent!");
+    }
+
+    /*
+     * Handle action checkStartAddress in the background thread for the run and location provided
+     * in the parameters.
+     */
+    private void handleActionCheckStartAddress(Run run, Location location){
+        //Get the Starting Address recorded in the database
+        String recordedStartAddress = run.getStartAddress();
+        //Get the address the geocoder returns for the starting location provided in the location
+        //parameter
+        if (location != null){
+            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+            String checkStartAddress  = mRunManager.getAddress(latLng);
+            //If the two addresses aren't the same, update the Start Address in the database
+            if (recordedStartAddress.compareTo(checkStartAddress) != 0){
+                handleActionUpdateStartAddress(run, location);
+            }
+        }
     }
 
     /*

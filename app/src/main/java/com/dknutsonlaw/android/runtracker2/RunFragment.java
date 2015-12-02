@@ -273,9 +273,10 @@ public class RunFragment extends Fragment {
             //If what we're showing for the Starting Address is bad, try to get a good address from the
             ///geocoder and record it to the database
             if (mRunManager.addressBad(mStartingAddressTextView.getText().toString())) {
+                mStartingAddressTextView.setText(mRunManager.getRun(mRunId).getStartAddress());
                 mRunManager.updateRunStartAddress(mRun, mStartLocation);
             }
-            mStartingAddressTextView.setText(mRunManager.getRun(mRunId).getStartAddress());
+            mRunManager.checkStartAddress(mRun, mStartLocation);
 
         }
         //Now display what we concerning the ending point.
@@ -781,14 +782,14 @@ public class RunFragment extends Fragment {
                         //affected or more than one row was affected, something went wrong!
                         if (result == 1){
                             Log.i(TAG, "Starting Address successfully updated");
-                            /*if (isAdded()) {
+                            if (isAdded()) {
                                  mStartingAddressTextView.setText(
                                         intent.getStringExtra(Constants.UPDATED_ADDRESS_RESULT));
                                 restartLoaders();
                                 updateUI();
                             } else {
                                 Log.i(TAG, "Skipped restartLoaders() after updating Start Address - not Visible!");
-                            }*/
+                            }
                         } else if (result == 0) {
                             toastTextRes = R.string.update_run_start_address_failed;
                         } else if (result > 1) {
@@ -813,14 +814,14 @@ public class RunFragment extends Fragment {
                         if (result == 1) {
 
                             Log.i(TAG, "Ending Address successfully updated");
-                           /* if (isAdded()) {
+                            if (isAdded()) {
                                  mEndingAddressTextView.setText(
                                         intent.getStringExtra(Constants.UPDATED_ADDRESS_RESULT));
                                 restartLoaders();
                                 updateUI();
                             } else {
                                 Log.i(TAG, "Skipped restartLoaders() after updating End Address - not Visible!");
-                            }*/
+                            }
                         } else if (result == 0) {
                             toastTextRes = R.string.update_end_address_failed;
                         } else if (result > 1) {
