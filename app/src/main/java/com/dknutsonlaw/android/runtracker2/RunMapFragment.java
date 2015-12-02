@@ -458,6 +458,12 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 point.x, point.y, 110);
         //Move the camera to set the map within the bounds we set.
         mGoogleMap.animateCamera(movement);
+        //On initial layout of the map, the border on the top of the map apparently doesn't take into
+        //account the space taken by the ActionBar, so we have to move the camera again using the
+        //same bounds and margin. This time, we don't have to give display info because the map has
+        //already been rendered.
+        movement = CameraUpdateFactory.newLatLngBounds(mBounds, 110);
+        mGoogleMap.animateCamera(movement);
         //Finally, initialize the widgets that appear on this fragment
         setupWidgets();
     }
