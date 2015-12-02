@@ -1,7 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
 /**
- * Created by dck on 9/6/15.
+ * Created by dck on 9/6/15. The class that creates the database used to track Runs and their associated Locations and
+ * implements basic database CRUD functions needed to implement the program.
  */
 
 import android.content.ContentValues;
@@ -205,9 +206,9 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
                 //all the time elapsed during the "interruption," keep the old Duration and add to
                 //that as the Run continues..
                 if (timeDifference < Constants.CONTINUATION_TIME_LIMIT) {
-                    long startTime;
-                    //duration += timeDifference;
-                    LocationCursor cursor = queryFirstLocationForRun(runId);
+                    //long startTime;
+                    duration += timeDifference;
+                    /*LocationCursor cursor = queryFirstLocationForRun(runId);
                     if (cursor.moveToFirst()) {
                         if (! cursor.isAfterLast()){
                             Location startLocation = cursor.getLocation();
@@ -217,7 +218,7 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
 
                     } else {
                         Log.i(TAG, "Couldn't move location cursor to first position");
-                    }
+                    }*/
                 }
             } else {
                 //If oldLocation is null, this is the first location entry for this run, so we
