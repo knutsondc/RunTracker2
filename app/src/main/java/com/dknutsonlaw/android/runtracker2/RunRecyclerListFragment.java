@@ -1,5 +1,10 @@
 package com.dknutsonlaw.android.runtracker2;
 
+/**
+ * Created by dck on 10/28/15. A Fragment to display a RecyclerView showing all the Runs recorded
+ * utilizing a loader serving up a cursor holding data concerning all the Runs in the database.
+ */
+
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -36,9 +41,6 @@ import com.bignerdranch.android.multiselector.SwappingHolder;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by dck on 10/28/15.A Fragment to display a RecyclerView showing all the Runs recorded.
- */
 public class RunRecyclerListFragment extends Fragment
         implements LoaderManager.LoaderCallbacks<Cursor>{
 

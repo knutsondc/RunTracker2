@@ -2,17 +2,15 @@ package com.dknutsonlaw.android.runtracker2;
 
 /**
  * Created by dck on 9/6/15.
+ *  * Created by dck on 1/15/15.
+ *
+ * This Activity hosts a Fragment that implements display and update of a GoogleMap showing
+ * the course of the Run.
  */
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 
-/**
- * Created by dck on 1/15/15.
- *
- * This Activity hosts a Fragment that implements display and update of a GoogleMap showing
- * the course of the Run.
- */
 @SuppressWarnings("ALL")
 public class RunMapActivity extends SingleFragmentActivity{
     private static final String TAG = "RunMapActivity";

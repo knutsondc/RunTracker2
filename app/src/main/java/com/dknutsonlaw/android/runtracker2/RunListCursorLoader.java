@@ -1,16 +1,14 @@
 package com.dknutsonlaw.android.runtracker2;
 
 /**
- * Created by dck on 9/6/15.
+ * Created by dck on 9/6/15. A loader for a cursor holding data for a list of runs that automatically
+ * updates as the underlying data changes.
  */
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 
-/**
- * Created by dck on 9/6/15.
- */
 public class RunListCursorLoader extends MySQLiteCursorLoader {
     private static final String TAG = ".runlistcursorloader";
 

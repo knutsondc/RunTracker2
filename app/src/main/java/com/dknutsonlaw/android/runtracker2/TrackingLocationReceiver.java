@@ -1,14 +1,7 @@
 package com.dknutsonlaw.android.runtracker2;
 
 /**
- * Created by dck on 9/6/15.
- */
-import android.content.Context;
-import android.location.Location;
-import android.util.Log;
-
-/**
- * Created by dck on 1/14/15.
+ * Created by dck on 9/6/15.  * Created by dck on 1/14/15.
  *
  * This receiver is statically registered in AndroidManifest.xml, where it has an IntentFilter that
  * causes it to respond to Intents created with the ACTION_LOCATION identifier in RunManager.java
@@ -28,6 +21,10 @@ import android.util.Log;
  * 11/12/15 - Removed limit on accepting network location provider updates and loosened accuracy
  * requirement to 40 meters.
  */
+import android.content.Context;
+import android.location.Location;
+import android.util.Log;
+
 @SuppressWarnings("ALL")
 public class TrackingLocationReceiver extends LocationReceiver {
     private static final String TAG = "TrackingLocationReceiver";

@@ -2,14 +2,7 @@ package com.dknutsonlaw.android.runtracker2;
 
 /**
  * Created by dck on 9/6/15.
- */
-import android.os.Parcel;
-import android.os.Parcelable;
-
-import java.util.Date;
-
-/**
- * Created by dck on 1/14/15.
+ *  * Created by dck on 1/14/15.
  *
  * The basic object used to hold data concerning each particular run we've tracked or are tracking.
  *
@@ -22,6 +15,10 @@ import java.util.Date;
  * 8/14/2015
  * Added mStartAddress and mEndAddress fields
  */
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import java.util.Date;
 
 public class Run implements Parcelable {
     @SuppressWarnings("unused")

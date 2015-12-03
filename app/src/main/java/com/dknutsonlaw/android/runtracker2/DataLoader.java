@@ -2,13 +2,7 @@ package com.dknutsonlaw.android.runtracker2;
 
 /**
  * Created by dck on 9/6/15.
- */
-
-import android.content.Context;
-import android.support.v4.content.AsyncTaskLoader;
-
-/**
- * Created by dck on 1/15/15.
+ * * Created by dck on 1/15/15.
  * This is taken from the Big Nerd Ranch Book. Subclasses implement asynchronous loading of
  * arbitrary data types, not just cursors, from SQLite data tables. In this package, Run
  * objects are the data involved. Subclasses need to override the loadInBackground() method of
@@ -18,6 +12,9 @@ import android.support.v4.content.AsyncTaskLoader;
  *
  * 8/12/15 - Added use of subclass LastLocationLoader in RunFragment
  */
+
+import android.content.Context;
+import android.support.v4.content.AsyncTaskLoader;
 
 abstract class DataLoader<D> extends AsyncTaskLoader<D> {
     private D mData;

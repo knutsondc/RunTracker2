@@ -226,7 +226,6 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
         Log.i(TAG, "In onOptionsItemSelected(), mRunId is " + mRunId);
-        Resources r = getResources();
         Bundle args;
         //Create a new blank Run or change the sort order of the recorded Runs and the Activity's
         //subtitle to match

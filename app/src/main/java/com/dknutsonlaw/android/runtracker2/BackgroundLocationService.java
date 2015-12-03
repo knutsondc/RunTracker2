@@ -1,5 +1,10 @@
 package com.dknutsonlaw.android.runtracker2;
 
+/*
+ * A Service intended to allow the user to start and stop location updates and guarantee that the
+ * updates will continue without regard to the state of the UI elements of the program.
+ */
+
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;

@@ -1,7 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
 /**
- * Created by dck on 9/6/15.
+ * Created by dck on 9/6/15. An adapter that feeds fragments to a ViewPager based upon data taken
+ * from a database cursor.
  */
 import android.content.Context;
 import android.database.Cursor;

@@ -2,16 +2,7 @@ package com.dknutsonlaw.android.runtracker2;
 
 /**
  * Created by dck on 9/6/15.
- */
-
-
-import android.content.Context;
-import android.database.Cursor;
-import android.net.Uri;
-import android.support.v4.content.AsyncTaskLoader;
-
-/**
- * Created by dck on 2/11/15.
+ *  * Created by dck on 2/11/15.
  * This is based upon the SQLiteCursorLoader.java file from the Big Nerd Ranch book, the source
  * code from Android's CursorLoader, and some suggestions found on StackOverflow. To the version
  * found in the book, I added an Uri member variable to contain a description of the SQLite table
@@ -20,6 +11,13 @@ import android.support.v4.content.AsyncTaskLoader;
  * method of automatically loading when the underlying data store changes works, as I understand it,
  * much the same way.
  */
+
+
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.support.v4.content.AsyncTaskLoader;
+
 abstract class MySQLiteCursorLoader extends AsyncTaskLoader<Cursor> {
     @SuppressWarnings("unused")
     private static final String TAG = "MySQLiteCursorLoader";
