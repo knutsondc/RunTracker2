@@ -26,28 +26,52 @@
     <string name="by_duration_asc">By Duration, Ascending</string>
     <string name="by_duration_desc">By Duration, Descending</string>
     <string name="no_runs_recorded">No Runs Recorded</string>
-    <plurals name="subtitle_date_asc">
-        <item quantity="one">%1$d Run</item>
+    <plurals name="viewpager_subtitle_date_asc">
+        <item quantity="one">One Run</item>
+        <item quantity="other">Run %1$d of %2$d, Sorted by Date, Ascending Order</item>
+    </plurals>
+    <plurals name="recycler_subtitle_date_asc">
+        <item quantity="one">One Run</item>
         <item quantity="other">%1$d Runs Sorted by Date, Ascending Order</item>
     </plurals>
-    <plurals name="subtitle_date_desc">
-        <item quantity="one">%1$d Run</item>
+    <plurals name="viewpager_subtitle_date_desc">
+        <item quantity="one">One Run</item>
+        <item quantity="other">Run %1$d of %2$d, Sorted by Date, Descending Order</item>
+    </plurals>
+    <plurals name="recycler_subtitle_date_desc">
+        <item quantity="one">One Run</item>
         <item quantity="other">%1$d Runs Sorted by Date, Descending Order</item>
     </plurals>
-    <plurals name="subtitle_distance_asc">
-        <item quantity="one">%1$d Run</item>
+    <plurals name="viewpager_subtitle_distance_asc">
+        <item quantity="one">One Run</item>
+        <item quantity="other">Run %1$d of %2$d, Sorted by Distance, Ascending Order</item>
+    </plurals>
+    <plurals name="recycler_subtitle_distance_asc">
+        <item quantity="one">One Run</item>
         <item quantity="other">%1$d Runs Sorted by Distance, Ascending Order</item>
     </plurals>
-    <plurals name="subtitle_distance_desc">
-        <item quantity="one">%1$d Run</item>
+    <plurals name="viewpager_subtitle_distance_desc">
+        <item quantity="one">One Run</item>
+        <item quantity="other">Run %1$d of %2$d, Sorted by Distance, Descending Order</item>
+    </plurals>
+    <plurals name="recycler_subtitle_distance_desc">
+        <item quantity="one">One Run</item>
         <item quantity="other">%1$d Runs Sorted by Distance, Descending Order</item>
     </plurals>
-    <plurals name="subtitle_duration_asc">
-        <item quantity="one">%1$d Run</item>
+    <plurals name="viewpager_subtitle_duration_asc">
+        <item quantity="one">One Run</item>
+        <item quantity="other">Run %1$d of %2$d, Sorted by Duration, Ascending Order</item>
+    </plurals>
+    <plurals name="recycler_subtitle_duration_asc">
+        <item quantity="one">One Run</item>
         <item quantity="other">%1$d Runs Sorted by Duration, Ascending Order</item>
     </plurals>
-    <plurals name="subtitle_duration_desc">
-        <item quantity="one">%1$d Run</item>
+    <plurals name="viewpager_subtitle_duration_desc">
+        <item quantity="one">One Run</item>
+        <item quantity="other">Run %1$d of %2$d, Sorted by Duration, Descending Order</item>
+    </plurals>
+    <plurals name="recycler_subtitle_duration_desc">
+        <item quantity="one">One Run</item>
         <item quantity="other">%1$d Runs Sorted by Duration, Descending Order</item>
     </plurals>
     <string name="goof_up">You must have goofed up somewhere!</string>
@@ -105,4 +129,5 @@
     <string name="alert_dialog_message">Please grant location access so this app can track your runs!</string>
     <string name="functionality_limited">Functionality limited</string>
     <string name="no_tracking">Because location access has not been granted, this app will not be able to track new runs.</string>
+    <string name="run_list_run_number">Run #%1$d</string>
 </resources>

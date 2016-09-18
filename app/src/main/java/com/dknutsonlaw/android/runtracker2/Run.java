@@ -19,6 +19,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.util.Date;
+import java.util.Locale;
 
 public class Run implements Parcelable {
     @SuppressWarnings("unused")
@@ -40,51 +41,51 @@ public class Run implements Parcelable {
         mEndAddress = "";
     }
 
-    public double getDistance() {
+    double getDistance() {
         return mDistance;
     }
 
-    public void setDistance(double distance) {
+    void setDistance(double distance) {
         mDistance = distance;
     }
 
-    public long getDuration() {
+    long getDuration() {
         return mDuration;
     }
 
-    public void setDuration(long duration) {
+    void setDuration(long duration) {
         mDuration = duration;
     }
 
-    public long getId() {
+    long getId() {
         return mId;
     }
 
-    public void setId(long id) {
+    void setId(long id) {
         mId = id;
     }
 
-    public Date getStartDate() {
+    Date getStartDate() {
         return mStartDate;
     }
 
-    public void setStartDate(Date startDate) {
+    void setStartDate(Date startDate) {
         mStartDate = startDate;
     }
 
-    public String getStartAddress() {
+    String getStartAddress() {
         return mStartAddress;
     }
 
-    public void setStartAddress(String startAddress) {
+    void setStartAddress(String startAddress) {
         mStartAddress = startAddress;
     }
 
-    public String getEndAddress() {
+    String getEndAddress() {
         return mEndAddress;
     }
 
-    public void setEndAddress(String endAddress) {
+    void setEndAddress(String endAddress) {
         mEndAddress = endAddress;
     }
 
@@ -127,10 +128,10 @@ public class Run implements Parcelable {
                 "End Address = " + mEndAddress;
     }
 
-    public static String formatDuration(int durationSeconds) {
+    static String formatDuration(int durationSeconds) {
         int seconds = durationSeconds % 60;
         int minutes = ((durationSeconds - seconds) / 60) % 60;
         int hours = (durationSeconds - (minutes * 60) - seconds) / 3600;
-        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+        return String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds);
     }
 }

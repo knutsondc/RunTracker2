@@ -17,9 +17,6 @@ package com.dknutsonlaw.android.runtracker2;
  * 11/5/15 - Made changes due to switch to Google's FusedLocationProvider: We reject all location
  * updates that don't have an Altitude value. As the Network Provider's reports don't include an
  * Altitude value, this limits the updates recorded to the database to those coming from GPS.
- *
- * 11/12/15 - Removed limit on accepting network location provider updates and loosened accuracy
- * requirement to 40 meters.
  */
 import android.content.Context;
 import android.location.Location;
@@ -28,20 +25,25 @@ import android.util.Log;
 @SuppressWarnings("ALL")
 public class TrackingLocationReceiver extends LocationReceiver {
     private static final String TAG = "TrackingLocationReceiver";
-    //Reject all location updates that have an accuracy of greater than
-    //40 meters.
+
     @Override
     protected void onLocationReceived(Context c, Location loc) {
        if (loc.getAccuracy() == 0.0) {
             Log.i(TAG, "Location rejected - no accuracy value");
-        } else if (loc.getAccuracy() > 40.0) {
+       } else if (loc.getAccuracy() > 40.0) {
+           //Reject all location updates that have an accuracy of greater than
+           //40 meters.
             Log.i(TAG, "Location rejected - insufficiently accurate: " + loc.getAccuracy());
-        } else {
+       } else if(loc.getAltitude() == 0.0){
+           //Reject all location updates that have no altitude value - this insures that  only
+           //GPS locations get accepted
+           Log.i(TAG, "Location rejected - no altitude value");
+       } else {
             //From LocationServices to here to RunManager to Intent Service to RunDatabaseHelper.
-            //Use of the Intent Service keeps the database work off the main, UI thread.
-            RunManager.get(c).insertLocation(loc);
+            //Use of the Intent Service keeps the database work off the main, UI thread
+            RunManager.get(c).insertLocation(c, loc);
             Log.i(TAG, "Got a good location.");
-        }
+       }
     }
 }
 

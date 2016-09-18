@@ -114,13 +114,15 @@ public class TrackingLocationIntentService extends IntentService{
      * to the address associated with the first location recorded for the run.
      */
 
-    public static void startActionCheckStartAddress(Context context, Run run, Location location){
-        Intent intent = new Intent(context, TrackingLocationIntentService.class);
-        intent.setAction(Constants.ACTION_CHECK_START_ADDRESS);
-        intent.putExtra(Constants.PARAM_RUN, run);
-        intent.putExtra(Constants.PARAM_LOCATION, location);
-        context.startService(intent);
-    }
+// --Commented out by Inspection START (7/3/16 9:07 PM):
+//    public static void startActionCheckStartAddress(Context context, Run run, Location location){
+//        Intent intent = new Intent(context, TrackingLocationIntentService.class);
+//        intent.setAction(Constants.ACTION_CHECK_START_ADDRESS);
+//        intent.putExtra(Constants.PARAM_RUN, run);
+//        intent.putExtra(Constants.PARAM_LOCATION, location);
+//        context.startService(intent);
+//    }
+// --Commented out by Inspection STOP (7/3/16 9:07 PM)
 
     /* Starts this service to change the Ending Address of the run to the address obtained from the
      * reverse geocoding function using the last location obtained while the user is tracking the run.
@@ -209,7 +211,8 @@ public class TrackingLocationIntentService extends IntentService{
     private void handleActionInsertRun(Run run) {
         Log.i(TAG, "Reached handleActionInsertRun");
         //Insert the newly-created Run using the RunManager and its Context.
-        long runId = mRunManager.mHelper.insertRun(mRunManager.mAppContext, run);
+        //long runId = mRunManager.mHelper.insertRun(mRunManager.mAppContext, run);
+        long runId = mRunManager.mHelper.insertRun(this, run);
         //The database returns the Run's row number as a unique value for mRunId or -1 on error
         run.setId(runId);
         //Create an Intent with Extras to report the results of the operation and return the
@@ -233,7 +236,8 @@ public class TrackingLocationIntentService extends IntentService{
      */
     private void handleActionInsertLocation(long runId, Location loc) {
         //Perform the Location insertion using the runId parameter as the _id field
-        long result[] = mRunManager.mHelper.insertLocation(mRunManager.mAppContext, runId, loc);
+        //long result[] = mRunManager.mHelper.insertLocation(mRunManager.mAppContext, runId, loc);
+        long result[] = mRunManager.mHelper.insertLocation(this, runId, loc);
         Log.i(TAG, "Insert Location result is: location #" + result[0] + ", run update result " +
                 result[1] + ", continuation limit result " + result[2]);
         //Create an Intent with Extras to report the results of the operation to the RunFragment
@@ -254,7 +258,8 @@ public class TrackingLocationIntentService extends IntentService{
      */
     private void handleActionUpdateStartDate(Run run) {
         //Perform the update on the database and get the result
-        int result = mRunManager.mHelper.updateRunStartDate(mRunManager.mAppContext, run);
+        //int result = mRunManager.mHelper.updateRunStartDate(mRunManager.mAppContext, run);
+        int result = mRunManager.mHelper.updateRunStartDate(this, run);
         Log.i(TAG, "Result of UpdateStartDate: " + result);
         //Create an Intent with Extras to report the results of the operation to the RunFragment
         //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
@@ -279,10 +284,11 @@ public class TrackingLocationIntentService extends IntentService{
             return;
         }
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        String startAddress = mRunManager.getAddress(latLng);
+        String startAddress = mRunManager.getAddress(this, latLng);
         run.setStartAddress(startAddress);
         //Perform the update on the database and get the result
-        int result = mRunManager.mHelper.updateStartAddress(mRunManager.mAppContext, run);
+        //int result = mRunManager.mHelper.updateStartAddress(mRunManager.mAppContext, run);
+        int result = mRunManager.mHelper.updateStartAddress(this, run);
         //Create an Intent with Extras to report the results of the operation to the RunFragment
         //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
         //loader to get this data.
@@ -308,7 +314,7 @@ public class TrackingLocationIntentService extends IntentService{
         //parameter
         if (location != null){
             LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-            String checkStartAddress  = mRunManager.getAddress(latLng);
+            String checkStartAddress  = mRunManager.getAddress(this, latLng);
             //If the two addresses aren't the same, update the Start Address in the database
             if (recordedStartAddress.compareTo(checkStartAddress) != 0){
                 handleActionUpdateStartAddress(run, location);
@@ -326,10 +332,11 @@ public class TrackingLocationIntentService extends IntentService{
             return;
         }
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        String endAddress = mRunManager.getAddress(latLng);
+        String endAddress = mRunManager.getAddress(this, latLng);
         run.setEndAddress(endAddress);
         //Perform the update on the database and get the result
-        int result = mRunManager.mHelper.updateEndAddress(mRunManager.mAppContext, run);
+        //int result = mRunManager.mHelper.updateEndAddress(mRunManager.mAppContext, run);
+        int result = mRunManager.mHelper.updateEndAddress(this, run);
         //Create an Intent with Extras to report the results of the operation to the RunFragment
         //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
         //loader to get this data.
@@ -356,7 +363,7 @@ public class TrackingLocationIntentService extends IntentService{
         //Get the address the geocoder returns for the end location supplied in the location parameter
         if (location != null) {
             LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-            String checkEndAddress = mRunManager.getAddress(latLng);
+            String checkEndAddress = mRunManager.getAddress(this, latLng);
             //If the two addresses aren't identical, update the database with the new, correct value
             if (recordedEndAddress.compareTo(checkEndAddress) != 0) {
                 handleActionUpdateEndAddress(run, location);
@@ -370,7 +377,8 @@ public class TrackingLocationIntentService extends IntentService{
      */
     private void handleActionDeleteRuns(ArrayList<Long>runIds) {
         //Delete the Runs identified in runIds
-        int results[] = mRunManager.mHelper.deleteRuns(mRunManager.mAppContext, runIds);
+        //int results[] = mRunManager.mHelper.deleteRuns(mRunManager.mAppContext, runIds);
+        int results[] = mRunManager.mHelper.deleteRuns(this, runIds);
         Log.i(TAG, "results are " + results[1] + " runs deleted and "
                 + results[0] + " locations deleted.");
         //Create an Intent with Extras to report the results of the operation
@@ -392,7 +400,8 @@ public class TrackingLocationIntentService extends IntentService{
      * parameter - a runId identifying a Run to delete
      */
     private void handleActionDeleteRun(long runId){
-        int results[] = mRunManager.mHelper.deleteRun(mRunManager.mAppContext, runId);
+        //int results[] = mRunManager.mHelper.deleteRun(mRunManager.mAppContext, runId);
+        int results[] = mRunManager.mHelper.deleteRun(this, runId);
         Log.i(TAG, "results are " + results[1] + " runs deleted and " + results[0] +
                     " locations deleted.");
         Intent responseIntent = new Intent(Constants.ACTION_DELETE_RUN)

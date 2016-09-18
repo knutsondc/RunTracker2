@@ -10,20 +10,22 @@ import android.provider.BaseColumns;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
+import android.util.SparseArray;
 import android.util.SparseIntArray;
 import android.view.ViewGroup;
 
 import java.util.HashMap;
 
 @SuppressWarnings("ALL")
-abstract class CursorFragmentStatePagerAdapter extends FragmentStatePagerAdapter {
+public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePagerAdapter {
 
-    private boolean mDataValid;
-    private Cursor mCursor;
-    private Context mContext;
-    private SparseIntArray mItemPositions;
-    private HashMap<Object, Integer> mObjectMap;
-    private int mRowIDColumn;
+    protected boolean mDataValid;
+    protected Cursor mCursor;
+    protected Context mContext;
+    protected SparseArray<Fragment> mRegisteredFragments;
+    protected SparseIntArray mItemPositions;
+    protected HashMap<Object, Integer> mObjectMap;
+    protected int mRowIDColumn;
 
     public CursorFragmentStatePagerAdapter(Context context, FragmentManager fm, Cursor cursor) {
         super(fm);
@@ -34,11 +36,13 @@ abstract class CursorFragmentStatePagerAdapter extends FragmentStatePagerAdapter
     private void init(Context context, Cursor c) {
         //noinspection Convert2Diamond
         mObjectMap = new HashMap<Object, Integer>();
+        mRegisteredFragments = new SparseArray<>();
         boolean cursorPresent = c != null;
         mCursor = c;
         mDataValid = cursorPresent;
         mContext = context;
-        mRowIDColumn = cursorPresent ? c.getColumnIndexOrThrow("_id") : -1;
+        //mRowIDColumn = cursorPresent ? c.getColumnIndexOrThrow("_id") : -1;
+        mRowIDColumn = cursorPresent ? c.getColumnIndexOrThrow(BaseColumns._ID) : -1;
     }
 
     public Cursor getCursor() {
@@ -82,7 +86,7 @@ abstract class CursorFragmentStatePagerAdapter extends FragmentStatePagerAdapter
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
         mObjectMap.remove(object);
-
+        mRegisteredFragments.remove(position);
         super.destroyItem(container, position, object);
     }
 
@@ -98,8 +102,14 @@ abstract class CursorFragmentStatePagerAdapter extends FragmentStatePagerAdapter
         int rowId = mCursor.getInt(mRowIDColumn);
         Object obj = super.instantiateItem(container, position);
         mObjectMap.put(obj, rowId);
+        Fragment fragment = (Fragment)obj;
+        mRegisteredFragments.put(position, fragment);
 
         return obj;
+    }
+
+    public Fragment getRegisteredFragment(int position){
+        return mRegisteredFragments.get(position);
     }
 
     public abstract Fragment getItem(@SuppressWarnings("UnusedParameters") Context context, Cursor cursor);
@@ -131,16 +141,16 @@ abstract class CursorFragmentStatePagerAdapter extends FragmentStatePagerAdapter
             //mRowIDColumn = newCursor.getColumnIndexOrThrow("_id");
             mRowIDColumn = newCursor.getColumnIndexOrThrow(BaseColumns._ID);
             mDataValid = true;
-            notifyDataSetChanged();
+            //notifyDataSetChanged();
         } else {
             mRowIDColumn = -1;
             mDataValid = false;
         }
 
         setItemPositions();
-        /*if (mDataValid){
+        if (mDataValid){
             notifyDataSetChanged();
-        }*/
+        }
 
 
         return oldCursor;

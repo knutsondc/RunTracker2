@@ -26,6 +26,7 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
         <meta-data
@@ -81,6 +82,12 @@
             android:enabled="true"
             android:exported="false">
         </service>
+        <!--
+        <receiver android:name=".BackgroundLocationService$ConnectionResolutionResultsReceiver"
+                  android:enabled="true"
+                  android:exported="false">
+        </receiver>
+        -->
     </application>
 
 </manifest>

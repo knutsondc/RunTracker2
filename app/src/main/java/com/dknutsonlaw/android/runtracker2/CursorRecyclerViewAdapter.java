@@ -5,7 +5,6 @@ package com.dknutsonlaw.android.runtracker2;
  */
 import android.content.Context;
 import android.database.Cursor;
-import android.database.DataSetObserver;
 import android.support.v7.widget.RecyclerView;
 
 /**
@@ -21,16 +20,17 @@ abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> ext
 
     private int mRowIdColumn;
 
-    private final DataSetObserver mDataSetObserver;
+    //private final DataSetObserver mDataSetObserver;
 
     public CursorRecyclerViewAdapter(@SuppressWarnings("UnusedParameters") Context context, Cursor cursor) {
         mCursor = cursor;
         mDataValid = cursor != null;
-        mRowIdColumn = mDataValid ? mCursor.getColumnIndex("_id") : -1;
-        mDataSetObserver = new NotifyingDataSetObserver();
-        if (mCursor != null) {
+        mRowIdColumn = mDataValid ? mCursor.getColumnIndexOrThrow("_id") : -1;
+        setHasStableIds(true);
+        //mDataSetObserver = new NotifyingDataSetObserver();
+        /*if (mCursor != null) {
             mCursor.registerDataSetObserver(mDataSetObserver);
-        }
+        }*/
     }
 
     @SuppressWarnings("unused")
@@ -48,16 +48,17 @@ abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> ext
 
     @Override
     public long getItemId(int position) {
-        if (mDataValid && mCursor != null && mCursor.moveToPosition(position)) {
+        if (hasStableIds() && mDataValid && mCursor != null && mCursor.moveToPosition(position)) {
             return mCursor.getLong(mRowIdColumn);
         }
-        return 0;
+        //return 0;
+        return RecyclerView.NO_ID;
     }
 
-    @Override
+    /*@Override
     public void setHasStableIds(boolean hasStableIds) {
         super.setHasStableIds(true);
-    }
+    }*/
 
     public abstract void onBindViewHolder(VH viewHolder, Cursor cursor);
 
@@ -94,27 +95,28 @@ abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> ext
             return null;
         }
         final Cursor oldCursor = mCursor;
-        if (oldCursor != null && mDataSetObserver != null) {
+        /*if (oldCursor != null && mDataSetObserver != null) {
             oldCursor.unregisterDataSetObserver(mDataSetObserver);
-        }
+        }*/
         mCursor = newCursor;
         if (mCursor != null) {
-            if (mDataSetObserver != null) {
+            /*if (mDataSetObserver != null) {
                 mCursor.registerDataSetObserver(mDataSetObserver);
-            }
+            }*/
             mRowIdColumn = newCursor.getColumnIndexOrThrow("_id");
             mDataValid = true;
             notifyDataSetChanged();
         } else {
             mRowIdColumn = -1;
             mDataValid = false;
-            notifyDataSetChanged();
+            notifyItemRangeRemoved(0, getItemCount());
+            //notifyDataSetChanged();
             //There is no notifyDataSetInvalidated() method in RecyclerView.Adapter
         }
         return oldCursor;
     }
 
-    private class NotifyingDataSetObserver extends DataSetObserver {
+    /*private class NotifyingDataSetObserver extends DataSetObserver {
         @Override
         public void onChanged() {
             super.onChanged();
@@ -129,5 +131,5 @@ abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> ext
             notifyDataSetChanged();
             //There is no notifyDataSetInvalidated() method in RecyclerView.Adapter
         }
-    }
+    }*/
 }

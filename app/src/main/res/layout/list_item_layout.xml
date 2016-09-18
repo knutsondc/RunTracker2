@@ -5,13 +5,21 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/background_activated">
     <TextView
+        android:id="@+id/run_number_textview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:layout_marginStart="16dp"
+        style="@android:style/TextAppearance.Medium"
+        tools:ignore="RtlHardcoded"/>
+    <TextView
         android:id="@+id/list_item_date_textview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/activity_vertical_margin"
         android:layout_marginStart="@dimen/activity_horizontal_margin"
         android:layout_marginLeft="@dimen/activity_horizontal_margin"
         style="@android:style/TextAppearance.Medium"
+        android:layout_below="@id/run_number_textview"
         tools:ignore="RtlHardcoded"/>
     <LinearLayout
         android:id="@+id/list_item_start_layout"
@@ -58,7 +66,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="@dimen/activity_vertical_margin"
         android:layout_below="@id/list_item_duration_textview"
         android:layout_marginStart="@dimen/activity_horizontal_margin"
         android:layout_marginLeft="@dimen/activity_horizontal_margin"

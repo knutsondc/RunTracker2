@@ -44,7 +44,7 @@ public class LocationReceiver extends BroadcastReceiver {
             Log.i(TAG, "Intent has no LocationResult");
         }
     }
-    //The next two methods should be overridden in any actual implementation.
+    //The next method should be overridden in any actual implementation.
     void onLocationReceived(Context context, Location loc) {
         Log.d(TAG, this + " Got location from " + loc.getProvider() + ": "
                 + loc.getLatitude() + ", " + loc.getLongitude());

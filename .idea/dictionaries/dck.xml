@@ -8,6 +8,7 @@
       <w>lastlocation</w>
       <w>latlng</w>
       <w>multiselect</w>
+      <w>pice</w>
       <w>qlite</w>
       <w>recyclerview</w>
       <w>restartloaders</w>
