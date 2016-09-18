@@ -435,6 +435,9 @@ public class BackgroundLocationService extends Service implements
                     case Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_SUCCEEDED:
                         startLocationUpdates(mService.get());
                         break;
+                    case Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED:
+                        Log.i(TAG, "Reached MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED ini IncomingHandler.");
+                        break;
                     case Constants.MESSAGE_PERMISSION_REQUEST_SUCCEEDED:
                         checkLocationSettings(service);
                         break;

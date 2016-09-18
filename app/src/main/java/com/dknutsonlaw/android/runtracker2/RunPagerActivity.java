@@ -332,6 +332,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                 mAdapter.startUpdate(mViewPager);
                 //mRunManager.deleteRun(mRunId);
                 TrackingLocationIntentService.startActionDeleteRun(this, mRunId);
+                invalidateOptionsMenu();
                 return true;
             //To change the sort order, set mSortOrder, store it to SharedPrefs, reinitialize the
             //adapter and subtitle and restart the RunListLoader
@@ -444,7 +445,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     //Custom adapter to feed RunFragments to the ViewPager
     protected class RunCursorFragmentStatePagerAdapter extends CursorFragmentStatePagerAdapter{
 
-        protected RunCursorFragmentStatePagerAdapter(Context context, FragmentManager fm, Cursor cursor){
+        RunCursorFragmentStatePagerAdapter(Context context, FragmentManager fm, Cursor cursor){
             super(context, fm, cursor);
         }
         //Pull a Run from the supplied cursor and retrieve a RunFragment for it using its RunId
@@ -467,7 +468,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
 
         private final WeakReference<RunPagerActivity> mActivity;
 
-        protected IncomingMessenger (RunPagerActivity activity){
+        IncomingMessenger(RunPagerActivity activity){
             mActivity = new WeakReference<>(activity);
         }
 

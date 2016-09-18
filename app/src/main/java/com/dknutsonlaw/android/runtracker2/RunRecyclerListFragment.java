@@ -160,8 +160,6 @@ public class RunRecyclerListFragment extends Fragment
                             //getActivity().bindService(intent, mLocationServiceConnection, Context.BIND_AUTO_CREATE);
 
                         }
-                        //Update the OptionsMenu now that we're no longer tracking a Run.
-                        getActivity().invalidateOptionsMenu();
                         //Have RunManager do the other housekeeping associated with stopping a Run.
                         //mRunManager.stopRun(mRunManager.getRun(mAdapter.getItemId(deleteList.get(i))));
                         mRunManager.stopRun(mAdapter.getItemId(deleteList.get(i)));
