@@ -45,7 +45,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
 
     //private BackgroundLocationService mLocationService;
     private Messenger mLocationService = null;
-    private Boolean mIsBound = false;
+    private Menu mMenu;
     //Custom Adapter to feed RunFragments to the ViewPager
     private RunCursorFragmentStatePagerAdapter mAdapter;
     private long mRunId = -1;
@@ -67,7 +67,6 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                     (BackgroundLocationService.LocalBinder)service;
             mLocationService = binder.getService();*/
             mLocationService = new Messenger(service);
-            mIsBound = true;
             try{
                 Message msg = Message.obtain(null, Constants.MESSAGE_REGISTER_CLIENT, Constants.MESSENGER_RUNPAGERACTIVITY, 0);
                 msg.replyTo = mMessenger;
@@ -80,7 +79,6 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         @Override
         public void onServiceDisconnected(ComponentName name) {
             mLocationService = null;
-            mIsBound = false;
         }
     };
 
@@ -277,6 +275,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
         super.onCreateOptionsMenu(menu);
+        mMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.run_pager_options, menu);
         //If we have fewer than two Runs, there's nothing to sort, so disable sort menu
@@ -287,7 +286,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         }
         //If we're tracking a Run, don't allow creation of a new Run - trying to track more than one
         //Run will crash the app!
-        menu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun(getApplicationContext()));
+        mMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun(getApplicationContext()));
         return true;
     }
 
@@ -322,6 +321,8 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                         Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
                     }
                     mRunManager.stopRun(mRunId);
+                    //We've stopped tracking any Run, so enable the "New Run" menu item.
+                    mMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(true);
                 }
                 Log.i(TAG, "Runs in Adapter before Run deletion: " + mAdapter.getCount());
                 //Now order the Run to be deleted. The Adapter, Subtitle and Loader will get reset
@@ -332,7 +333,6 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                 mAdapter.startUpdate(mViewPager);
                 //mRunManager.deleteRun(mRunId);
                 TrackingLocationIntentService.startActionDeleteRun(this, mRunId);
-                invalidateOptionsMenu();
                 return true;
             //To change the sort order, set mSortOrder, store it to SharedPrefs, reinitialize the
             //adapter and subtitle and restart the RunListLoader

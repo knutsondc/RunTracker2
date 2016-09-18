@@ -149,16 +149,6 @@ public class RunRecyclerListFragment extends Fragment
                             } catch (RemoteException e){
                                 Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
                             }
-                        } else {
-                            Log.i(TAG, "Binding so we can delete the run being tracked");
-                            //Set flag so the tracked run will be deleted upon binding to the
-                            //Location Service
-                            //boolean shouldDelete = true;
-                            //Bind to the BackgroundLocationService so that we can stop location
-                            //updates as soon as we're connected with the Service.
-                            //Intent intent = new Intent(getActivity(), BackgroundLocationService.class);
-                            //getActivity().bindService(intent, mLocationServiceConnection, Context.BIND_AUTO_CREATE);
-
                         }
                         //Have RunManager do the other housekeeping associated with stopping a Run.
                         //mRunManager.stopRun(mRunManager.getRun(mAdapter.getItemId(deleteList.get(i))));
