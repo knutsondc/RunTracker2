@@ -38,32 +38,31 @@ final class Constants {
     static final int LOCATION_DELETIONS = 0;
     ///Label for result of location insertion operation
     static final int LOCATION_INSERTION_RESULT = 0;
-    //Labels for Messages between RunFragment and BackgroundLocationService
+    //Labels for Messages between UI Fragments and BackgroundLocationService
     static final int MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED = 0;
     static final int MESSAGE_GOOGLEAPICLIENT_CONNECTION_FAILED = 1;
     static final int MESSAGE_TRY_GOOGLEAPICLIENT_RECONNECTION = 2;
     static final int MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST = 3;
     static final int MESSAGE_PLAY_SERVICES_ERROR_DIALOG_REQUEST = 4;
-    static final int MESSAGE_PLAY_SERVICES_CONNECTION_RESOLUTION_OK = 5;
-    static final int MESSAGE_PLAY_SERVICES_CONNECTION_RESOLUTION_FAILED = 6;
-    static final int MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED = 7;
-    static final int MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE = 8;
-    static final int MESSAGE_LOCATION_SETTINGS_RESOLUTION_SUCCEEDED = 9;
-    static final int MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED = 10;
-    static final int MESSAGE_PERMISSION_REQUEST_NEEDED = 11;
-    static final int MESSAGE_PERMISSION_REQUEST_SUCCEEDED = 12;
-    static final int MESSAGE_PERMISSION_REQUEST_CANCELED = 13;
-    static final int MESSAGE_START_LOCATION_UPDATES = 14;
-    static final int MESSAGE_LOCATION_UPDATES_STARTED = 15;
-    static final int MESSAGE_STOP_LOCATION_UPDATES = 16;
-    static final int MESSAGE_LOCATION_UPDATES_STOPPED = 17;
-    static final int MESSAGE_REGISTER_CLIENT = 18;
+    static final int MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED = 5;
+    static final int MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE = 6;
+    static final int MESSAGE_LOCATION_SETTINGS_RESOLUTION_SUCCEEDED = 7;
+    static final int MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED = 8;
+    static final int MESSAGE_PERMISSION_REQUEST_NEEDED = 9;
+    static final int MESSAGE_PERMISSION_REQUEST_SUCCEEDED = 10;
+    static final int MESSAGE_PERMISSION_REQUEST_CANCELED = 11;
+    static final int MESSAGE_START_LOCATION_UPDATES = 12;
+    static final int MESSAGE_LOCATION_UPDATES_STARTED = 13;
+    static final int MESSAGE_STOP_LOCATION_UPDATES = 14;
+    static final int MESSAGE_LOCATION_UPDATES_STOPPED = 15;
+    static final int MESSAGE_REGISTER_CLIENT = 16;
     static final int MESSENGER_RUNFRAGMENT = 0;
     static final int MESSENGER_RECYCLERFRAGMENT = 1;
     static final int MESSENGER_RUNMAPFRAGMENT = 2;
     static final int MESSENGER_RUNPAGERACTIVITY = 3;
     //MapView Menu selection item in RunMapFragment
     static final int NO_UPDATES = 3;
+    //Label for BackgroundLocationService to tell the UI Fragment that Location Permissions needed
     static final int REQUEST_LOCATION_PERMISSIONS = 1;
     //Label for member of array of ints used to report results of deletion operation
     static final int RUN_DELETIONS = 1;
@@ -94,8 +93,6 @@ final class Constants {
             "com.dknutsonlaw.android.runtracker.action.attempted";
     static final String ACTION_CHECK_END_ADDRESS =
             "com.dknutsonlaw.android.runtracker.action.check.end.address";
-    // static final String ACTION_CHECK_LOCATION_SETTINGS =
-    //        "com.dknutsonlaw.android.runtracker2.action.check.location.settings";
     static final String ACTION_CHECK_START_ADDRESS =
             "com.dknutsonlaw.android.runtracker.action.check.start.address";
     static final String ACTION_DELETE_RUN =
@@ -108,8 +105,6 @@ final class Constants {
             "com.dknutsonlaw.android.runtracker.action.insert.run";
     static final String ACTION_LOCATION =
             "com.dknutsonlaw.android.runtracker2.ACTION_LOCATION";
-    // static final String ACTION_PLAY_SERVICES_RESOLUTION =
-    //        "com.dknutsonlaw.android.runtracker2.play.services.resolution";
     static final String ACTION_UPDATE_END_ADDRESS =
             "com.dknutsonlaw.android.runtracker.action.update.end.address";
     static final String ACTION_UPDATE_START_ADDRESS =
@@ -138,13 +133,6 @@ final class Constants {
     static final String COLUMN_RUN_ID = "_id";
     static final String COLUMN_RUN_START_ADDRESS = "start_address";
     static final String COLUMN_RUN_START_DATE = "start_date";
-    static final String DIALOG_ACTIVITY_ACTION =
-            "com.dknutsonlaw.com.android.runtracker2.dialog.activity.action";
-    //static final String LOCATION_CHECK_RESULT =
-    //        "com.dknutsonlaw.android.runtracker2.location.check.result";
-    //Label for result of attempt to resolve Google Play Services connection failure resolution
-    static final String PLAY_SERVICES_CONNECTION_FAILURE_RESOLUTION_RESULT =
-            "com.dknutsonlaw.android.runtracker2.play_services_connection_failure_resolution_result";
     //Label for name of database
     static final String DB_NAME = "runs.sqlite";
     //Label used to pass along extra info about results of TrackingLocationIntentService operation
@@ -156,14 +144,7 @@ final class Constants {
     //Label used to pass along the existing sort order from RunRecyclerListFragment to RunPagerActivity
     //and vice-versa
     static final String EXTRA_SORT_ORDER = "com.dknutsonlaw.android.runtracker2.sort_order";
-    static final String EXTRA_LOCATION_SETTINGS_RESULT =
-            "com.dknutsonlaw.android.runtracker2.location_settings_result";
-    //Label used to attach a ConnectionResult object to Message sent from BackgroundLocationService
-    //to RunFragment upon Play Services connection failure
-    static final String INTENT_EXTRA_CONNECTION_RESULT = "com.dknutsonlaw.android.runtracker2.connectionResult";
-    static final String INTENT_EXTRA_PENDING_INTENT = "com.dknutsonlaw.android.runtracker2.pendingIntent";
     static final String IS_BOUND = "is_bound";
-    //static final String INTENT_EXTRA_STATUS = "com.dknutsonlaw.android.runtracker2.status";
     static final String LAST_LOCATION = "last_location";
     static final String LATLNG_LIST = "latlng_list";
     static final String LOCATION_SERVICE = "location_service";

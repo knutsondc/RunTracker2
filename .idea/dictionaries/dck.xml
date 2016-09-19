@@ -3,16 +3,22 @@
     <words>
       <w>abtf</w>
       <w>dataset</w>
+      <w>errordialog</w>
       <w>fgyp</w>
       <w>geocoder</w>
+      <w>googleapiclient</w>
       <w>lastlocation</w>
       <w>latlng</w>
       <w>multiselect</w>
       <w>pice</w>
       <w>qlite</w>
+      <w>recyclerfragment</w>
       <w>recyclerview</w>
       <w>restartloaders</w>
+      <w>runfragment</w>
       <w>runlistcursorloader</w>
+      <w>runmapfragment</w>
+      <w>runpageractivity</w>
       <w>skyfishjy</w>
       <w>sqlite</w>
       <w>stpe</w>

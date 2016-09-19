@@ -61,9 +61,6 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
 
     private final RunManager mRunManager = RunManager.get(getActivity());
     private long mRunId;
-    //Instance variable to hold a reference to the fragment we can use to retrieve a retained
-    //instance upon configuration change.
-    //private static RunMapFragment sRunMapFragment;
     private GoogleMap mGoogleMap;
     private Messenger mLocationService;
     private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
@@ -87,8 +84,6 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
     private final ServiceConnection mLocationServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            //BackgroundLocationService.LocalBinder binder =
-            //        (BackgroundLocationService.LocalBinder)service;
             mLocationService = new Messenger(service);
             mIsBound = true;
             try {
@@ -153,14 +148,11 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         //Developer docs say call getMapAsync() in onActivityCreated() because the map won't be
         //returned non-null until after onCreateView() returns.
 
-        getMapAsync(new OnMapReadyCallback() {
-            @Override
-            public void onMapReady(GoogleMap googleMap) {
-                //Stash a reference to the GoogleMap
-                mGoogleMap = googleMap;
-                if (mGoogleMap != null) {
-                    Log.i(TAG, "In on ActivityCreated got a map.");
-                }
+        getMapAsync(googleMap -> {
+            //Stash a reference to the GoogleMap
+            mGoogleMap = googleMap;
+            if (mGoogleMap != null) {
+                Log.i(TAG, "In on ActivityCreated got a map.");
             }
         });
 
@@ -331,7 +323,6 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         //Stop using the data
         mLocationCursor.close();
         mLocationCursor = null;
-        //mIsLoading = false;
     }
 
     //Reload the location data for this run, thus forcing an update of the map display
@@ -342,7 +333,6 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
             if (runId != -1) {
                 LoaderManager lm = getLoaderManager();
                 lm.restartLoader(Constants.LOAD_LOCATION, args, this);
-                //Log.i(TAG, "restartLoader for LOAD_LOCATIONS called in restartLoader()");
             }
         }
     }
@@ -615,27 +605,24 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         //EndAddress on every location update. If we're not tracking the run, just load the end address
         //from the database. The Start Marker's data never changes, so the listener can ignore clicks
         //on it and simply allow the default behavior to occur.
-        mGoogleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-                if (marker.equals(mEndMarker)) {
-                    String endDate = "";
-                    String snippetAddress;
-                    if (mRunManager.getLastLocationForRun(mRunId) != null) {
-                        endDate = Constants.DATE_FORMAT.format(
-                                mRunManager.getLastLocationForRun(mRunId).getTime());
-                    }
-                    if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))) {
-                        snippetAddress = mRunManager.getAddress(getActivity(), marker.getPosition());
-                    } else {
-                        snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
-                    }
-                    marker.setSnippet(endDate + "\n" + snippetAddress);
+        mGoogleMap.setOnMarkerClickListener(marker -> {
+            if (marker.equals(mEndMarker)) {
+                String endDate = "";
+                String snippetAddress;
+                if (mRunManager.getLastLocationForRun(mRunId) != null) {
+                    endDate = Constants.DATE_FORMAT.format(
+                            mRunManager.getLastLocationForRun(mRunId).getTime());
                 }
-                //Need to return "false" so the default action for clicking on a marker will also occur
-                //for the Start Marker and for the End Marker after we've updated its snippet.
-                return false;
+                if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))) {
+                    snippetAddress = mRunManager.getAddress(getActivity(), marker.getPosition());
+                } else {
+                    snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
+                }
+                marker.setSnippet(endDate + "\n" + snippetAddress);
             }
+            //Need to return "false" so the default action for clicking on a marker will also occur
+            //for the Start Marker and for the End Marker after we've updated its snippet.
+            return false;
         });
         //The graphic elements of the map display have now all been configured, so clear the
         //mNeedToPrepare flag so that succeeding calls to onLoadFinished will merely update them as

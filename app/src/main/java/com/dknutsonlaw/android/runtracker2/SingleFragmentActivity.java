@@ -41,24 +41,18 @@ import android.util.Log;
         super.onCreate(savedInstanceState);
         setContentView(getLayoutResId());
 
-        if (Build.VERSION.SDK_INT >= 23 && ActivityCompat.checkSelfPermission(this,
+        /*if (Build.VERSION.SDK_INT >= 23 && ActivityCompat.checkSelfPermission(this,
                 android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
 
                 final AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setTitle(R.string.alert_dialog_title);
                 builder.setMessage(R.string.alert_dialog_message);
                 builder.setPositiveButton(android.R.string.ok, null);
-                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                    @TargetApi(Build.VERSION_CODES.M)
-                    @Override
-                    public void onDismiss(DialogInterface dialog) {
-                        requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                                PERMISSION_REQUEST_FINE_LOCATION);
-                    }
-                });
+                builder.setOnDismissListener(dialog -> requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        PERMISSION_REQUEST_FINE_LOCATION));
                 builder.show();
 
-        }
+        }*/
 
         FragmentManager fm = getSupportFragmentManager();
         Fragment fragment = fm.findFragmentById(R.id.fragmentContainer);
@@ -68,7 +62,7 @@ import android.util.Log;
             fm.beginTransaction().add(R.id.fragmentContainer, fragment).commit();
         }
     }
-    @TargetApi(Build.VERSION_CODES.M)
+    /*@TargetApi(Build.VERSION_CODES.M)
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults){
         switch (requestCode){
@@ -80,15 +74,12 @@ import android.util.Log;
                     builder.setTitle(R.string.functionality_limited);
                     builder.setMessage(R.string.no_tracking);
                     builder.setPositiveButton(android.R.string.ok, null);
-                    builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
-                        @Override
-                        public void onDismiss(DialogInterface dialog) {
+                    builder.setOnDismissListener(dialog -> {
 
-                        }
                     });
                     builder.show();
                 }
             }
         }
-    }
+    }*/
 }

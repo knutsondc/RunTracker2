@@ -11,6 +11,8 @@ package com.dknutsonlaw.android.runtracker2;
  *
  *
  * 8/12/15 - Added use of subclass LastLocationLoader in RunFragment
+ *
+ * DataLoaders no longer use in this project - replaced by CursorLoaders
  */
 
 import android.content.Context;

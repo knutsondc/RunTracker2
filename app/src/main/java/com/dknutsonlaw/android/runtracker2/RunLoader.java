@@ -8,6 +8,8 @@ package com.dknutsonlaw.android.runtracker2;
  * gets instructed to update in a callback method that's invoked when the deletion task completes.
  *
  * 8/3/15 - This has been replaced by MyRunLoader.
+ *
+ * MyRunLoader  replaced by RunCursorLoader
  */
 
 import android.content.Context;

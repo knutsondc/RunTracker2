@@ -35,7 +35,7 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
 
     private void init(Context context, Cursor c) {
         //noinspection Convert2Diamond
-        mObjectMap = new HashMap<Object, Integer>();
+        mObjectMap = new HashMap<>();
         mRegisteredFragments = new SparseArray<>();
         boolean cursorPresent = c != null;
         mCursor = c;
@@ -57,7 +57,7 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
         }
         return POSITION_NONE;
     }
-
+    //Create a SparseArray to associate item ID with its position in the adapter
     public void setItemPositions() {
         mItemPositions = null;
 
@@ -101,13 +101,14 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
 
         int rowId = mCursor.getInt(mRowIDColumn);
         Object obj = super.instantiateItem(container, position);
+        //instantiate mappings of object to ID number and object (fragment) to adapter position
         mObjectMap.put(obj, rowId);
         Fragment fragment = (Fragment)obj;
         mRegisteredFragments.put(position, fragment);
 
         return obj;
     }
-
+    //Get fragment instance from specified position in adapter
     public Fragment getRegisteredFragment(int position){
         return mRegisteredFragments.get(position);
     }

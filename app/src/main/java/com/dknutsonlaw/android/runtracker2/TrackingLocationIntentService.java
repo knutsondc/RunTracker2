@@ -54,12 +54,12 @@ public class TrackingLocationIntentService extends IntentService{
      * Starts this service to delete the Runs with the RunIds contained in the runIds
      * parameter. If the service is already performing a task this action will be queued.
      */
-    public static void startActionDeleteRuns(Context context, ArrayList<Long> runIds) {
+    /*public static void startActionDeleteRuns(Context context, ArrayList<Long> runIds) {
         Intent intent = new Intent(context, TrackingLocationIntentService.class);
         intent.setAction(Constants.ACTION_DELETE_RUNS);
         intent.putExtra(Constants.PARAM_RUN_IDS, runIds);
         context.startService(intent);
-    }
+    }*/
 
     /*
      *Starts this service to delete a single run. If the  service is already performing a
@@ -141,13 +141,13 @@ public class TrackingLocationIntentService extends IntentService{
      * to the address associated with the last location recorded for the run.
      */
 
-    public static void checkEndAddress(Context context, Run run, Location location) {
+    /*public static void checkEndAddress(Context context, Run run, Location location) {
         Intent intent = new Intent(context, TrackingLocationIntentService.class);
         intent.setAction(Constants.ACTION_CHECK_END_ADDRESS);
         intent.putExtra(Constants.PARAM_RUN, run);
         intent.putExtra(Constants.PARAM_LOCATION, location);
         context.startService(intent);
-    }
+    }*/
 
 
     public TrackingLocationIntentService() {
@@ -236,7 +236,6 @@ public class TrackingLocationIntentService extends IntentService{
      */
     private void handleActionInsertLocation(long runId, Location loc) {
         //Perform the Location insertion using the runId parameter as the _id field
-        //long result[] = mRunManager.mHelper.insertLocation(mRunManager.mAppContext, runId, loc);
         long result[] = mRunManager.mHelper.insertLocation(this, runId, loc);
         Log.i(TAG, "Insert Location result is: location #" + result[0] + ", run update result " +
                 result[1] + ", continuation limit result " + result[2]);

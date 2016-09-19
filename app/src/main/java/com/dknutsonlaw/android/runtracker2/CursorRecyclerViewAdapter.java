@@ -20,17 +20,11 @@ abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> ext
 
     private int mRowIdColumn;
 
-    //private final DataSetObserver mDataSetObserver;
-
     public CursorRecyclerViewAdapter(@SuppressWarnings("UnusedParameters") Context context, Cursor cursor) {
         mCursor = cursor;
         mDataValid = cursor != null;
         mRowIdColumn = mDataValid ? mCursor.getColumnIndexOrThrow("_id") : -1;
         setHasStableIds(true);
-        //mDataSetObserver = new NotifyingDataSetObserver();
-        /*if (mCursor != null) {
-            mCursor.registerDataSetObserver(mDataSetObserver);
-        }*/
     }
 
     @SuppressWarnings("unused")
@@ -51,14 +45,8 @@ abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> ext
         if (hasStableIds() && mDataValid && mCursor != null && mCursor.moveToPosition(position)) {
             return mCursor.getLong(mRowIdColumn);
         }
-        //return 0;
         return RecyclerView.NO_ID;
     }
-
-    /*@Override
-    public void setHasStableIds(boolean hasStableIds) {
-        super.setHasStableIds(true);
-    }*/
 
     public abstract void onBindViewHolder(VH viewHolder, Cursor cursor);
 
@@ -95,9 +83,7 @@ abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> ext
             return null;
         }
         final Cursor oldCursor = mCursor;
-        /*if (oldCursor != null && mDataSetObserver != null) {
-            oldCursor.unregisterDataSetObserver(mDataSetObserver);
-        }*/
+
         mCursor = newCursor;
         if (mCursor != null) {
             /*if (mDataSetObserver != null) {
@@ -115,21 +101,4 @@ abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> ext
         }
         return oldCursor;
     }
-
-    /*private class NotifyingDataSetObserver extends DataSetObserver {
-        @Override
-        public void onChanged() {
-            super.onChanged();
-            mDataValid = true;
-            notifyDataSetChanged();
-        }
-
-        @Override
-        public void onInvalidated() {
-            super.onInvalidated();
-            mDataValid = false;
-            notifyDataSetChanged();
-            //There is no notifyDataSetInvalidated() method in RecyclerView.Adapter
-        }
-    }*/
 }

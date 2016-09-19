@@ -54,7 +54,6 @@ public class RunRecyclerListFragment extends Fragment
     private static final String TAG = "RunRecyclerListFragment";
 
     private RunManager mRunManager;
-    private static Context sAppContext;
     private IntentFilter mIntentFilter;
     private ResultsReceiver mResultsReceiver;
     private Menu mOptionsMenu;
@@ -65,7 +64,6 @@ public class RunRecyclerListFragment extends Fragment
     private RunRecyclerListAdapter mAdapter;
     private TextView mEmptyViewTextView;
     private Button mEmptyViewButton;
-    //private BackgroundLocationService mLocationService;
     private Messenger mLocationService;
     private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
     //Are we bound to the BackgroundLocationService?
@@ -74,13 +72,12 @@ public class RunRecyclerListFragment extends Fragment
     private final ServiceConnection mLocationServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            //BackgroundLocationService.LocalBinder binder =
-            //        (BackgroundLocationService.LocalBinder)service;
             //Make the reference to the BackgroundLocationService a member variable so we can easily
             //call the Service's methods.
-            //mLocationService = binder.getService();
             mLocationService = new Messenger(service);
             mIsBound = true;
+            //Give the BackgroundLocationService a reference to this Fragment's Messenger so the
+            //service can send messages to the Fragment
             try {
                 Message msg = Message.obtain(null, Constants.MESSAGE_REGISTER_CLIENT, Constants.MESSENGER_RECYCLERFRAGMENT, 0);
                 msg.replyTo = mMessenger;
@@ -89,14 +86,6 @@ public class RunRecyclerListFragment extends Fragment
                 Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_REGISTER_CLIENT");
             }
             Log.i(TAG, "Service Connected in RunRecyclerFragment.");
-            //If we've marked a Run being tracked for deletion, we need to stop location updates. If
-            //the Service wasn't connected when the delete method was called, make sure we stop
-            //location updates when we get connected.
-            /*if (mRunManager.isTrackingRun(getActivity()) && mShouldDelete){
-                mLocationService.stopLocationUpdates();
-                mLocationService.stopSelf();
-                mShouldDelete = false;
-            }*/
         }
 
         @Override
@@ -142,8 +131,6 @@ public class RunRecyclerListFragment extends Fragment
                         if (mIsBound & mLocationService != null){
                             Log.i(TAG, "Run at adapter position " + deleteList.get(i) + " being tracked. Now stopping. " +
                                     "mClient is connected");
-                            //mLocationService.stopLocationUpdates();
-                            //mLocationService.stopSelf();
                             try {
                                 mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
                             } catch (RemoteException e){
@@ -151,8 +138,7 @@ public class RunRecyclerListFragment extends Fragment
                             }
                         }
                         //Have RunManager do the other housekeeping associated with stopping a Run.
-                        //mRunManager.stopRun(mRunManager.getRun(mAdapter.getItemId(deleteList.get(i))));
-                        mRunManager.stopRun(mAdapter.getItemId(deleteList.get(i)));
+                        mRunManager.stopRun();
                     }
                     //Add selected Run item from the List to the ArrayList of Runs to be submitted to
                     //the deleteRuns() method in the Intent Service
@@ -162,8 +148,13 @@ public class RunRecyclerListFragment extends Fragment
                     TrackingLocationIntentService.startActionDeleteRun(getActivity(), mAdapter.getItemId(deleteList.get(i)));
                     runsDeleted++;
                     Log.i(TAG, "runsDeleted is " + runsDeleted);
-                    //mAdapter.notifyItemRemoved(deleteList.get(i));
-                    mAdapter.notifyDataSetChanged();
+                    //Have to use notifyDataSetChanged() for Run in position 0 of mAdapter to avoid an
+                    //IndexOutOfBounds error - why?
+                    if (deleteList.get(i) == 0){
+                        mAdapter.notifyDataSetChanged();
+                    } else {
+                        mAdapter.notifyItemRemoved(deleteList.get(i));
+                    }
                     /*longDeleteList.add(mAdapter.getItemId(deleteList.get(i)));
                     Log.i(TAG, "Added runId " + mAdapter.getItemId(deleteList.get(i)) + " at position " + deleteList.get(i) + " to longDeleteList");
                     for (int j = deleteList.size() - 1; j >= 0; j--){
@@ -196,7 +187,7 @@ public class RunRecyclerListFragment extends Fragment
                 //Clean up the MultiSelector, finish the ActionMode, and refresh the UI now that our
                 //dataset has changed
                 mMultiSelector.clearSelections();
-                Log.i(TAG, "Passed mMultiSelector.clearSelectioins");
+                Log.i(TAG, "Passed mMultiSelector.clearSelections");
                 mode.finish();
                 Log.i(TAG, "Passed mode.finish()");
                 refreshUI();
@@ -238,12 +229,6 @@ public class RunRecyclerListFragment extends Fragment
         mIntentFilter = new IntentFilter(Constants.ACTION_DELETE_RUNS);
         mIntentFilter.addAction(Constants.SEND_RESULT_ACTION);
         mResultsReceiver = new ResultsReceiver();
-    }
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState){
-        super.onActivityCreated(savedInstanceState);
-        sAppContext = getActivity().getApplicationContext();
     }
 
     //Function to set subtitle according to the number of Runs recorded and their sort order..
@@ -327,12 +312,9 @@ public class RunRecyclerListFragment extends Fragment
         //Set up UI elements to display if there are no Runs recorded to display in the RecyclerView
         mEmptyViewTextView = (TextView)v.findViewById(R.id.empty_view_textview);
         mEmptyViewButton = (Button)v.findViewById(R.id.empty_view_button);
-        mEmptyViewButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                TrackingLocationIntentService.startActionInsertRun(getActivity(), new Run());
-                //mRunManager.startNewRun();
-            }
+        mEmptyViewButton.setOnClickListener(v1 -> {
+            TrackingLocationIntentService.startActionInsertRun(getActivity(), new Run());
+            //mRunManager.startNewRun();
         });
         refreshUI();
         return v;
@@ -358,7 +340,7 @@ public class RunRecyclerListFragment extends Fragment
         //Disable the New Run Menu item if we're tracking a run - trying to start a new run while
         //another's already being tracked will crash the program!
         if (mOptionsMenu != null) {
-            if (mRunManager.isTrackingRun(sAppContext)){
+            if (mRunManager.isTrackingRun(getActivity().getApplicationContext())){
                 mOptionsMenu.findItem(R.id.menu_item_new_run).setEnabled(false);
             } else {
                 mOptionsMenu.findItem(R.id.menu_item_new_run).setEnabled(true);
@@ -428,13 +410,6 @@ public class RunRecyclerListFragment extends Fragment
         mSortOrder = sortOrder;
         mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, sortOrder).apply();
         setSubtitle();
-        /*try {
-            //noinspection ConstantConditions
-            mSubtitle = (String) ((AppCompatActivity) getActivity()).getSupportActionBar().getSubtitle();
-        } catch (NullPointerException npe){
-            Log.i(TAG, "Couldn't write new subtitle - attempt to get SupportActionBar returned a " +
-                    "null pointer");
-        }*/
         mRunManager.mPrefs.edit().putString(Constants.SUBTITLE, mSubtitle).apply();
         args.putInt(Constants.SORT_ORDER, sortOrder);
         getLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
@@ -463,8 +438,6 @@ public class RunRecyclerListFragment extends Fragment
         super.onStart();
         //Bind to the BackgroundLocationService here so that its methods will be available to us
         //while interacting with this Fragment
-        /*Intent intent = new Intent(getActivity(), BackgroundLocationService.class);
-        mIsBound = getActivity().bindService(intent, mLocationServiceConnection, Context.BIND_AUTO_CREATE);*/
         doBindService(this);
     }
     @Override
@@ -479,8 +452,6 @@ public class RunRecyclerListFragment extends Fragment
         //Unbind to the BackgroundLocationService in this matching lifecycle method so we won't leak
         //the Service Connection.
         if (mIsBound) {
-            /*getActivity().unbindService(mLocationServiceConnection);
-            mIsBound = false;*/
             doUnbindService(this);
         }
         super.onStop();
@@ -523,16 +494,9 @@ public class RunRecyclerListFragment extends Fragment
         //the new one and notify the adapter that its data has changed so it will refresh the
         //RecyclerView display. An alternative approach is simply to create a new adapter here, load
         //the cursor into it, and attach the new adapter to the RecyclerListView.
-        /*Cursor oldCursor = mAdapter.swapCursor(cursor);
-        if (oldCursor != null){
-            Log.i(TAG, "Closing old cursor.");
-            oldCursor.close();
-        }*/
         RunDatabaseHelper.RunCursor newCursor = (RunDatabaseHelper.RunCursor)cursor;
-        //mAdapter.changeCursor(newCursor);
         //The loader should take care of closing the old cursor, so use swapCursor(), not changeCursor()
         mAdapter.swapCursor(newCursor);
-        //mAdapter.notifyDataSetChanged();
         refreshUI();
 
         Log.i(TAG, "RunListCursorLoader onLoadFinished() called.");

@@ -37,17 +37,14 @@ public class RunManager {
     private static final String TAG = "RunManager";
 
     private static RunManager sRunManager;
-    //private Context mAppContext;
+    //LongSparseArray to associate location objects with Bounds for use in constructing RunMapFragment
     private static final LongSparseArray<WeakReference<LatLngBounds>> sBoundsMap = new LongSparseArray<>();
-    //private static final Map<Long, WeakReference<LatLngBounds>> sBoundsMap = new HashMap<>();
+    //LongSparseArray to associate location objects with Points used to  construct Polyline in RunMapFragment.
     private static final LongSparseArray<WeakReference<List<LatLng>>> sPointsMap = new LongSparseArray<>();
-    //private static final Map<Long, WeakReference<List<LatLng>>> sPointsMap = new HashMap<>();
     private final NotificationManagerCompat mNotificationManager;
     //Handle for the recurring task of updating Ending Addresses; needed so task can be cancelled
     //when we're not tracking runs
     private ScheduledFuture<?> mScheduledFuture;
-    //private final ThreadPoolExecutor.CallerRunsPolicy mCrp = new ThreadPoolExecutor.CallerRunsPolicy();
-    //private final ScheduledThreadPoolExecutor mStpe = new ScheduledThreadPoolExecutor(3, mCrp);
     private ScheduledThreadPoolExecutor mStpe;
     //mHelper is public so that TrackingLocationIntentService can access it
     final RunDatabaseHelper mHelper;
@@ -56,15 +53,11 @@ public class RunManager {
 
     //The private constructor forces users to use RunManager.get(Context)
     private RunManager (Context appContext) {
-        //mAppContext = appContext;
         /*mNotificationManager = (NotificationManager)mAppContext
                 .getSystemService(Context.NOTIFICATION_SERVICE);*/
         /*Now using NotificationManagerCompat so Wear functionality can be accessed */
-        ///mNotificationManager = NotificationManagerCompat.from(mAppContext);
         mNotificationManager = NotificationManagerCompat.from(appContext);
-        //mHelper = new RunDatabaseHelper(mAppContext);
         mHelper = new RunDatabaseHelper(appContext);
-        //mPrefs = mAppContext.getSharedPreferences(Constants.PREFS_FILE, Context.MODE_PRIVATE);
         mPrefs = appContext.getSharedPreferences(Constants.PREFS_FILE, Context.MODE_PRIVATE);
         mCurrentRunId = mPrefs.getLong(Constants.PREF_CURRENT_RUN_ID, -1);
     }
@@ -77,33 +70,25 @@ public class RunManager {
         return sRunManager;
     }
 
-    /*public void startNewRun() {
-        //Ask the Intent Service to insert a new Run into the database
-        Log.i(TAG, "Reached RunManager.startNewRun()");
-        TrackingLocationIntentService.startActionInsertRun(mAppContext, new Run());
-    }*/
-
     //public void startTrackingRun(Run run) {
     void startTrackingRun(Context context, long runId){
         //Location updates get started from the RunFragment by starting the BackgroundLocationService
         //and instructing it to start supplying the updates. This method handles the other
-        //housekeeping associated with starting to track a run.
-        //We get here from the RunFragment's Start Button.
+        //housekeeping associated with starting to track a run.We get here from the RunFragment's Start Button.
         //First, keep the RunId in a member variable.
         Log.i(TAG, "Reached RunManager.startTrackingRun()");
         mCurrentRunId = runId;
-        //mCurrentRunId = run.getId();
         //Store it in shared preferences
         mPrefs.edit().putLong(Constants.PREF_CURRENT_RUN_ID, mCurrentRunId).apply();
         //Give the user a notice that a run is being tracked that will be available even
         //if the UI isn't visible.
         createNotification(context);
-        //Set up a scheduled thread pool executor and a task to schedule on it for updating Ending
-        //Addresses every 5 seconds. Initial call comes in 30 seconds to make sure a new run gets
-        //properly initialized in time so the first call won't fail and suppress ALL subsequent
-        //calls for the scheduled task.
     }
 
+    //Set up a scheduled thread pool executor and a task to schedule on it for updating Ending
+    //Addresses every 5 seconds. Initial call comes in 15 seconds to make sure a new run gets
+    //properly initialized in time so the first call won't fail and suppress ALL subsequent
+    //calls for the scheduled task.
     void startUpdatingEndAddress(Context context){
         try {
             mStpe = new ScheduledThreadPoolExecutor(3, /* mCrp */ new ThreadPoolExecutor.CallerRunsPolicy());
@@ -114,7 +99,6 @@ public class RunManager {
             Log.i(TAG, "Caught rejected execution exception");
             Log.i(TAG, "Cause: " + rJee.getCause());
             Log.i(TAG, "Message: " + rJee.getMessage());
-            //mCrp.rejectedExecution(new updateEndAddressTask(getRun(mCurrentRunId)), mStpe);
         }
     }
 
@@ -146,7 +130,6 @@ public class RunManager {
         //viewing we'll go to the RunRecyclerListFragment instead of the Home screen
         TaskStackBuilder stackBuilder =
                 TaskStackBuilder.create(context)
-
                         //The artificial stack consists of everything defined in the manifest as a parent or parent
                         //of a parent of the Activity to which the notification will return us
                         .addNextIntentWithParentStack(runPagerActivityIntent);
@@ -165,23 +148,17 @@ public class RunManager {
         return PendingIntent.getBroadcast(context, 0, broadcast, flags);
     }
 
-    //public void stopRun(Run run) {
-    void stopRun(long runId){
+    void stopRun(){
         Log.i(TAG, "Entered stopRun()");
         //Location updates get stopped from the RunFragment by instructing the BackgroundLocationService
         //to stop supplying updates. This method handles the rest of the housekeeping following
-        //shutdown of location updates. First, check to see if we have a good EndAddress value and
-        //update it if we don't.
-        //TrackingLocationIntentService.checkEndAddress(mAppContext, getRun(runId), getLastLocationForRun(runId));
-        //TrackingLocationIntentService.checkEndAddress(mAppContext, run, getLastLocationForRun(run.getId()));
+        //shutdown of location updates.
+
         //We only use a single notification, so we can assume its id is 0 when we stop
         //tracking a run and should cancel the notification.
         mNotificationManager.cancel(0);
         mCurrentRunId = -1;
         mPrefs.edit().remove(Constants.PREF_CURRENT_RUN_ID).apply();
-       /* if (addressBad(getRun(runId).getEndAddress())) {
-            mHelper.updateEndAddress(mAppContext, getRun(runId));
-        }*/
         //Stop the recurring task that does updates of the Ending Address.
         Log.i(TAG, "mScheduledFuture null? " + (mScheduledFuture == null));
         if (mScheduledFuture != null) {
@@ -194,31 +171,7 @@ public class RunManager {
             Log.i(TAG, "Called .shutdown() on ScheduledThreadPoolExecutor " + mStpe);
         }
     }
-    //Invoke various methods to update the database by invoking the Intent service, thereby
-    //taking those tasks off the main, UI thread.
-    /*public void updateRunStartDate(Run run) {
-        TrackingLocationIntentService.startActionUpdateStartDate(mAppContext, run);
-    }*/
 
-    /*public void updateRunStartAddress(Run run, Location location){
-        TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, run, location);
-    }*/
-
-// --Commented out by Inspection START (7/3/16 9:06 PM):
-//    public void checkStartAddress(Run run, Location location){
-//        TrackingLocationIntentService.startActionCheckStartAddress(mAppContext, run, location);
-//    }
-// --Commented out by Inspection STOP (7/3/16 9:06 PM)
-
-    /*public void updateRunEndAddress(Run run, Location location){
-        TrackingLocationIntentService.startActionUpdateEndAddress(mAppContext, run, location);
-    }*/
-
-// --Commented out by Inspection START (7/3/16 9:06 PM):
-//    public void checkEndAddress(Run run, Location location){
-//        TrackingLocationIntentService.checkEndAddress(mAppContext, run, location);
-//    }
-// --Commented out by Inspection STOP (7/3/16 9:06 PM)
     //Methods to construct different cursors from the database.
     RunDatabaseHelper.RunCursor queryForNoRuns() {
         return mHelper.queryForNoRuns();
@@ -251,7 +204,7 @@ public class RunManager {
     RunDatabaseHelper.LocationCursor queryLastLocationForRun(long runId){
         return mHelper.queryLastLocationForRun(runId);
     }
-
+    //Return a cursor with the data concerning a single Run
     RunDatabaseHelper.RunCursor queryRun(long runId){
         return mHelper.queryRun(runId);
     }
@@ -279,18 +232,6 @@ public class RunManager {
         }
     }
 
-   /* public void deleteRuns(ArrayList<Long> runIds) {
-        //We need to pass along a Context here so that the Intent Service can create
-        //an Intent
-        TrackingLocationIntentService.startActionDeleteRuns(mAppContext, runIds);
-    }*/
-
-    /*public void deleteRun(Long runId){
-        //We need to pass along a Context here so that the Intent Service can create
-        //an Intent
-        TrackingLocationIntentService.startActionDeleteRun(mAppContext, runId);
-    }*/
-
     //Return the starting (i.e., first) location object recorded for the given Run
     Location getStartLocationForRun(long runId) {
         Location location = null;
@@ -313,20 +254,20 @@ public class RunManager {
         cursor.close();
         return location;
     }
-
+    //Save the SparseArray associating a given Run with the Bounds needed to display it.
     void saveBounds(Long runId, LatLngBounds bounds){
         sBoundsMap.put(runId, new WeakReference<>(bounds));
     }
-
+    //Get the the Bounds for a particular Run
     LatLngBounds retrieveBounds(Long runId){
         WeakReference<LatLngBounds> latLngBoundsWeakReference = sBoundsMap.get(runId);
         return latLngBoundsWeakReference.get();
     }
-
+    //Save the SparseArray associating a Run with the locations, expressed as LatLngs, for that Run
     void savePoints(Long runId, List<LatLng> points){
         sPointsMap.put(runId, new WeakReference<>(points));
     }
-
+    //Retrieve the list of locations, expressed as LatLngs, associated with a given Run
     List<LatLng> retrievePoints(Long runId){
         WeakReference<List<LatLng>> listWeakReference = sPointsMap.get(runId);
         return listWeakReference.get();
@@ -366,25 +307,11 @@ public class RunManager {
         }
         return filterAddress;
     }
-
+    //Check to see if we got a useful value when trying to look up an address. If the address is
+    //"bad" we can check again for the address for a given LatLng
     boolean addressBad(Context context, String address){
         Resources r = context.getResources();
-        /*if (address.compareToIgnoreCase(r.getString(R.string.geocoder_io_error)) == 0){
-            Log.i(TAG, "Address was geocoder_io_error");
-            return true;
-        } else if (address.compareToIgnoreCase("") == 0){
-            Log.i(TAG, "Address is empty");
-            return true;
-        } else if (address.compareToIgnoreCase(r.getString(R.string.lastlocation_null)) == 0){
-            Log.i(TAG, "Address is lastlocation_null");
-            return true;
-        } else if (address.compareToIgnoreCase(r.getString(R.string.get_address_function_unavailable)) == 0){
-            Log.i(TAG, "Address is get_address_function_unavailable");
-            return true;
-        } else {
-            Log.i(TAG, "Address is good");
-            return false;
-        }*/
+
         return  address.compareToIgnoreCase("") == 0 ||
                 address.compareToIgnoreCase(r.getString(R.string.geocoder_io_error)) == 0 ||
                 address.compareToIgnoreCase(r.getString(R.string.geocoder_bad_argument_error)) == 0 ||
@@ -399,10 +326,10 @@ public class RunManager {
     long getRunLocationCount(long runId){
         return mHelper.getRunLocationCount(runId);
     }
-    //Are we tracking ANY Run?
-    //Note that getLocationPendingIntent(boolean) in this class is used by the BackgroundLocationService
-    //to get the PendingIntent used to start and stop location updates. If the call to getLocationPendingIntent
-    //returns null, we know that location updates have not been started and no Run is being tracked.
+    //Are we tracking ANY Run? Note that getLocationPendingIntent(boolean) in this class is used by
+    //the BackgroundLocationService to get the PendingIntent used to start and stop location updates.
+    //If the call to getLocationPendingIntent returns null, we know that location updates have not
+    //been started and no Run is being tracked.
     boolean isTrackingRun(@NonNull Context context) {
         return getLocationPendingIntent(context, false) != null;
     }

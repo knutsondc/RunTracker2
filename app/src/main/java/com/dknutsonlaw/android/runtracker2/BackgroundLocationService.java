@@ -24,7 +24,6 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
@@ -62,7 +61,6 @@ public class BackgroundLocationService extends Service implements
     private static LocationRequest sLocationRequest;
     private static LocationSettingsRequest sLocationSettingsRequest;
     private static PendingIntent sPi;
-    private boolean mInProgress;
     private static boolean sServicesAvailable = false;
 
     public BackgroundLocationService() {
@@ -82,10 +80,6 @@ public class BackgroundLocationService extends Service implements
          * Create a new GoogleApiClient using the enclosing class to handle the callbacks
          */
         setUpGoogleApiClient();
-        /*sClient = new GoogleApiClient.Builder(this)
-                .addApi(LocationServices.API)
-                .addConnectionCallbacks(this)
-                .build();*/
         buildLocationRequest();
         buildLocationSettingsRequest();
     }
@@ -95,7 +89,6 @@ public class BackgroundLocationService extends Service implements
         int resultCode = mGoogleApiAvailability.isGooglePlayServicesAvailable(this);
         return resultCode == ConnectionResult.SUCCESS;
     }
-
    /* public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
         Log.i(TAG, "Reached onStartCommand");
@@ -156,34 +149,31 @@ public class BackgroundLocationService extends Service implements
                         sClient,
                         sLocationSettingsRequest
                 );
-        result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
-            @Override
-            public void onResult(@NonNull LocationSettingsResult locationSettingsResult){
-                Log.i(TAG, "Reached onResult(LocationSettingsResult");
-                final Status status = locationSettingsResult.getStatus();
-                switch (status.getStatusCode()) {
-                    case LocationSettingsStatusCodes.SUCCESS:
-                        Log.i(TAG, "All Location Settings are satisfied.");
-                        startLocationUpdates(service);
-                        break;
-                    case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-                        Log.i(TAG, "Location settings are not satisfied. Show the user a dialog to " +
-                                "update location settings.");
-                        try {
-                            sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED, locationSettingsResult));
-                        } catch (RemoteException e){
-                            Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED to RunFragment.");
-                        }
-                        break;
-                    case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                        Log.i(TAG, "Location settings are inadequate and cannot be fixed here. Dialog not created.");
-                        try {
-                            sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE));
-                        } catch (RemoteException e){
-                            Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_RNOT_AVAILABLE to RunFragment.");
-                        }
-                        break;
-                }
+        result.setResultCallback(locationSettingsResult -> {
+            Log.i(TAG, "Reached onResult(LocationSettingsResult");
+            final Status status = locationSettingsResult.getStatus();
+            switch (status.getStatusCode()) {
+                case LocationSettingsStatusCodes.SUCCESS:
+                    Log.i(TAG, "All Location Settings are satisfied.");
+                    startLocationUpdates(service);
+                    break;
+                case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                    Log.i(TAG, "Location settings are not satisfied. Show the user a dialog to " +
+                            "update location settings.");
+                    try {
+                        sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED, locationSettingsResult));
+                    } catch (RemoteException e){
+                        Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED to RunFragment.");
+                    }
+                    break;
+                case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                    Log.i(TAG, "Location settings are inadequate and cannot be fixed here. Dialog not created.");
+                    try {
+                        sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE));
+                    } catch (RemoteException e){
+                        Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE to RunFragment.");
+                    }
+                    break;
             }
         });
     }
@@ -221,22 +211,19 @@ public class BackgroundLocationService extends Service implements
             try {
                 PendingResult<Status> result = LocationServices.FusedLocationApi.requestLocationUpdates(
                         sClient, sLocationRequest, sPi);
-                result.setResultCallback(new ResultCallback<Status>() {
-                    @Override
-                    public void onResult(@NonNull Status status) {
-                        Log.i(TAG, "Reached OnResultCallback<Status> for location updates");
-                        if (status.isSuccess()){
-                            if (sRunPagerActivityMessenger != null && sRunFragmentMessenger != null){
-                                try {
-                                    sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
-                                    sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
-                                } catch (RemoteException e){
-                                    Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STARTED.");
-                                }
-
-                            } else {
-                                Log.i(TAG, "Attempt to start location updates failed!");
+                result.setResultCallback(status -> {
+                    Log.i(TAG, "Reached OnResultCallback<Status> for location updates");
+                    if (status.isSuccess()){
+                        if (sRunPagerActivityMessenger != null && sRunFragmentMessenger != null){
+                            try {
+                                sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
+                                sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
+                            } catch (RemoteException e){
+                                Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STARTED.");
                             }
+
+                        } else {
+                            Log.i(TAG, "Attempt to start location updates failed!");
                         }
                     }
                 });
@@ -251,21 +238,18 @@ public class BackgroundLocationService extends Service implements
     private static void stopLocationUpdates(){
         if (sServicesAvailable && sClient != null && sClient.isConnected()){
             PendingResult<Status> result = LocationServices.FusedLocationApi.removeLocationUpdates(sClient, sPi);
-            result.setResultCallback(new ResultCallback<Status>() {
-                @Override
-                public void onResult(@NonNull Status status) {
-                    Log.i(TAG, "Reached onResult of removeLocationUpdates");
-                    if (status.isSuccess()){
-                        Log.i(TAG, "Location Updates off.");
-                        if (sPi != null) {
-                            sPi.cancel();
-                        }
-                        try {
-                            sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
-                            sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
-                        } catch (RemoteException e){
-                            Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STOPPED");
-                        }
+            result.setResultCallback(status -> {
+                Log.i(TAG, "Reached onResult of removeLocationUpdates");
+                if (status.isSuccess()){
+                    Log.i(TAG, "Location Updates off.");
+                    if (sPi != null) {
+                        sPi.cancel();
+                    }
+                    try {
+                        sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
+                        sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
+                    } catch (RemoteException e){
+                        Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STOPPED");
                     }
                 }
             });
@@ -274,13 +258,10 @@ public class BackgroundLocationService extends Service implements
 
     @Override
     public void onDestroy(){
-        //Turn off the Request flag
-        mInProgress = false;
         if(sServicesAvailable && sClient != null && sClient.isConnected() && sPi != null){
             LocationServices.FusedLocationApi.removeLocationUpdates(sClient, sPi);
             sPi.cancel();
             sClient.disconnect();
-            //RunTracker.sClient = null;
         }
         Log.i(TAG, DateFormat.getDateTimeInstance().format(new Date()) + ": Stopped");
         super.onDestroy();
@@ -290,19 +271,15 @@ public class BackgroundLocationService extends Service implements
     @Override
     public void onConnected(Bundle bundle){
 
-        //checkLocationSettings();
-        //startLocationUpdates();
         Log.i(TAG, "Connected");
     }
     //Called by Location Services if the connection to the client is suspended due to error.
     @Override
     public void onConnectionSuspended(int cause){
 
-        //Turn off the request flag
-        mInProgress = false;
         //Kill the GoogleApiClient
         sClient = null;
-        //Display connection status
+        //Display connection status and report the cause to the UI Fragments
         if (cause == CAUSE_NETWORK_LOST){
             try {
                 if (sRunFragmentMessenger != null) {
@@ -319,7 +296,6 @@ public class BackgroundLocationService extends Service implements
                         "to RunFragment and RunRecyclerListFragment");
             }
             Log.i(TAG, "GoogleApiClient connection suspended - network connection lost!");
-            //Toast.makeText(this, R.string.connection_suspended_network_lost, Toast.LENGTH_LONG).show();
         }
         if (cause == CAUSE_SERVICE_DISCONNECTED){
             Log.i(TAG, "GoogleApiClient connection suspended - remote service killed!");
@@ -337,14 +313,12 @@ public class BackgroundLocationService extends Service implements
                 Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_SERVICE_DISCONNECTED" +
                         "to RunFragment and RunRecyclerListFragment");
             }
-            //Toast.makeText(this, R.string.connection_suspended_service_disconnected, Toast.LENGTH_LONG).show();
         }
     }
 
     @Override
     public void onConnectionFailed(@NonNull final ConnectionResult connectionResult){
         Log.i(TAG, "GoogleApi Connection failed.");
-        mInProgress = false;
         if (connectionResult.hasResolution()) {
 
          /* Google Play services can resolve some errors it detects.

@@ -215,19 +215,8 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
                 //all the time elapsed during the "interruption," keep the old Duration and add to
                 //that as the Run continues..
                 if (timeDifference < Constants.CONTINUATION_TIME_LIMIT) {
-                    //long startTime;
-                    duration += timeDifference;
-                    /*LocationCursor cursor = queryFirstLocationForRun(runId);
-                    if (cursor.moveToFirst()) {
-                        if (! cursor.isAfterLast()){
-                            Location startLocation = cursor.getLocation();
-                            startTime = startLocation.getTime();
-                            duration = location.getTime() - startTime;
-                        }
 
-                    } else {
-                        Log.i(TAG, "Couldn't move location cursor to first position");
-                    }*/
+                    duration += timeDifference;
                 }
             } else {
                 //If oldLocation is null, this is the first location entry for this run, so we
@@ -552,7 +541,7 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
                 + ":" + result[Constants.LOCATION_DELETIONS]);
         return result;
     }
-
+    //Return the number of locations associated with a given Run
     public long getRunLocationCount(long runId){
         SQLiteDatabase db = getReadableDatabase();
         return DatabaseUtils.queryNumEntries(db, Constants.TABLE_LOCATION,

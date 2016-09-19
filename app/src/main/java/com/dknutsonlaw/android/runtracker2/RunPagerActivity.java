@@ -42,8 +42,6 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     private ResultsReceiver mResultsReceiver;
     private IntentFilter mIntentFilter;
     private final Messenger mMessenger = new Messenger(new IncomingMessenger(this));
-
-    //private BackgroundLocationService mLocationService;
     private Messenger mLocationService = null;
     private Menu mMenu;
     //Custom Adapter to feed RunFragments to the ViewPager
@@ -63,9 +61,6 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     private final ServiceConnection mLocationServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-           /* BackgroundLocationService.LocalBinder binder =
-                    (BackgroundLocationService.LocalBinder)service;
-            mLocationService = binder.getService();*/
             mLocationService = new Messenger(service);
             try{
                 Message msg = Message.obtain(null, Constants.MESSAGE_REGISTER_CLIENT, Constants.MESSENGER_RUNPAGERACTIVITY, 0);
@@ -88,14 +83,9 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         public void onPageSelected(int position) {
             //Make sure that mRunId is always equal to the run id of the currently viewed
             //RunFragment as we page through them.
-            //RunCursorFragmentStatePagerAdapter adapter =
-            //        (RunCursorFragmentStatePagerAdapter)mViewPager.getAdapter();
-            //RunFragment fragment = (RunFragment)adapter.getItem(position);
             RunFragment fragment = (RunFragment)mAdapter.getItem(position);
             mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID, -1);
             setSubtitle();
-            //mRunManager.mPrefs.edit().putLong(Constants.SAVED_RUN_ID, mRunId).commit();
-
         }
 
     };
@@ -195,9 +185,10 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                 Log.i(TAG, "Invalid sort order - how'd you get here!?!");
                 setSubtitle();
         }
+        //If there aren't any Runs left to display, close this Activity and go back to the RunRecyclerList
+        //Activity and Fragment, which displays a message to the user.
         if (mAdapter.getCount() == 0) {
             finish();
-            //getSupportActionBar().setSubtitle(r.getString(R.string.no_runs_recorded));
         }
         Log.i(TAG, "onCreate(), run id for current item is " + mRunId);
         args.putInt(Constants.SORT_ORDER, mSortOrder);
@@ -305,7 +296,6 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                 mAdapter.startUpdate(mViewPager);
                 //Now start a new blank run with nothing but a Start Date and a runId.
                 TrackingLocationIntentService.startActionInsertRun(this, new Run());
-                //mRunManager.startNewRun();
                 //The Adapter, Subtitle and Loader get reset when the results of the Insert Run
                 //action get reported to the ResultsReceiver
                 return true;
@@ -313,14 +303,12 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                 Log.i(TAG, "In Delete Run Menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
                 //First, stop location updates if the Run we're deleting is currently being tracked
                 if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))){
-                    //mLocationService.stopLocationUpdates();
-                    //mLocationService.stopSelf();
                     try {
                         mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
                     } catch (RemoteException e){
                         Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
                     }
-                    mRunManager.stopRun(mRunId);
+                    mRunManager.stopRun();
                     //We've stopped tracking any Run, so enable the "New Run" menu item.
                     mMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(true);
                 }
@@ -331,7 +319,6 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                 int locations = mRunManager.queryLocationsForRun(mRunId).getCount();
                 Log.i(TAG, "There are " + locations + " locations to be deleted for Run " + mRunId);
                 mAdapter.startUpdate(mViewPager);
-                //mRunManager.deleteRun(mRunId);
                 TrackingLocationIntentService.startActionDeleteRun(this, mRunId);
                 return true;
             //To change the sort order, set mSortOrder, store it to SharedPrefs, reinitialize the
@@ -407,7 +394,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader){
-        //mViewPager.setAdapter(null);
+
     }
 
     @Override
@@ -430,7 +417,11 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         }
     }
 
-
+    //setResolutionForResult() gets called from the currently displayed RunFragment, but the result
+    //of that call is delivered to the Activity in this method. This method uses the SparseArray
+    //associating RunIds with the RunFragments in the Adapter to get a reference to the currently
+    //displayed RunFragment and then forwards the results it received to the onActivityResult()
+    //method of that RunFragment
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data){
 
@@ -463,9 +454,12 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
             }
         }
     }
-
+    //Handler to receive Messages from the  BackgroundLocationService that location updates have
+    //been started or stopped. Static class to avoid memory leaks by preventing an implicit reference
+    //to the Activity from stopping the Activity from getting garbage collected.
     private static class IncomingMessenger extends Handler{
-
+        //Use a WeakReference to the Activity to all access to the Activity instance's methods from
+        //a static context
         private final WeakReference<RunPagerActivity> mActivity;
 
         IncomingMessenger(RunPagerActivity activity){
