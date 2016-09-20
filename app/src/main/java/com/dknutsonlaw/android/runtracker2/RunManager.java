@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 public class RunManager {
 
     private static final String TAG = "RunManager";
-
+    private static Context mAppContext;
     private static RunManager sRunManager;
     //LongSparseArray to associate location objects with Bounds for use in constructing RunMapFragment
     private static final LongSparseArray<WeakReference<LatLngBounds>> sBoundsMap = new LongSparseArray<>();
@@ -56,6 +56,7 @@ public class RunManager {
         /*mNotificationManager = (NotificationManager)mAppContext
                 .getSystemService(Context.NOTIFICATION_SERVICE);*/
         /*Now using NotificationManagerCompat so Wear functionality can be accessed */
+        mAppContext = appContext.getApplicationContext();
         mNotificationManager = NotificationManagerCompat.from(appContext);
         mHelper = new RunDatabaseHelper(appContext);
         mPrefs = appContext.getSharedPreferences(Constants.PREFS_FILE, Context.MODE_PRIVATE);
@@ -330,8 +331,9 @@ public class RunManager {
     //the BackgroundLocationService to get the PendingIntent used to start and stop location updates.
     //If the call to getLocationPendingIntent returns null, we know that location updates have not
     //been started and no Run is being tracked.
-    boolean isTrackingRun(@NonNull Context context) {
-        return getLocationPendingIntent(context, false) != null;
+    //boolean isTrackingRun(@NonNull Context context) {
+    boolean isTrackingRun(){
+        return getLocationPendingIntent(mAppContext, false) != null;
     }
     //Are we tracking the specified Run?
     boolean isTrackingRun(Run run) {

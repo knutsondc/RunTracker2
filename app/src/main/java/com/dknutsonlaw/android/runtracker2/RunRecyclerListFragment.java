@@ -14,6 +14,7 @@ import android.content.IntentSender;
 import android.content.ServiceConnection;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -26,6 +27,7 @@ import android.support.v4.content.Loader;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.view.ActionMode;
+import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -46,6 +48,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RunRecyclerListFragment extends Fragment
@@ -111,78 +114,68 @@ public class RunRecyclerListFragment extends Fragment
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
 
             if (item.getItemId() == R.id.menu_item_delete_run){
-                //Fetch a List of the Runs that have been selected for deletion.
+                //Fetch a List of the Runs by Adapter position that have been selected for deletion.
                 List<Integer> deleteList = mMultiSelector.getSelectedPositions();
                 Log.i(TAG, "Runs to be deleted: " + deleteList);
-                //Create the ArrayList<Long> the deleteRuns() method in RunManager expects.
-                //ArrayList<Long> longDeleteList  = new ArrayList<>();
+                //If a Run to be deleted is being tracked, stop tracking - otherwise location updates will
+                //continue with updates not associated with any Run and really with no way to
+                //turn updates off. First, check to see if we're tracking any run.
+                if (mRunManager.isTrackingRun()){
+                    //We know a Run's being tracked; check the Runs selected for deletion to see if
+                    //it's included
+                    for (int i = deleteList.size()-1; i >= 0; i--) {
+                        if (mRunManager.isTrackingRun(mRunManager.getRun(mAdapter.getItemId(deleteList.get(i))))) {
+                            Log.i(TAG, "Run #" + mAdapter.getItemId(deleteList.get(i)) + " and in RecyclerView" +
+                                    "position #" + deleteList.get(i) + " being tracked. Now trying to stop tracking.");
+                            //If we're bound to the BackgroundLocationService, tell it to stop location updates
+                            if (mIsBound & mLocationService != null) {
+
+                                try {
+                                    mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
+                                } catch (RemoteException e) {
+                                    Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
+                                }
+                                //Have RunManager do the other housekeeping associated with stopping a Run.
+                                mRunManager.stopRun();
+                            }
+                        }
+                        Log.i(TAG, "Did we successfully stop Location Updates? " + mRunManager.isTrackingRun());
+                    }
+                }
                 //Keep track of number of Runs deleted
                 long runsDeleted = 0;
                 //Keep track of number of Locations deleted
                 long locationsDeleted = 0;
                 //Iterate over all the items in the List selected for deletion
-                for (int i = deleteList.size() - 1; i >= 0; i--){
-                    Log.i(TAG, "Now dealing with Run in position #" + deleteList.get(i));
-                    //If the Run is being tracked, stop tracking - otherwise location updates will
-                    //continue with updates not associated with any Run and really with no way to
-                    //turn updates off..
-                    if (mRunManager.isTrackingRun(mRunManager.getRun(mAdapter.getItemId(deleteList.get(i))))){
-                        //If we're bound to the BackgroundLocationService, tell it to stop location updates
-                        if (mIsBound & mLocationService != null){
-                            Log.i(TAG, "Run at adapter position " + deleteList.get(i) + " being tracked. Now stopping. " +
-                                    "mClient is connected");
-                            try {
-                                mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
-                            } catch (RemoteException e){
-                                Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
-                            }
-                        }
-                        //Have RunManager do the other housekeeping associated with stopping a Run.
-                        mRunManager.stopRun();
-                    }
-                    //Add selected Run item from the List to the ArrayList of Runs to be submitted to
-                    //the deleteRuns() method in the Intent Service
-                    locationsDeleted += mRunManager.getRunLocationCount(mAdapter.getItemId(deleteList.get(i)));
-                    Log.i(TAG, "locationsDeleted is " + locationsDeleted);
-                    Log.i(TAG, "Now deleting RunId " + mAdapter.getItemId(deleteList.get(i)) + " at adapter position " + deleteList.get(i));
-                    TrackingLocationIntentService.startActionDeleteRun(getActivity(), mAdapter.getItemId(deleteList.get(i)));
-                    runsDeleted++;
-                    Log.i(TAG, "runsDeleted is " + runsDeleted);
-                    //Have to use notifyDataSetChanged() for Run in position 0 of mAdapter to avoid an
-                    //IndexOutOfBounds error - why?
-                    if (deleteList.get(i) == 0){
-                        mAdapter.notifyDataSetChanged();
-                    } else {
-                        mAdapter.notifyItemRemoved(deleteList.get(i));
-                    }
-                    /*longDeleteList.add(mAdapter.getItemId(deleteList.get(i)));
-                    Log.i(TAG, "Added runId " + mAdapter.getItemId(deleteList.get(i)) + " at position " + deleteList.get(i) + " to longDeleteList");
-                    for (int j = deleteList.size() - 1; j >= 0; j--){
-                        Log.i(TAG, "Dealing with Adapter position " + deleteList.get(j) + " and RunId " + longDeleteList.get(j));
-                        TrackingLocationIntentService.startActionDeleteRun(getActivity(), longDeleteList.get(j));
-                        Log.i(TAG, "Notifying Adapter that Run at entry #" + deleteList.get(i) + "has been deleted.");
-                        if (j == 0){
-                            mAdapter.notifyDataSetChanged();
-                        } else {
-                            mAdapter.notifyItemRemoved(deleteList.get(j));
-                        }
-                    }*/
+                for (int i = deleteList.size() - 1; i >= 0; i--) {
+
+                    Log.i(TAG, "Now dealing with Run in RecyclerView position #" + deleteList.get(i) + " with RunId #" +
+                            mAdapter.getItemId(deleteList.get(i)));
+                    Log.i(TAG, "Now in RecyclerPosition one greater than that is Run#" + mAdapter.getItemId(deleteList.get(i) + 1));
+                    //Delete the Run from the database
+                    int results[] = mRunManager.mHelper.deleteRun(getActivity(), mAdapter.getItemId(deleteList.get(i)));
+                    Log.i(TAG, "Deleted Run #" + mAdapter.getItemId(deleteList.get(i)));
+                    runsDeleted += results[Constants.RUN_DELETIONS];
+                    locationsDeleted += results[Constants.LOCATION_DELETIONS];
+                    mRunListRecyclerView.removeViewAt(deleteList.get(i));
+                    Log.i(TAG, "Now removed View at position " + deleteList.get(i));
+                    //Notify the adapter that we're removing the item in the specified recyclerview position
+                    //Why does deleteList.get(i) crash with an Inconsistency/Index out of bounds error, but
+                    //deleteList.get(i) + 1 works fine?
+                    Log.i(TAG, "Notify adapter that item in position #" + (deleteList.get(i)) + " has been removed.");
+                    mAdapter.notifyItemRemoved(deleteList.get(i));
+                    mAdapter.notifyItemRangeChanged(deleteList.get(i), mAdapter.getItemCount() - deleteList.get(i));
+                    Log.i(TAG, "Notified Adapter that Items in range " + deleteList.get(i) + " to " + mAdapter.getItemCount() + " changed.");
+                    //update the running total of Runs and Locations deleted
+
+
+                    Log.i(TAG, "Now in position " + deleteList.get(i) + " is Run# " + mAdapter.getItemId(deleteList.get(i)));
                 }
                 Resources r = getResources();
                 Toast.makeText(getActivity(), r.getQuantityString(R.plurals.runs_deletion_results,
                         (int)runsDeleted,
                         (int)runsDeleted,
                         (int)locationsDeleted), Toast.LENGTH_LONG).show();
-                //Now delete the selected runs.
-                //mRunManager.deleteRuns(longDeleteList);
-                //TrackingLocationIntentService.startActionDeleteRuns(getActivity(), longDeleteList);
-                //Iterate over the list of deleted Runs, get their positions in the RecyclerView, and notify the
-                //adapter that the item has been removed. Do this instead of a single call to
-                //notifyDataSetChanged() so we get to see the cool animations.....Remember to start
-                //with the highest numbered item in the list and count down so the items identified to
-                //the adapter will correspond to the items that have been deleted throughout the whole
-                //process.
-
                 Log.i(TAG, "Finished deleting.");
                 //Clean up the MultiSelector, finish the ActionMode, and refresh the UI now that our
                 //dataset has changed
@@ -301,7 +294,12 @@ public class RunRecyclerListFragment extends Fragment
         mRunListRecyclerView = (RecyclerView)v.findViewById(R.id.run_recycler_view);
         mRunListRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         mRunListRecyclerView.addItemDecoration(new SimpleDividerItemDecoration(getActivity()));
+        RecyclerView.ItemAnimator itemAnimator = new DefaultItemAnimator();
+        itemAnimator.setRemoveDuration(1000);
+        itemAnimator.setAddDuration(1000);
+        mRunListRecyclerView.setItemAnimator(itemAnimator);
         mAdapter = new RunRecyclerListAdapter(getActivity(),  mRunManager.queryForNoRuns());
+        mAdapter.setHasStableIds(true);
         mRunListRecyclerView.setAdapter(mAdapter);
         //We use the sort order of the runs to define the cursor we want to use, so put that into
         //the args Bundle for the OnCreateLoader() callback to use in creating the
@@ -340,7 +338,7 @@ public class RunRecyclerListFragment extends Fragment
         //Disable the New Run Menu item if we're tracking a run - trying to start a new run while
         //another's already being tracked will crash the program!
         if (mOptionsMenu != null) {
-            if (mRunManager.isTrackingRun(getActivity().getApplicationContext())){
+            if (mRunManager.isTrackingRun()){
                 mOptionsMenu.findItem(R.id.menu_item_new_run).setEnabled(false);
             } else {
                 mOptionsMenu.findItem(R.id.menu_item_new_run).setEnabled(true);
@@ -537,7 +535,8 @@ public class RunRecyclerListFragment extends Fragment
         void bindRun(Run run){
             mRun = run;
             Resources r = getActivity().getResources();
-            mRunNumberTextView.setText(r.getString(R.string.run_list_run_number, mAdapter.getCursor().getPosition() + 1));
+            mRunNumberTextView.setText(r.getString(R.string.run_list_run_number, this.getAdapterPosition() + 1,
+                    (int)mAdapter.getItemId(getLayoutPosition())));
             //String startDateText = r.getString(R.string.list_date_text, Constants.DATE_FORMAT.format(mRun.getStartDate()));
             String startDateText = Constants.DATE_FORMAT.format(mRun.getStartDate());
             mStartDateTextView.setText(startDateText);

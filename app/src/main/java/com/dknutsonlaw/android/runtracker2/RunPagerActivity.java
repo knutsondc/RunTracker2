@@ -277,7 +277,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         }
         //If we're tracking a Run, don't allow creation of a new Run - trying to track more than one
         //Run will crash the app!
-        mMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun(getApplicationContext()));
+        mMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun());
         return true;
     }
 

@@ -61,6 +61,7 @@ public class RunFragment extends Fragment {
     private static final String TAG = "RunFragment";
 
     private RunManager mRunManager;
+    private Context mAppContext;
     private Run mRun;
     private long mRunId;
     private Location mStartLocation, mLastLocation = null;
@@ -206,6 +207,7 @@ public class RunFragment extends Fragment {
         //earlier, we'll get runtime errors complaining that we're trying
         //to start loaders that have already been started and to stop loaders
         //that have already been stopped.
+        mAppContext = getActivity().getApplicationContext();
         mLoaderManager = getLoaderManager();
         Bundle args = new Bundle();
         args.putLong(Constants.ARG_RUN_ID, mRunId);
@@ -215,7 +217,8 @@ public class RunFragment extends Fragment {
         //Following is needed when the Activity is destroyed and recreated so that the Fragment
         //in the foreground will have a Run in mRun and thereby present the user with location
         //updates
-        if (mRunManager.isTrackingRun(getActivity().getApplicationContext()) && mRun == null) {
+//        if (mRunManager.isTrackingRun(mAppContext) && mRun == null) {
+        if (mRunManager.isTrackingRun() && mRun == null) {
             mRun = new Run();
         }
     }
@@ -255,7 +258,6 @@ public class RunFragment extends Fragment {
         mStopButton = (Button) v.findViewById(R.id.run_stopButton);
         mStopButton.setOnClickListener(v12 -> {
             Log.i(TAG, "Stop Button Pressed. Run is " + mRunId);
-
             //First, tell the BackgroundLocationService to stop location updates
             try {
                 mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
@@ -374,7 +376,8 @@ public class RunFragment extends Fragment {
         //Are we tracking ANY run? We call the RunManager method because the PendingIntent that
         //the BackgroundLocationService uses to request and remove location updates is supplied by
         //RunManager's getLocationPendingIntent(boolean) method.
-        mStarted = mRunManager.isTrackingRun(getActivity().getApplicationContext());
+        //mStarted = mRunManager.isTrackingRun(mAppContext);
+        mStarted = mRunManager.isTrackingRun();
         //Are we tracking THIS run?
         mIsTrackingThisRun = mRunManager.isTrackingRun(mRun);
         //It's possible for the Fragment to try to update its state when not attached to the under-
@@ -414,14 +417,14 @@ public class RunFragment extends Fragment {
                         //Change the start date to the timestamp of the first Location object received.
                         mRun.setStartDate(new Date(mStartLocation.getTime()));
                         //Now write the new start date to the database
-                        TrackingLocationIntentService.startActionUpdateStartDate(getActivity(), mRun);
+                        TrackingLocationIntentService.startActionUpdateStartDate(mAppContext, mRun);
                         //Finally, display the new start date
                         mStartedTextView.setText(Constants.DATE_FORMAT.format(mRun.getStartDate()));
                         mStartingLatitudeTextView.setText(Location.convert(mStartLocation.getLatitude(), Location.FORMAT_SECONDS));
                         mStartingLongitudeTextView.setText(Location.convert(mStartLocation.getLongitude(), Location.FORMAT_SECONDS));
                         mStartingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", (mStartLocation.getAltitude() * Constants.METERS_TO_FEET))));
                         //We won't have a Starting Address yet, so ask for one and record it.
-                        TrackingLocationIntentService.startActionUpdateStartAddress(getActivity(), mRun, mStartLocation);
+                        TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, mRun, mStartLocation);
                         mStartingAddressTextView.setText(mRun.getStartAddress());
                         //If we get here, mBounds should be null, but better to check. Put the starting location into the LatLngBounds
                         //Builder and later, when at least one additional location has also been included, build mBounds.
@@ -447,7 +450,7 @@ public class RunFragment extends Fragment {
                     if (mRunManager.addressBad(getActivity(), mStartingAddressTextView.getText().toString())) {
                         Log.i(TAG, "mRun.getStartAddress() for Run " + mRun.getId() + " is bad; calling updateRunStartAddress().");
                         //Get the starting address from the geocoder and record that in the Run Table
-                        TrackingLocationIntentService.startActionUpdateStartAddress(getActivity(), mRun, mStartLocation);
+                        TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, mRun, mStartLocation);
                         mStartingAddressTextView.setText(mRun.getStartAddress());
                         Log.i(TAG, "After getting bad Start Address and updating, Start Address is " + mRun.getStartAddress());
                         //}
@@ -460,7 +463,7 @@ public class RunFragment extends Fragment {
                 //be done every time a new location is recorded and, accordingly, the UI updates.
                 if (mRun != null && mLastLocation != null && mLastLocation != mStartLocation) {
                     if (!mEndAddressUpdating) {
-                        mRunManager.startUpdatingEndAddress(getActivity());
+                        mRunManager.startUpdatingEndAddress(mAppContext);
                         mEndAddressUpdating = true;
                     }
                     Log.i(TAG, "In updateUI() section dealing with mLastLocation, mRunId is " + mRunId + " and mLastLocation is " + mLastLocation.toString());
@@ -496,18 +499,17 @@ public class RunFragment extends Fragment {
     }
 
     private void updateOnStartingLocationUpdates(){
-        Log.i(TAG, "Reached updateOnStartingLocationUpdates");
-
-        mStartButton.setEnabled(!mRunManager.isTrackingRun(getActivity().getApplicationContext()));
-        mStopButton.setEnabled(mRunManager.isTrackingRun(getActivity().getApplicationContext()) && mRunManager.isTrackingRun(mRun));
-        Log.i(TAG, "mStartButton enabled? " + mStartButton.isEnabled() + " mStopButton enabled? " + mStopButton.isEnabled());
+        updateUI();
+       /* mStartButton.setEnabled(!mRunManager.isTrackingRun(getActivity().getApplicationContext()));
+        mStopButton.setEnabled(mRunManager.isTrackingRun(getActivity().getApplicationContext()) && mRunManager.isTrackingRun(mRun));*/
+        Log.i(TAG, "In updateOnStartingLocationUpdates(), is mStartButton enabled? " + mStartButton.isEnabled() + " mStopButton enabled? " + mStopButton.isEnabled());
     }
 
     private void updateOnStoppingLocationUpdates(){
-        Log.i(TAG, "Reached updateOnStoppingLocationUpdates");
-        mStartButton.setEnabled(!mRunManager.isTrackingRun(getActivity().getApplicationContext()));
-        mStopButton.setEnabled(mRunManager.isTrackingRun(getActivity().getApplicationContext()) && mRunManager.isTrackingRun(mRun));
-        Log.i(TAG, "mStartButton enabled? " + mStartButton.isEnabled() + " mStopButton enabled? " + mStopButton.isEnabled());
+        updateUI();
+        /*mStartButton.setEnabled(!mRunManager.isTrackingRun(getActivity().getApplicationContext()));
+        mStopButton.setEnabled(mRunManager.isTrackingRun(getActivity().getApplicationContext()) && mRunManager.isTrackingRun(mRun));*/
+        Log.i(TAG, "In updateOnStoppingLocationUpdates(), is mStartButton enabled? " + mStartButton.isEnabled() + " mStopButton enabled? " + mStopButton.isEnabled());
     }
 
     private void restartLoaders() {
@@ -981,10 +983,12 @@ public class RunFragment extends Fragment {
                     case Constants.MESSAGE_LOCATION_UPDATES_STARTED:
                         Log.i(TAG, "Received MESSAGE_LOCATION_UPDATES_STARTED");
                         fragment.updateOnStartingLocationUpdates();
+                        //fragment.updateOnStartingLocationUpdates();
                         break;
                     case Constants.MESSAGE_LOCATION_UPDATES_STOPPED:
                         Log.i(TAG, "Received MESSAGE_LOCATION_UPDATES_STOPPED");
                         fragment.updateOnStoppingLocationUpdates();
+                        //fragment.updateOnStoppingLocationUpdates();
                         break;
                     default:
                         break;

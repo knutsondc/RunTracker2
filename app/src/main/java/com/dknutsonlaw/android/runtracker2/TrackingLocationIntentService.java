@@ -14,6 +14,7 @@ import android.util.Log;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /** Created by dck on 2/11/2015
  * An {@link IntentService} subclass for handling database task requests asynchronously in
@@ -54,12 +55,12 @@ public class TrackingLocationIntentService extends IntentService{
      * Starts this service to delete the Runs with the RunIds contained in the runIds
      * parameter. If the service is already performing a task this action will be queued.
      */
-    /*public static void startActionDeleteRuns(Context context, ArrayList<Long> runIds) {
+    public static void startActionDeleteRuns(Context context, ArrayList<Long> deleteList) {
         Intent intent = new Intent(context, TrackingLocationIntentService.class);
         intent.setAction(Constants.ACTION_DELETE_RUNS);
-        intent.putExtra(Constants.PARAM_RUN_IDS, runIds);
+        intent.putExtra(Constants.PARAM_RUN_IDS, deleteList);
         context.startService(intent);
-    }*/
+    }
 
     /*
      *Starts this service to delete a single run. If the  service is already performing a
