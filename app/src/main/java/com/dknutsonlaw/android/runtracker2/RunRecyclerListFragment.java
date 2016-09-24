@@ -139,7 +139,7 @@ public class RunRecyclerListFragment extends Fragment
                                 mRunManager.stopRun();
                             }
                         }
-                        Log.i(TAG, "Did we successfully stop Location Updates? " + mRunManager.isTrackingRun());
+                        //Log.i(TAG, "Did we successfully stop Location Updates? " + mRunManager.isTrackingRun());
                     }
                 }
                 //Keep track of number of Runs deleted
@@ -151,40 +151,33 @@ public class RunRecyclerListFragment extends Fragment
 
                     Log.i(TAG, "Now dealing with Run in RecyclerView position #" + deleteList.get(i) + " with RunId #" +
                             mAdapter.getItemId(deleteList.get(i)));
-                    Log.i(TAG, "Now in RecyclerPosition one greater than that is Run#" + mAdapter.getItemId(deleteList.get(i) + 1));
+                    //Log.i(TAG, "Now in RecyclerPosition one greater than that is Run#" + mAdapter.getItemId(deleteList.get(i) + 1));
                     //Delete the Run from the database
                     int results[] = mRunManager.mHelper.deleteRun(getActivity(), mAdapter.getItemId(deleteList.get(i)));
                     Log.i(TAG, "Deleted Run #" + mAdapter.getItemId(deleteList.get(i)));
+                    //update the running total of Runs and Locations deleted
                     runsDeleted += results[Constants.RUN_DELETIONS];
                     locationsDeleted += results[Constants.LOCATION_DELETIONS];
+                    //If we delete the view for the Run being deleted, things work okay; if not, we
+                    //crash with a "recyclerview inconsistent - index out of bounds error
                     mRunListRecyclerView.removeViewAt(deleteList.get(i));
-                    Log.i(TAG, "Now removed View at position " + deleteList.get(i));
+                    Log.i(TAG, "Removed View at position " + deleteList.get(i));
                     //Notify the adapter that we're removing the item in the specified recyclerview position
-                    //Why does deleteList.get(i) crash with an Inconsistency/Index out of bounds error, but
-                    //deleteList.get(i) + 1 works fine?
-                    Log.i(TAG, "Notify adapter that item in position #" + (deleteList.get(i)) + " has been removed.");
                     mAdapter.notifyItemRemoved(deleteList.get(i));
+                    Log.i(TAG, "Notified adapter that item in position #" + (deleteList.get(i)) + " has been removed.");
                     mAdapter.notifyItemRangeChanged(deleteList.get(i), mAdapter.getItemCount() - deleteList.get(i));
-                    Log.i(TAG, "Notified Adapter that Items in range " + deleteList.get(i) + " to " + mAdapter.getItemCount() + " changed.");
-                    //update the running total of Runs and Locations deleted
-
-
-                    Log.i(TAG, "Now in position " + deleteList.get(i) + " is Run# " + mAdapter.getItemId(deleteList.get(i)));
+                    Log.i(TAG, "Notified Adapter that Items in range " + deleteList.get(i) + " to " + (mAdapter.getItemCount() - deleteList.get(i)) + " changed.");
                 }
                 Resources r = getResources();
                 Toast.makeText(getActivity(), r.getQuantityString(R.plurals.runs_deletion_results,
                         (int)runsDeleted,
                         (int)runsDeleted,
                         (int)locationsDeleted), Toast.LENGTH_LONG).show();
-                Log.i(TAG, "Finished deleting.");
                 //Clean up the MultiSelector, finish the ActionMode, and refresh the UI now that our
                 //dataset has changed
                 mMultiSelector.clearSelections();
-                Log.i(TAG, "Passed mMultiSelector.clearSelections");
                 mode.finish();
-                Log.i(TAG, "Passed mode.finish()");
                 refreshUI();
-                Log.i(TAG, "Passed refreshUI()");
                 return true;
             }
             //If we don't select Delete from the ActionMode menu, just clear the MultiSelector and
@@ -312,7 +305,6 @@ public class RunRecyclerListFragment extends Fragment
         mEmptyViewButton = (Button)v.findViewById(R.id.empty_view_button);
         mEmptyViewButton.setOnClickListener(v1 -> {
             TrackingLocationIntentService.startActionInsertRun(getActivity(), new Run());
-            //mRunManager.startNewRun();
         });
         refreshUI();
         return v;
@@ -496,8 +488,6 @@ public class RunRecyclerListFragment extends Fragment
         //The loader should take care of closing the old cursor, so use swapCursor(), not changeCursor()
         mAdapter.swapCursor(newCursor);
         refreshUI();
-
-        Log.i(TAG, "RunListCursorLoader onLoadFinished() called.");
     }
 
     @Override
@@ -709,7 +699,7 @@ public class RunRecyclerListFragment extends Fragment
                 if (actionAttempted.equals(Constants.ACTION_UPDATE_END_ADDRESS)){
                     int results = intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
                     if (results == 1) {
-                        Log.i(TAG, "Successfully updated Ending Address.");
+                        //Log.i(TAG, "Successfully updated Ending Address.");
                     } else
                     if (results > 1) {
                         Toast.makeText(getActivity(), R.string.multiple_runs_end_addresses_updated,

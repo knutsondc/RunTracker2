@@ -103,13 +103,13 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         if (savedInstanceState != null) {
             Log.i(TAG, "Retrieved savedInstanceState");
             mSortOrder = savedInstanceState.getInt(Constants.SORT_ORDER);
-            Log.i(TAG, "mSortOrder is " + mSortOrder);
+            //Log.i(TAG, "mSortOrder is " + mSortOrder);
             mRunId = savedInstanceState.getLong(Constants.SAVED_RUN_ID);
-            Log.i(TAG, "mRunId is " + savedInstanceState.getLong(Constants.SAVED_RUN_ID));
+            //Log.i(TAG, "mRunId is " + savedInstanceState.getLong(Constants.SAVED_RUN_ID));
         } else {
             Log.i(TAG, "Taking values from the Intent");
             mSortOrder = getIntent().getIntExtra(Constants.EXTRA_SORT_ORDER, Constants.KEEP_EXISTING_SORT);
-            Log.i(TAG, "mSortOrder is " + mSortOrder);
+            //Log.i(TAG, "mSortOrder is " + mSortOrder);
             if (mSortOrder == Constants.KEEP_EXISTING_SORT) {
                 Log.i(TAG, "SortOrder is KEEP_EXISTING_SORT - using SharedPrefs");
                 mSortOrder = mRunManager.mPrefs.getInt(Constants.SORT_ORDER, Constants.SORT_BY_DATE_DESC);
@@ -380,7 +380,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor){
         RunDatabaseHelper.RunCursor newCursor = (RunDatabaseHelper.RunCursor)cursor;
-        Log.i(TAG, "RunListCursorLoader onLoadFinished() called");
+        //Log.i(TAG, "RunListCursorLoader onLoadFinished() called");
         //The loader takes care of releasing the old cursor, so call swapCursor(), not changeCursor()
         mAdapter.swapCursor(newCursor);
         //If there are no Runs in the cursor, shut down this Activity and go back to the

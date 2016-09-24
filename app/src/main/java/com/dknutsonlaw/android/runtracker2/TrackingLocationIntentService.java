@@ -238,8 +238,8 @@ public class TrackingLocationIntentService extends IntentService{
     private void handleActionInsertLocation(long runId, Location loc) {
         //Perform the Location insertion using the runId parameter as the _id field
         long result[] = mRunManager.mHelper.insertLocation(this, runId, loc);
-        Log.i(TAG, "Insert Location result is: location #" + result[0] + ", run update result " +
-                result[1] + ", continuation limit result " + result[2]);
+        //Log.i(TAG, "Insert Location result is: location #" + result[0] + ", run update result " +
+        //        result[1] + ", continuation limit result " + result[2]);
         //Create an Intent with Extras to report the results of the operation to the RunFragment
         //UI and advise the user if there was an error. The RunFragment, RunRecyclerListFragment
         //and RunMapFragment UIs get the new data fed to them automatically by loaders.
@@ -260,7 +260,7 @@ public class TrackingLocationIntentService extends IntentService{
         //Perform the update on the database and get the result
         //int result = mRunManager.mHelper.updateRunStartDate(mRunManager.mAppContext, run);
         int result = mRunManager.mHelper.updateRunStartDate(this, run);
-        Log.i(TAG, "Result of UpdateStartDate: " + result);
+        //Log.i(TAG, "Result of UpdateStartDate: " + result);
         //Create an Intent with Extras to report the results of the operation to the RunFragment
         //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
         //loader to get this data.
@@ -379,8 +379,8 @@ public class TrackingLocationIntentService extends IntentService{
         //Delete the Runs identified in runIds
         //int results[] = mRunManager.mHelper.deleteRuns(mRunManager.mAppContext, runIds);
         int results[] = mRunManager.mHelper.deleteRuns(this, runIds);
-        Log.i(TAG, "results are " + results[1] + " runs deleted and "
-                + results[0] + " locations deleted.");
+        //Log.i(TAG, "results are " + results[1] + " runs deleted and "
+        //        + results[0] + " locations deleted.");
         //Create an Intent with Extras to report the results of the operation
         //This Intent is aimed at a different Activity/Fragment, the RunRecyclerListFragment,
         //so it has a different Action specified. All the others are directed at
@@ -402,8 +402,8 @@ public class TrackingLocationIntentService extends IntentService{
     private void handleActionDeleteRun(long runId){
         //int results[] = mRunManager.mHelper.deleteRun(mRunManager.mAppContext, runId);
         int results[] = mRunManager.mHelper.deleteRun(this, runId);
-        Log.i(TAG, "results are " + results[1] + " runs deleted and " + results[0] +
-                    " locations deleted.");
+        //Log.i(TAG, "results are " + results[1] + " runs deleted and " + results[0] +
+        //            " locations deleted.");
         Intent responseIntent = new Intent(Constants.ACTION_DELETE_RUN)
                 .putExtra(Constants.EXTENDED_RESULTS_DATA, results)
                 //Put the runId here so the RunFragment of the Run being deleted can know to call

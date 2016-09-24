@@ -201,13 +201,15 @@ public class RunFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
 
         doBindService(this);
+        //Get and save the Application Context for use with some functions that might get called
+        //when the Activity isn't around or this RunFragment isn't attached.
+        mAppContext = getActivity().getApplicationContext();
         //Make sure the loaders are initialized for the newly-launched Run.
         //Loaders need to be initialized here because their life cycle is
         //actually tied to the Activity, not the Fragment. If initialized
         //earlier, we'll get runtime errors complaining that we're trying
         //to start loaders that have already been started and to stop loaders
         //that have already been stopped.
-        mAppContext = getActivity().getApplicationContext();
         mLoaderManager = getLoaderManager();
         Bundle args = new Bundle();
         args.putLong(Constants.ARG_RUN_ID, mRunId);
@@ -217,7 +219,6 @@ public class RunFragment extends Fragment {
         //Following is needed when the Activity is destroyed and recreated so that the Fragment
         //in the foreground will have a Run in mRun and thereby present the user with location
         //updates
-//        if (mRunManager.isTrackingRun(mAppContext) && mRun == null) {
         if (mRunManager.isTrackingRun() && mRun == null) {
             mRun = new Run();
         }
@@ -258,7 +259,10 @@ public class RunFragment extends Fragment {
         mStopButton = (Button) v.findViewById(R.id.run_stopButton);
         mStopButton.setOnClickListener(v12 -> {
             Log.i(TAG, "Stop Button Pressed. Run is " + mRunId);
-            //First, tell the BackgroundLocationService to stop location updates
+            //Do housekeeping for stopping tracking a run.
+            mRunManager.stopRun();
+            mEndAddressUpdating = false;
+            //Next, tell the BackgroundLocationService to stop location updates
             try {
                 mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
             } catch (RemoteException e){
@@ -268,9 +272,6 @@ public class RunFragment extends Fragment {
                 TrackingLocationIntentService.startActionUpdateEndAddress(getActivity(),
                         mRun, mRunManager.getLastLocationForRun(mRunId));
             }
-            //Do housekeeping for stopping tracking a run.
-            mRunManager.stopRun();
-            mEndAddressUpdating = false;
             //We've stopped tracking the Run, so refresh the menu to enable "New Run" item
             updateUI();
         });
@@ -286,9 +287,9 @@ public class RunFragment extends Fragment {
         });
         //If this isn't a new run, we should immediately populate the textviews.
         //Start with information concerning the starting point.
-        Log.i(TAG, "In onCreateView() for Run " + mRunId + ", mStartLocation null?" + (mRunManager.getStartLocationForRun(mRunId) == null));
+        //Log.i(TAG, "In onCreateView() for Run " + mRunId + ", mStartLocation null?" + (mRunManager.getStartLocationForRun(mRunId) == null));
         if ((mStartLocation = mRunManager.getStartLocationForRun(mRunId)) != null) {
-            Log.i(TAG, "In onCreateView(), mRunId is " + mRunId + " and mStartLocation is " + mStartLocation.toString());
+            //Log.i(TAG, "In onCreateView(), mRunId is " + mRunId + " and mStartLocation is " + mStartLocation.toString());
             mStartedTextView.setText(Constants.DATE_FORMAT.format(mRun.getStartDate()));
             //Report latitude and longitude in degrees, minutes and seconds
             mStartingLatitudeTextView.setText(Location.convert(mStartLocation.getLatitude(), Location.FORMAT_SECONDS));
@@ -307,7 +308,7 @@ public class RunFragment extends Fragment {
         }
         //Now display what we have concerning the ending point.
         mLastLocation = mRunManager.getLastLocationForRun(mRunId);
-        Log.i(TAG, "In onCreateView for Run " + mRunId + ", mLastLocation null? " + (mRunManager.getLastLocationForRun(mRunId) == null));
+        //Log.i(TAG, "In onCreateView for Run " + mRunId + ", mLastLocation null? " + (mRunManager.getLastLocationForRun(mRunId) == null));
         //If we have a last location, display the data we have concerning it.
         if (mLastLocation != null && mLastLocation != mStartLocation) {
             mEndedTextView.setText(Constants.DATE_FORMAT.format(mLastLocation.getTime()));
@@ -410,7 +411,7 @@ public class RunFragment extends Fragment {
                 //If we haven't yet gotten a starting location for this run, try to get one. Once we've
                 //gotten a starting location, no need to ask for it again.
                 if (mRun != null && mStartLocation == null) {
-                    Log.i(TAG, "In updateUI(), at beginning of section re mStartLocation, mRunId is " + mRunId + " and mStartLocation is null");
+                    //Log.i(TAG, "For Run " + mRunId + "at beginning of updateUI() section re mStartLocation mStartLocation is null");
                     mStartLocation = mRunManager.getStartLocationForRun(mRunId);
                     if (mStartLocation != null) {
                         //Now that we've gotten a Starting Location, record and display information about it.
@@ -452,8 +453,7 @@ public class RunFragment extends Fragment {
                         //Get the starting address from the geocoder and record that in the Run Table
                         TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, mRun, mStartLocation);
                         mStartingAddressTextView.setText(mRun.getStartAddress());
-                        Log.i(TAG, "After getting bad Start Address and updating, Start Address is " + mRun.getStartAddress());
-                        //}
+                        Log.i(TAG, "After getting bad Start Address for Run " + mRunId + " and updating, Start Address is " + mRun.getStartAddress());
                     }
                 }
                 //mLastLocation gets set by the LastLocationLoader
@@ -466,7 +466,7 @@ public class RunFragment extends Fragment {
                         mRunManager.startUpdatingEndAddress(mAppContext);
                         mEndAddressUpdating = true;
                     }
-                    Log.i(TAG, "In updateUI() section dealing with mLastLocation, mRunId is " + mRunId + " and mLastLocation is " + mLastLocation.toString());
+                    //Log.i(TAG, "For Run " + mRunId + "mLastLocation is " + mLastLocation.toString() + " in updateUI() section dealing with mLastLocation");
                     mDurationTextView.setText(Run.formatDuration((int) (mRun.getDuration() / 1000)));
                     //Convert distance travelled from meters to miles and display to two decimal places
                     double miles = mRun.getDistance() * Constants.METERS_TO_MILES;
@@ -476,7 +476,7 @@ public class RunFragment extends Fragment {
                     mEndingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", (mLastLocation.getAltitude() * Constants.METERS_TO_FEET))));
                     mEndedTextView.setText(Constants.DATE_FORMAT.format(mLastLocation.getTime()));
                     mEndingAddressTextView.setText(mRun.getEndAddress());
-                    Log.i(TAG, "In updateUI() Ending Address for Run " + mRun.getId() + " is " + mEndingAddressTextView.getText());
+                    //Log.i(TAG, "In updateUI() Ending Address for Run " + mRun.getId() + " is " + mEndingAddressTextView.getText());
                     //We don't check for bad Ending Addresses because the Ending Address gets updated every five seconds
                     //while the Run is being tracked.
                     //If mBounds hasn't been initialized yet, add this location to the Builder and create
@@ -677,7 +677,6 @@ public class RunFragment extends Fragment {
                 if (mRun.getDuration() == 0){
                     Toast.makeText(getActivity(), "Never got any locations for this Run; deleting.",
                             Toast.LENGTH_LONG).show();
-                    //mRunManager.deleteRun(mRunId);
                     TrackingLocationIntentService.startActionDeleteRun(getActivity(), mRunId);
                     Message msg = Message.obtain(null, Constants.MESSAGE_PERMISSION_REQUEST_CANCELED);
                     try {
@@ -686,9 +685,6 @@ public class RunFragment extends Fragment {
                         Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_PERMISSION_REQUEST_CANCELED");
                     }
                 }
-                /*if (mIsBound) {
-                    doUnbindService(this);
-                }*/
             }
         } else {
             Log.i(TAG, "REQUEST_LOCATION_PERMISSIONS is the only requestCode used. How'd you get here!?!");
@@ -851,6 +847,7 @@ public class RunFragment extends Fragment {
                         if (result[Constants.CONTINUATION_LIMIT_RESULT] == -1) {
 
                             getActivity().stopService(new Intent(getActivity(), BackgroundLocationService.class));
+                            mRunManager.stopRun();
                             toastTextRes = R.string.current_location_too_distant;
                             Toast.makeText(RunFragment.this.getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
                             return;
@@ -861,15 +858,15 @@ public class RunFragment extends Fragment {
                         //we restart the loaders because both the Run and the LastLocation will have new
                         //data.
                         if (result[Constants.LOCATION_INSERTION_RESULT] != -1) {
-                            Log.i(TAG, "Successfully inserted Location at row " + result[Constants.LOCATION_INSERTION_RESULT] +
-                                    " for Run " + mRunId);
+                            //Log.i(TAG, "Successfully inserted Location at row " + result[Constants.LOCATION_INSERTION_RESULT] +
+                            //        " for Run " + mRunId);
                         } else {
                             //Upon error, throw up a Toast advising the user.
                             toastTextRes = R.string.location_insert_failed;
                             Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
                         }
                         if (result[Constants.RUN_UPDATE_RESULT] != -1) {
-                            Log.i(TAG, "Successfully updated Run " + mRunId);
+                            //Log.i(TAG, "Successfully updated Run " + mRunId);
                         } else {
                             toastTextRes = R.string.update_run_error;
                             if (isAdded()) {

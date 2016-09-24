@@ -94,7 +94,7 @@ public class RunManager {
         try {
             mStpe = new ScheduledThreadPoolExecutor(3, /* mCrp */ new ThreadPoolExecutor.CallerRunsPolicy());
             Log.i(TAG, "Created new ScheduledThreadPoolExecutor" + mStpe);
-            mScheduledFuture = mStpe.scheduleAtFixedRate(new updateEndAddressTask(context, getRun(mCurrentRunId)), 15, 5, TimeUnit.SECONDS);
+            mScheduledFuture = mStpe.scheduleAtFixedRate(new updateEndAddressTask(context, getRun(mCurrentRunId)), 20, 10, TimeUnit.SECONDS);
             Log.i(TAG, "Created ScheduledFuture " + mScheduledFuture);
         } catch (RejectedExecutionException rJee){
             Log.i(TAG, "Caught rejected execution exception");

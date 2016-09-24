@@ -30,19 +30,19 @@ public class TrackingLocationReceiver extends LocationReceiver {
     protected void onLocationReceived(Context c, Location loc) {
        if (loc.getAccuracy() == 0.0) {
             Log.i(TAG, "Location rejected - no accuracy value");
+       } else if(loc.getAltitude() == 0.0){
+           //Reject all location updates that have no altitude value - this insures that only
+           //GPS locations get accepted
+           Log.i(TAG, "Location rejected - no altitude value");
        } else if (loc.getAccuracy() > 40.0) {
            //Reject all location updates that have an accuracy of greater than
            //40 meters.
-            Log.i(TAG, "Location rejected - insufficiently accurate: " + loc.getAccuracy());
-       } else if(loc.getAltitude() == 0.0){
-           //Reject all location updates that have no altitude value - this insures that  only
-           //GPS locations get accepted
-           Log.i(TAG, "Location rejected - no altitude value");
+           Log.i(TAG, "Location rejected - insufficiently accurate: " + loc.getAccuracy());
        } else {
             //From LocationServices to here to RunManager to Intent Service to RunDatabaseHelper.
             //Use of the Intent Service keeps the database work off the main, UI thread
             RunManager.get(c).insertLocation(c, loc);
-            Log.i(TAG, "Got a good location.");
+            //Log.i(TAG, "Got a good location.");
        }
     }
 }
