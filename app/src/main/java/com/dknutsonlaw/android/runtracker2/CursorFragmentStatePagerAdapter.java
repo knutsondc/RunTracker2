@@ -34,6 +34,7 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
     }
 
     private void init(Context context, Cursor c) {
+        //noinspection Convert2Diamond
         mObjectMap = new HashMap<>();
         mRegisteredFragments = new SparseArray<>();
         boolean cursorPresent = c != null;
@@ -141,6 +142,7 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
             //mRowIDColumn = newCursor.getColumnIndexOrThrow("_id");
             mRowIDColumn = newCursor.getColumnIndexOrThrow(BaseColumns._ID);
             mDataValid = true;
+            //notifyDataSetChanged();
         } else {
             mRowIDColumn = -1;
             mDataValid = false;

@@ -65,6 +65,7 @@ public class RunFragment extends Fragment {
     private Run mRun;
     private long mRunId;
     private Location mStartLocation, mLastLocation = null;
+    //private TestButton mStartButton;
     private Button mStartButton, mStopButton, mMapButton;
     private TextView mStartedTextView, mStartingLatitudeTextView,
             mStartingLongitudeTextView, mStartingAltitudeTextView, mStartingAddressTextView,
@@ -246,6 +247,7 @@ public class RunFragment extends Fragment {
         mStartButton = (Button) v.findViewById(R.id.run_startButton);
         mStartButton.setOnClickListener(v1 -> {
             Log.i(TAG, " Pressed StartButton. Run Id is " + mRun.getId());
+            mRunManager.startTrackingRun(getActivity(), mRunId);
             Message msg = Message.obtain(null, Constants.MESSAGE_START_LOCATION_UPDATES);
             msg.replyTo = new Messenger(new IncomingHandler(RunFragment.this));
             try {
@@ -253,7 +255,6 @@ public class RunFragment extends Fragment {
             } catch (RemoteException e){
                 Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_START_LOCATION_UPDATES");
             }
-            mRunManager.startTrackingRun(getActivity(), mRunId);
             updateUI();
         });
         mStopButton = (Button) v.findViewById(R.id.run_stopButton);
@@ -262,7 +263,7 @@ public class RunFragment extends Fragment {
             //Do housekeeping for stopping tracking a run.
             mRunManager.stopRun();
             mEndAddressUpdating = false;
-            //Next, tell the BackgroundLocationService to stop location updates
+            //Tell the BackgroundLocationService to stop location updates
             try {
                 mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
             } catch (RemoteException e){
@@ -333,7 +334,7 @@ public class RunFragment extends Fragment {
         //Enable Stop button only if we're tracking and tracking THIS run
         mStopButton.setEnabled(mStarted && mIsTrackingThisRun);
         //Call updateUI() in case one or both of the addresses are bad and need to be updated.
-        updateUI();
+        //updateUI();
         return v;
     }
 
@@ -411,7 +412,7 @@ public class RunFragment extends Fragment {
                 //If we haven't yet gotten a starting location for this run, try to get one. Once we've
                 //gotten a starting location, no need to ask for it again.
                 if (mRun != null && mStartLocation == null) {
-                    //Log.i(TAG, "For Run " + mRunId + "at beginning of updateUI() section re mStartLocation mStartLocation is null");
+                    Log.i(TAG, "For Run " + mRunId + "at beginning of updateUI() section re mStartLocation mStartLocation is null");
                     mStartLocation = mRunManager.getStartLocationForRun(mRunId);
                     if (mStartLocation != null) {
                         //Now that we've gotten a Starting Location, record and display information about it.
@@ -454,6 +455,7 @@ public class RunFragment extends Fragment {
                         TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, mRun, mStartLocation);
                         mStartingAddressTextView.setText(mRun.getStartAddress());
                         Log.i(TAG, "After getting bad Start Address for Run " + mRunId + " and updating, Start Address is " + mRun.getStartAddress());
+                        //}
                     }
                 }
                 //mLastLocation gets set by the LastLocationLoader
@@ -466,7 +468,7 @@ public class RunFragment extends Fragment {
                         mRunManager.startUpdatingEndAddress(mAppContext);
                         mEndAddressUpdating = true;
                     }
-                    //Log.i(TAG, "For Run " + mRunId + "mLastLocation is " + mLastLocation.toString() + " in updateUI() section dealing with mLastLocation");
+                    Log.i(TAG, "In updateUI() section dealing with mLastLocation, mRunId is " + mRunId + " and mLastLocation is " + mLastLocation.toString());
                     mDurationTextView.setText(Run.formatDuration((int) (mRun.getDuration() / 1000)));
                     //Convert distance travelled from meters to miles and display to two decimal places
                     double miles = mRun.getDistance() * Constants.METERS_TO_MILES;
@@ -476,7 +478,7 @@ public class RunFragment extends Fragment {
                     mEndingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", (mLastLocation.getAltitude() * Constants.METERS_TO_FEET))));
                     mEndedTextView.setText(Constants.DATE_FORMAT.format(mLastLocation.getTime()));
                     mEndingAddressTextView.setText(mRun.getEndAddress());
-                    //Log.i(TAG, "In updateUI() Ending Address for Run " + mRun.getId() + " is " + mEndingAddressTextView.getText());
+                    Log.i(TAG, "In updateUI() Ending Address for Run " + mRun.getId() + " is " + mEndingAddressTextView.getText());
                     //We don't check for bad Ending Addresses because the Ending Address gets updated every five seconds
                     //while the Run is being tracked.
                     //If mBounds hasn't been initialized yet, add this location to the Builder and create
@@ -677,6 +679,7 @@ public class RunFragment extends Fragment {
                 if (mRun.getDuration() == 0){
                     Toast.makeText(getActivity(), "Never got any locations for this Run; deleting.",
                             Toast.LENGTH_LONG).show();
+                    //mRunManager.deleteRun(mRunId);
                     TrackingLocationIntentService.startActionDeleteRun(getActivity(), mRunId);
                     Message msg = Message.obtain(null, Constants.MESSAGE_PERMISSION_REQUEST_CANCELED);
                     try {
@@ -685,6 +688,9 @@ public class RunFragment extends Fragment {
                         Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_PERMISSION_REQUEST_CANCELED");
                     }
                 }
+                /*if (mIsBound) {
+                    doUnbindService(this);
+                }*/
             }
         } else {
             Log.i(TAG, "REQUEST_LOCATION_PERMISSIONS is the only requestCode used. How'd you get here!?!");
@@ -773,10 +779,13 @@ public class RunFragment extends Fragment {
                         int toastTextRes = 0;
                         //The getWritableDatabase.update() method returns the number of rows affected; that
                         //value is returned to the IntentService and passed on to here. If no rows were
-                        //affected or more than one row was affected, something went wrong!
-                        if (result == 1) {
+                        //affected or more than one row was affected, something went wrong! The
+                        //IntentService no longer reports successful updates, so no need to check for
+                        //those.
+                        /*if (result == 1) {
                             Log.i(TAG, "ResultsReceiver reports Starting Date successfully updated for Run " + mRunId);
-                        } else if (result == 0) {
+                        } else */
+                        if (result == 0) {
                             toastTextRes = R.string.update_run_start_date_failed;
                         } else if (result > 1) {
                             toastTextRes = R.string.multiple_runs_dates_updated;
@@ -796,10 +805,12 @@ public class RunFragment extends Fragment {
                         int toastTextRes = 0;
                         //The getWritableDatabase.update() method returns the number of rows affected; that
                         //value is returned to the IntentService and passed on to here. If no rows were
-                        //affected or more than one row was affected, something went wrong!
-                        if (result == 1){
+                        //affected or more than one row was affected, something went wrong! The IntentService
+                        //no longer reports successful updates, so no need to check for those.
+                        /*if (result == 1){
                             Log.i(TAG, "ResultsReceiver reports Starting Address successfully updated for Run " + mRunId);
-                        } else if (result == 0) {
+                        } else */
+                        if (result == 0) {
                             toastTextRes = R.string.update_run_start_address_failed;
                         } else if (result > 1) {
                             toastTextRes = R.string.multiple_start_addresses_error;
@@ -819,10 +830,13 @@ public class RunFragment extends Fragment {
                         int toastTextRes = 0;
                         //The getWritableDatabase.update() method returns the number of rows affected; that
                         //value is returned to the IntentService and passed on to here. If no rows were
-                        //affected or more than one row was affected, something went wrong!
-                        if (result == 1) {
+                        //affected or more than one row was affected, something went wrong! The
+                        //IntentService no longer reports successful updates, so no need to check
+                        //for those.
+                        /*if (result == 1) {
                             Log.i(TAG, "ResultsReceiver reports Ending Address successfully updated for Run " + mRunId);
-                        } else if (result == 0) {
+                        } else */
+                        if (result == 0) {
                             toastTextRes = R.string.update_end_address_failed;
                         } else if (result > 1) {
                             toastTextRes = R.string.multiple_runs_end_addresses_updated;
@@ -847,33 +861,33 @@ public class RunFragment extends Fragment {
                         if (result[Constants.CONTINUATION_LIMIT_RESULT] == -1) {
 
                             getActivity().stopService(new Intent(getActivity(), BackgroundLocationService.class));
-                            mRunManager.stopRun();
                             toastTextRes = R.string.current_location_too_distant;
                             Toast.makeText(RunFragment.this.getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
                             return;
                         }
 
                         //SQLDatabase.insert() returns row number of inserted values upon success, -1
-                        //on error. Result is returned to IntentService and passed along to here, where
-                        //we restart the loaders because both the Run and the LastLocation will have new
-                        //data.
-                        if (result[Constants.LOCATION_INSERTION_RESULT] != -1) {
-                            //Log.i(TAG, "Successfully inserted Location at row " + result[Constants.LOCATION_INSERTION_RESULT] +
-                            //        " for Run " + mRunId);
-                        } else {
+                        //on error. Any error result is returned to IntentService and passed along
+                        //here so it can be reported to the user. Reports of success are not sent
+                        //by the IntentService.
+                        /*if (result[Constants.LOCATION_INSERTION_RESULT] != -1) {
+                            Log.i(TAG, "Successfully inserted Location at row " + result[Constants.LOCATION_INSERTION_RESULT] +
+                                    " for Run " + mRunId);
+                        } else */
+                        if (result[Constants.LOCATION_INSERTION_RESULT] == -1){
                             //Upon error, throw up a Toast advising the user.
                             toastTextRes = R.string.location_insert_failed;
                             Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
                         }
-                        if (result[Constants.RUN_UPDATE_RESULT] != -1) {
-                            //Log.i(TAG, "Successfully updated Run " + mRunId);
-                        } else {
+                        /*if (result[Constants.RUN_UPDATE_RESULT] != -1) {
+                            Log.i(TAG, "Successfully updated Run " + mRunId);
+                        } else */
+                        if (result[Constants.RUN_UPDATE_RESULT] == -1){
                             toastTextRes = R.string.update_run_error;
                             if (isAdded()) {
                                 Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
                             }
                         }
-
                         break;
                     }
                 }

@@ -42,7 +42,6 @@ import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -259,7 +258,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
     //done in onLoadFinished() as new location updates come in.
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
-        //Log.i(TAG, "In onLoadFinished()");
+        Log.i(TAG, "In onLoadFinished()");
         mLocationCursor = (RunDatabaseHelper.LocationCursor) cursor;
         //Now that we've got a cursor holding all the location data for this run, we can process it.
         if (mNeedToPrepare) {
@@ -388,7 +387,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         mLocationCursor.moveToFirst();
         mStartLocation = mLocationCursor.getLocation();
         mStartDate = Constants.DATE_FORMAT.format(mStartLocation.getTime());
-        //Log.i(TAG, "mStartDate is " + mStartDate);
+        Log.i(TAG, "mStartDate is " + mStartDate);
         Resources r = getActivity().getResources();
         //Get the address where we started the Run from the database. If the database's StartAddress
         //is bad, get a new Starting Address from the geocoder. The geocoder needs a LatLng object,
@@ -411,7 +410,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         mLocationCursor.moveToLast();
         mLastLocation = mLocationCursor.getLocation();
         String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
-        //Log.i(TAG, "endDate is " + endDate);
+        Log.i(TAG, "endDate is " + endDate);
         //Get the address where the run ended from the database. If that address is bad, get a new
         //end address from the geocoder. The geocoder needs a LatLng, so we feed it the last element
         //in mPoints.
@@ -454,7 +453,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         }
         //Now that we've fixed the position of mEndMarker, add it to the map.
         mEndMarker = mGoogleMap.addMarker(endMarkerOptions);
-        //Log.i(TAG, "In prepareMap(), mViewMode is " + mViewMode);
+        Log.i(TAG, "In prepareMap(), mViewMode is " + mViewMode);
         //Now we need to set up the map for the first time by telling the system how large the
         //map needs to be and then render the map. Then set the camera over the center of a map
         //Bounds large enough to take in all the points in mPolyline.
@@ -643,13 +642,13 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 //already been created, so we don't need to tell the CameraUpdate about the display,
                 //like we had to when the map was initialized.
                 cameraUpdate = CameraUpdateFactory.newLatLngBounds(mBounds, 110);
-                //Log.i(TAG, "SHOW_ENTIRE_ROUTE zoom level: " + mGoogleMap.getCameraPosition().zoom);
+                Log.i(TAG, "SHOW_ENTIRE_ROUTE zoom level: " + mGoogleMap.getCameraPosition().zoom);
                 break;
             }
             case Constants.FOLLOW_END_POINT: {
                 //To track the end point of the Run, move the camera to the new end point at the
                 //zoom level last used for this mode or FOLLOW_START_POINT mode.
-                //Log.i(TAG, "FOLLOW_END_POINT zoom level: " + mGoogleMap.getCameraPosition().zoom);
+                Log.i(TAG, "FOLLOW_END_POINT zoom level: " + mGoogleMap.getCameraPosition().zoom);
                 cameraUpdate = CameraUpdateFactory.newLatLng(latLng);
                 break;
             }
@@ -657,7 +656,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 //To center on the start point of the Run, move the camera to the starting point at
                 //the zoom level last set for this mode or FOLLOW_END_POINT mode.
                 cameraUpdate = CameraUpdateFactory.newLatLng(mPoints.get(0));
-                //Log.i(TAG, "FOLLOW_STARTING_POINT zoom level: " + mGoogleMap.getCameraPosition().zoom);
+                Log.i(TAG, "FOLLOW_STARTING_POINT zoom level: " + mGoogleMap.getCameraPosition().zoom);
                 break;
             }
             case Constants.NO_UPDATES: {

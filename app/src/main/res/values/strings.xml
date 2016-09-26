@@ -110,7 +110,7 @@
         <item quantity="one">Deleted %1$d Run, together with %2$d associated Locations</item>
         <item quantity="other">Deleted %1$d Runs, together with %2$d associated Locations</item>
     </plurals>
-    <string name="insert_run_error">Error inserting new Run!</string>
+    <string name="insert_run_error">Error inserting new Run! Error code %1$d</string>
     <string name="starting_address">Start Address:</string>
     <string name="ending_address">End Address:</string>
     <string name="lastlocation_null">Geocoder location is null!</string>

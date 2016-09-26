@@ -115,6 +115,7 @@ public class BackgroundLocationService extends Service implements
     }*/
 
     private synchronized void setUpGoogleApiClient() {
+        Log.i(TAG, "Reached setupGoogleApiClient().");
         sClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
                 .addConnectionCallbacks(this)
@@ -194,14 +195,16 @@ public class BackgroundLocationService extends Service implements
                 Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_PERMISSION_REQUEST_NEEDED to RunFragment.");
             }
         } else {
-            checkLocationSettings(service);
             Log.i(TAG, "We already have permission to use location data.");
+            checkLocationSettings(service);
         }
-
     }
 
     private static void startLocationUpdates(BackgroundLocationService service) {
         Log.i(TAG, "Reached startLocationUpdates()");
+        Log.i(TAG, "sServicesAvailable is " + sServicesAvailable);
+        Log.i(TAG, "sClient null? " + (sClient == null));
+        Log.i(TAG, "sClient.isConnected() is " + sClient.isConnected());
         if (sServicesAvailable && sClient != null && sClient.isConnected()) {
             sPi = RunManager.get(service).getLocationPendingIntent(service, true);
             try {
@@ -393,6 +396,7 @@ public class BackgroundLocationService extends Service implements
                         break;
                     case Constants.MESSAGE_START_LOCATION_UPDATES:
                         Log.i(TAG, "Arrived at IncomingHandler MESSAGE_START_LOCATION_UPDATES");
+                        Log.i(TAG, "sClient connected? " + sClient.isConnected());
                         checkPermissions(service, msg);
                         //startLocationUpdates();
                         break;
@@ -405,7 +409,7 @@ public class BackgroundLocationService extends Service implements
                         startLocationUpdates(mService.get());
                         break;
                     case Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED:
-                        Log.i(TAG, "Reached MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED in IncomingHandler.");
+                        Log.i(TAG, "Reached MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED ini IncomingHandler.");
                         break;
                     case Constants.MESSAGE_PERMISSION_REQUEST_SUCCEEDED:
                         checkLocationSettings(service);

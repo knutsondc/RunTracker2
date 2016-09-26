@@ -366,17 +366,21 @@ public class RunManager {
                 mRun.setEndAddress(endAddress);
                 //update the database with the new ending address
                 int i = mHelper.updateEndAddress(mContext, mRun);
-                //Send the results of the update operation to the UI using a local broadcast
-                LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(mContext);
-                Intent resultIntent = new Intent(Constants.SEND_RESULT_ACTION)
-                        .putExtra(Constants.ACTION_ATTEMPTED,
-                                Constants.ACTION_UPDATE_END_ADDRESS)
-                        .putExtra(Constants.EXTENDED_RESULTS_DATA, i)
-                        .putExtra(Constants.UPDATED_ADDRESS_RESULT, endAddress);
-                boolean receiver = localBroadcastManager.sendBroadcast(resultIntent);
-                Log.i(TAG, "Successfully completed updateEndAddressTask");
-                if (!receiver)
-                    Log.i(TAG, "No receiver for EndAddressUpdate resultIntent!");
+                //This operation should update only one row of the Run table, so i should be 1. If
+                //not, something went wrong, so report the error back to the UI fragents
+                if (i != 1) {
+                    //Send the results of the update operation to the UI using a local broadcast
+                    LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(mContext);
+                    Intent resultIntent = new Intent(Constants.SEND_RESULT_ACTION)
+                            .putExtra(Constants.ACTION_ATTEMPTED,
+                                    Constants.ACTION_UPDATE_END_ADDRESS)
+                            .putExtra(Constants.EXTENDED_RESULTS_DATA, i)
+                            .putExtra(Constants.UPDATED_ADDRESS_RESULT, endAddress);
+                    boolean receiver = localBroadcastManager.sendBroadcast(resultIntent);
+                    Log.i(TAG, "Successfully completed updateEndAddressTask");
+                    if (!receiver)
+                        Log.i(TAG, "No receiver for EndAddressUpdate resultIntent!");
+                }
             } catch (NullPointerException npe){
                 Log.i(TAG, "No Last Location available - updateEndAddressTask skipped");
             } catch (RuntimeException re){

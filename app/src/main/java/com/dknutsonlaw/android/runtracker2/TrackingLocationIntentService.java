@@ -8,11 +8,13 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.content.Context;
 import android.location.Location;
+import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,7 +57,10 @@ public class TrackingLocationIntentService extends IntentService{
      * Starts this service to delete the Runs with the RunIds contained in the runIds
      * parameter. If the service is already performing a task this action will be queued.
      */
-    public static void startActionDeleteRuns(Context context, ArrayList<Long> deleteList) {
+    public static void startActionDeleteRuns(Context context,
+                                             RunRecyclerListFragment.RunRecyclerListAdapter adapter,
+                                             ArrayList<Integer> deleteList) {
+
         Intent intent = new Intent(context, TrackingLocationIntentService.class);
         intent.setAction(Constants.ACTION_DELETE_RUNS);
         intent.putExtra(Constants.PARAM_RUN_IDS, deleteList);
@@ -216,13 +221,16 @@ public class TrackingLocationIntentService extends IntentService{
         long runId = mRunManager.mHelper.insertRun(this, run);
         //The database returns the Run's row number as a unique value for mRunId or -1 on error
         run.setId(runId);
-        //Create an Intent with Extras to report the results of the operation and return the
-        //Run to the RunRecyclerListFragment, which will start the RunPagerActivity with the new Run's
-        //RunId as an argument to set the current item for the ViewPager. The ViewPager will load
-        //the RunFragment for the new Run where the user can hit the Start button to begin tracking
-        //the Run, which will start the loaders for the run and set a Notification. The cursor loaders
-        //for the RunPagerActivity and the RunRecyclerListFragment automatically update when the new
-        //Run is added to the Run table in the database.
+        //Create an Intent with Extras to report the results of the operation. If the new Run was
+        //created from the the RunRecyclerListFragment, the intent will return the Run to the
+        //RunRecyclerListFragment, which will start the RunPagerActivity with the new Run's
+        //RunId as an argument to set the current item for the ViewPager. If the new Run is created
+        //from the RunPagerActivity, the intent will be returned there and the RunId will again be
+        //used to set the current item for the ViewPager. The ViewPager will load the RunFragment
+        //for the new Run where the user can hit the Start button to begin tracking the Run, which
+        //will start the loaders for the run and set a Notification. The cursor loaders for the
+        //RunPagerActivity and the RunRecyclerListFragment automatically update when the new Run is
+        //added to the Run table in the database.
         Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
                 .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_INSERT_RUN)
                 .putExtra(Constants.EXTENDED_RESULTS_DATA, run);
@@ -240,16 +248,22 @@ public class TrackingLocationIntentService extends IntentService{
         long result[] = mRunManager.mHelper.insertLocation(this, runId, loc);
         //Log.i(TAG, "Insert Location result is: location #" + result[0] + ", run update result " +
         //        result[1] + ", continuation limit result " + result[2]);
-        //Create an Intent with Extras to report the results of the operation to the RunFragment
-        //UI and advise the user if there was an error. The RunFragment, RunRecyclerListFragment
-        //and RunMapFragment UIs get the new data fed to them automatically by loaders.
-        Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
-                .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_INSERT_LOCATION)
-                .putExtra(Constants.EXTENDED_RESULTS_DATA, result);
-        //Broadcast the Intent so that the RunFragment UI can receive the result
-        boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
-        if (!receiver)
-            Log.i(TAG, "No receiver for Insert Location responseIntent!");
+        //If there's been an error, send an intent with the results to the UI fragments so it can be
+        //reported to the user.
+        if (result[Constants.CONTINUATION_LIMIT_RESULT] == -1 ||
+            result[Constants.RUN_UPDATE_RESULT] == -1 ||
+            result[Constants.LOCATION_INSERTION_RESULT] == -1) {
+            //Create an Intent with Extras to report the results of the operation to the RunFragment
+            //UI and advise the user if there was an error. The RunFragment, RunRecyclerListFragment
+            //and RunMapFragment UIs get the new data fed to them automatically by loaders.
+            Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
+                    .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_INSERT_LOCATION)
+                    .putExtra(Constants.EXTENDED_RESULTS_DATA, result);
+            //Broadcast the Intent so that the RunFragment UI can receive the result
+            boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
+            if (!receiver)
+                Log.i(TAG, "No receiver for Insert Location responseIntent!");
+        }
     }
 
     /*
@@ -261,17 +275,21 @@ public class TrackingLocationIntentService extends IntentService{
         //int result = mRunManager.mHelper.updateRunStartDate(mRunManager.mAppContext, run);
         int result = mRunManager.mHelper.updateRunStartDate(this, run);
         //Log.i(TAG, "Result of UpdateStartDate: " + result);
-        //Create an Intent with Extras to report the results of the operation to the RunFragment
-        //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
-        //loader to get this data.
-        Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
-                .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_UPDATE_START_DATE)
-                .putExtra(Constants.ARG_RUN_ID, run.getId())
-                .putExtra(Constants.EXTENDED_RESULTS_DATA, result);
-        //Broadcast the Intent so that the UI can receive the result
-        boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
-        if (!receiver)
-            Log.i(TAG, "No receiver for Update Start Date responseIntent!");
+        //This operation should always update only one row of the Run table, so if result is anything
+        //other than 1, report the result to the UI fragments.
+        if (result != 1) {
+            //Create an Intent with Extras to report the results of the operation to the RunFragment
+            //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
+            //loader to get this data.
+            Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
+                    .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_UPDATE_START_DATE)
+                    .putExtra(Constants.ARG_RUN_ID, run.getId())
+                    .putExtra(Constants.EXTENDED_RESULTS_DATA, result);
+            //Broadcast the Intent so that the UI can receive the result
+            boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
+            if (!receiver)
+                Log.i(TAG, "No receiver for Update Start Date responseIntent!");
+        }
     }
 
     /*
@@ -289,18 +307,22 @@ public class TrackingLocationIntentService extends IntentService{
         //Perform the update on the database and get the result
         //int result = mRunManager.mHelper.updateStartAddress(mRunManager.mAppContext, run);
         int result = mRunManager.mHelper.updateStartAddress(this, run);
-        //Create an Intent with Extras to report the results of the operation to the RunFragment
-        //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
-        //loader to get this data.
-        Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
-                .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_UPDATE_START_ADDRESS)
-                .putExtra(Constants.ARG_RUN_ID, run.getId())
-                .putExtra(Constants.EXTENDED_RESULTS_DATA, result)
-                .putExtra(Constants.UPDATED_ADDRESS_RESULT, startAddress);
-        //Broadcast the Intent so that the UI can receive the result
-        boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
-        if (!receiver)
-            Log.i(TAG, "No receiver for Update Start Date responseIntent!");
+        //This operation should only affect one row of the Run table, so report any result other
+        //than 1 back to the UI fragments.
+        if (result != 1) {
+            //Create an Intent with Extras to report the results of the operation to the RunFragment
+            //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
+            //loader to get this data.
+            Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
+                    .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_UPDATE_START_ADDRESS)
+                    .putExtra(Constants.ARG_RUN_ID, run.getId())
+                    .putExtra(Constants.EXTENDED_RESULTS_DATA, result)
+                    .putExtra(Constants.UPDATED_ADDRESS_RESULT, startAddress);
+            //Broadcast the Intent so that the UI can receive the result
+            boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
+            if (!receiver)
+                Log.i(TAG, "No receiver for Update Start Date responseIntent!");
+        }
     }
 
     /*
@@ -337,19 +359,23 @@ public class TrackingLocationIntentService extends IntentService{
         //Perform the update on the database and get the result
         //int result = mRunManager.mHelper.updateEndAddress(mRunManager.mAppContext, run);
         int result = mRunManager.mHelper.updateEndAddress(this, run);
-        //Create an Intent with Extras to report the results of the operation to the RunFragment
-        //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
-        //loader to get this data.
-        Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
-                .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_UPDATE_END_ADDRESS)
-                .putExtra(Constants.ARG_RUN_ID, run.getId())
-                .putExtra(Constants.EXTENDED_RESULTS_DATA, result)
-                .putExtra(Constants.UPDATED_ADDRESS_RESULT, endAddress);
+        //This operation should always affect only one row of the Run table, so report any result
+        //other than 1 back to the UI fragments.
+        if (result != 1) {
+            //Create an Intent with Extras to report the results of the operation to the RunFragment
+            //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
+            //loader to get this data.
+            Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
+                    .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_UPDATE_END_ADDRESS)
+                    .putExtra(Constants.ARG_RUN_ID, run.getId())
+                    .putExtra(Constants.EXTENDED_RESULTS_DATA, result)
+                    .putExtra(Constants.UPDATED_ADDRESS_RESULT, endAddress);
 
-        //Broadcast the Intent so that the UI can receive the result
-        boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
-        if (!receiver)
-            Log.i(TAG, "No receiver for Update End Date responseIntent!");
+            //Broadcast the Intent so that the UI can receive the result
+            boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
+            if (!receiver)
+                Log.i(TAG, "No receiver for Update End Date responseIntent!");
+        }
     }
 
     /*
