@@ -262,7 +262,11 @@ public class RunManager {
     //Get the the Bounds for a particular Run
     LatLngBounds retrieveBounds(Long runId){
         WeakReference<LatLngBounds> latLngBoundsWeakReference = sBoundsMap.get(runId);
-        return latLngBoundsWeakReference.get();
+        if (latLngBoundsWeakReference != null) {
+            return latLngBoundsWeakReference.get();
+        } else {
+            return null;
+        }
     }
     //Save the SparseArray associating a Run with the locations, expressed as LatLngs, for that Run
     void savePoints(Long runId, List<LatLng> points){
@@ -271,7 +275,11 @@ public class RunManager {
     //Retrieve the list of locations, expressed as LatLngs, associated with a given Run
     List<LatLng> retrievePoints(Long runId){
         WeakReference<List<LatLng>> listWeakReference = sPointsMap.get(runId);
-        return listWeakReference.get();
+        if (listWeakReference != null) {
+            return listWeakReference.get();
+        } else {
+            return null;
+        }
     }
 
     /*Function to return the street address of the nearest building to the LatLng object

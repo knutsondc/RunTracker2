@@ -60,6 +60,7 @@ final class Constants {
     static final int MESSENGER_RECYCLERFRAGMENT = 1;
     static final int MESSENGER_RUNMAPFRAGMENT = 2;
     static final int MESSENGER_RUNPAGERACTIVITY = 3;
+    static final int MESSENGER_RUNMAPPAGERACTIVITY = 4;
     //MapView Menu selection item in RunMapFragment
     static final int NO_UPDATES = 3;
     //Label for BackgroundLocationService to tell the UI Fragment that Location Permissions needed

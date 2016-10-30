@@ -22,6 +22,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
@@ -52,7 +53,7 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.lang.ref.WeakReference;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Locale;
 
 public class RunMapFragment extends SupportMapFragment implements LoaderManager.LoaderCallbacks<Cursor>{
@@ -65,8 +66,9 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
     private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
     private RunDatabaseHelper.LocationCursor mLocationCursor;
     private Polyline mPolyline;
-    private List<LatLng> mPoints;
+    private ArrayList<LatLng> mPoints;
     private LatLngBounds mBounds;
+    private final LatLngBounds.Builder mBuilder = new LatLngBounds.Builder();
     private Marker mEndMarker;
     private TextView mEndDateTextView;
     private TextView mDistanceTextView;
@@ -75,7 +77,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
     private Location mStartLocation, mLastLocation = null;
     private double mDistanceTraveled = 0.0;
     private long mDurationMillis = 0;
-    private static boolean mNeedToPrepare = true;
+    private boolean mPrepared = false;
     private boolean mIsBound = false;
     //Set default map tracking mode
     private int mViewMode = Constants.SHOW_ENTIRE_ROUTE;
@@ -127,8 +129,17 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         Bundle args = getArguments();
         if (args != null) {
             mRunId = args.getLong(Constants.ARG_RUN_ID, -1);
-            mPoints = mRunManager.retrievePoints(mRunId);
+            try {
+                mPoints = new ArrayList<>(mRunManager.retrievePoints(mRunId));
+                Log.i(TAG, "For Run #" + mRunId + " mPoints retrieved.");
+            } catch (NullPointerException e){
+                mPoints = new ArrayList<>();
+                Log.i(TAG, "For Run #" + mRunId + " created new ArrayList<LatLng> for mPoints.");
+            }
+
             mBounds = mRunManager.retrieveBounds(mRunId);
+
+            Log.i(TAG, "In onCreate for Run #" + mRunId +" is mBounds null? " + (mBounds == null));
         }
         //If we got a legitimate RunId, start the loader for the location data for that Run
         //Query - why doesn't it work to initiate the loader in onActivityCreated()? That results
@@ -151,7 +162,8 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
             //Stash a reference to the GoogleMap
             mGoogleMap = googleMap;
             if (mGoogleMap != null) {
-                Log.i(TAG, "In on ActivityCreated got a map.");
+                Log.i(TAG, "In on ActivityCreated for Run #" + mRunId + " got a map.");
+                mGoogleMap.getUiSettings().setScrollGesturesEnabled(false);
             }
         });
 
@@ -191,7 +203,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
      *of always starting with the default SHOW_ENTIRE_ROUTE. */
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
-        Log.i(TAG, "Entered onOptionsItemSelected");
+        Log.i(TAG, "Entered onOptionsItemSelected for Run #" + mRunId + ".");
         //Select desired map updating mode, then call setTrackingMode() to act on it. We use a
         //separate function for setTrackingMode() so that it can be invoked when the fragment
         //restarts with the last previous tracking mode still in effect, rather than going with the
@@ -227,9 +239,9 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
     //mNeedToPrepare to true so that the reconstruction will start from the beginning.
     @Override
     public void onResume() {
-        Log.i(TAG, "onResume() called.");
+        Log.i(TAG, "onResume() called for Run #" + mRunId + ".");
         super.onResume();
-        mNeedToPrepare = true;
+        mPrepared = false;
         restartLoader();
     }
 
@@ -240,8 +252,10 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         if (mGoogleMap != null)
             mGoogleMap.clear();
         //Close the location cursor before shutting down
-        if (!mLocationCursor.isClosed())
-            mLocationCursor.close();
+        if (mLocationCursor != null) {
+            if (!mLocationCursor.isClosed())
+                mLocationCursor.close();
+        }
         doUnbindService(this);
         super.onStop();
     }
@@ -258,11 +272,11 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
     //done in onLoadFinished() as new location updates come in.
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
-        Log.i(TAG, "In onLoadFinished()");
+        Log.i(TAG, "In onLoadFinished() for Run #" + mRunId);
         mLocationCursor = (RunDatabaseHelper.LocationCursor) cursor;
         //Now that we've got a cursor holding all the location data for this run, we can process it.
-        if (mNeedToPrepare) {
-            Log.i(TAG, "mNeedToPrepare is true - preparing map.");
+        if (!mPrepared) {
+            Log.i(TAG, "mPrepared is false for Run #" + mRunId + " - preparing map.");
             //If mNeedToPrepare is true, the map graphic elements are being newly-
             //created after the user presses the "Map" button, the MapFragment resumes after
             //the user comes back to the map, or the Activity has been destroyed in a configuration
@@ -270,21 +284,32 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
             //reflecting location data that's been previously recorded.
             prepareMap();
         } else {
+            Log.i(TAG, "mPrepared is true for Run #" + mRunId + ".");
             //If mNeedToPrepare is false, we've already prepared the map, so we just need to update
             //the Polyline, EndMarker, and mBounds based upon the latest location update. First,
             //move to the last location update.
             mLocationCursor.moveToLast();
             mLastLocation = mLocationCursor.getLocation();
+            Log.i(TAG, "In onLoadFinished() for Run #" + mRunId +", is mLastLocation null? " + (mLastLocation == null));
             if (mLastLocation != null) {
                 //Remember to check whether mLastLocation is null which it could be if this
                 //is a newly-opened run and no location data have been recorded to the database
                 //before the map got opened.
                 LatLng latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", latLng is " + latLng.toString());
                 //Get the time of the latest update into the correct format
                 String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
+                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", endDate is " + endDate);
                 //Update mPolyline's set of points
-                mPoints.add(latLng);
+                if (latLng != mPoints.get(mPoints.size() - 1)) {
+                    Log.i(TAG, "In onLoadFinished() for Run #" + mRunId +", adding latLng to mPoints");
+                    mPoints.add(latLng);
+                }
+                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", is mPoints null?" + (mPoints == null));
+                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + " mPoints.size() is " + mPoints.size());
+                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", is mPolyline null? " + (mPolyline == null));
                 //Update mPolyline with the updated set of points.
+                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + " mPolyline is null, so we're creating it here.");
                 mPolyline.setPoints(mPoints);
                 //Update the position of mEndMarker. To avoid the overhead of looking up an address
                 //for every location update we don't update the snippet until the user clicks on it.
@@ -305,6 +330,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                     //Animate the camera for the cool effect...
                     mGoogleMap.animateCamera(movement);
                 //Now update the TextViews
+                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", is mEndDateTextView null? " + (mEndDateTextView == null));
                 mEndDateTextView.setText(getString(R.string.ended, endDate));
                 mDistanceTraveled = RunManager.get(getActivity()).getRun(mRunId).getDistance();
                 mDistanceTextView.setText(getString(R.string.distance_traveled_format,
@@ -338,7 +364,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
 
     //Method to initialize the map
     private void prepareMap() {
-        Log.i(TAG, "Entered prepareMap()");
+        Log.i(TAG, "Entered prepareMap() for Run #" + mRunId);
         //We can't prepare the map until we actually get a map and a location cursor.
         if (mGoogleMap == null || mLocationCursor == null)
             return;
@@ -374,20 +400,20 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 return layout;
             }
         });
-        PolylineOptions line = new PolylineOptions();
-        //mPoints is the List of LatLngs used to create mPolyline created in this Run's RunFragment
-        //and stored by the RunManager singleton. mPoints represents all the location data collected
-        //for this run.
-        line.addAll(mPoints);
-        //Create mPolyline using the List of LatLngs RunFragment stored for us in the singleton
-        //class rather than reading them in again from the database.
-        mPolyline = mGoogleMap.addPolyline(line);
+
         //We need to use the LocationCursor for the map markers because we need time data, which the
         //LatLng objects in mPoints lack.
         mLocationCursor.moveToFirst();
         mStartLocation = mLocationCursor.getLocation();
+        if (mBounds == null){
+            mBuilder.include(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
+            mBounds = mBuilder.build();
+        }
+        if (mPoints.size() == 0){
+            mPoints.add(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
+        }
         mStartDate = Constants.DATE_FORMAT.format(mStartLocation.getTime());
-        Log.i(TAG, "mStartDate is " + mStartDate);
+        Log.i(TAG, "mStartDate for Run #" + mRunId + " is " + mStartDate);
         Resources r = getActivity().getResources();
         //Get the address where we started the Run from the database. If the database's StartAddress
         //is bad, get a new Starting Address from the geocoder. The geocoder needs a LatLng object,
@@ -410,7 +436,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         mLocationCursor.moveToLast();
         mLastLocation = mLocationCursor.getLocation();
         String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
-        Log.i(TAG, "endDate is " + endDate);
+        Log.i(TAG, "endDate for Run #" + mRunId + " is " + endDate);
         //Get the address where the run ended from the database. If that address is bad, get a new
         //end address from the geocoder. The geocoder needs a LatLng, so we feed it the last element
         //in mPoints.
@@ -421,22 +447,29 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         //We use the default red icon for the EndMarker. We need to keep a reference to it because
         //it will be updated as the Run progresses.
         MarkerOptions endMarkerOptions = new MarkerOptions()
-                .position(mPoints.get(mPoints.size() - 1))
+                //.position(mPoints.get(mPoints.size() - 1))
+                .position(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()))
                 .title(r.getString(R.string.run_finish))
                 .snippet(endDate + "\n" + snippetAddress)
                 .flat(false);
         //Update mPoints, mPolyline, mBounds and the position of mEndMarker with additional location
         //data if the number of locations in the cursor exceeds the number of locations stored by the
         //RunFragment.
+
+        Log.i(TAG, "In prepareMap() for Run #" + mRunId + " is mPoints null? " + (mPoints == null));
+        Log.i(TAG, "In prepareMap() mPoints.size() is " + mPoints.size());
+        Log.i(TAG, "In prepareMap(), is mBounds null? " + (mBounds == null));
+        Log.i(TAG, "In prepareMap(), mBounds.toString() is " + mBounds.toString());
         if (mLocationCursor.getCount() > mPoints.size()){
-            Log.i(TAG, "Cursor is larger than existing mPoints");
+            Log.i(TAG, "Cursor for Run #" + mRunId + " has " + mLocationCursor.getCount() + " and " +
+                    "mPoints has " + mPoints.size() + " elements.");
             //Set the cursor to the first location after the locations already in memory
             mLocationCursor.moveToPosition(mPoints.size());
             LatLng latLng;
             //Iterate over the remaining location points in the cursor, updating mPoints, mPolyline,
             //and mBounds; fix position of mEndMarker when we get to the last entry in the cursor.
             while (!mLocationCursor.isAfterLast()){
-                Log.i(TAG, "Entered reinstateMap loop");
+                Log.i(TAG, "Entered reinstateMap loop for Run #" + mRunId);
                 mLastLocation = mLocationCursor.getLocation();
                 latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                 mPoints.add(latLng);
@@ -447,13 +480,21 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
                 }
                 mLocationCursor.moveToNext();
             }
-            mPolyline.setPoints(mPoints);
+            //mPolyline.setPoints(mPoints);
         } else {
-            Log.i(TAG, "Cursor is equal in size to existing mPoints");
+            Log.i(TAG, "Cursor is equal in size to existing mPoints for Run #" + mRunId + ".");
         }
+        PolylineOptions line = new PolylineOptions();
+        //mPoints is the List of LatLngs used to create mPolyline created in this Run's RunFragment
+        //and stored by the RunManager singleton. mPoints represents all the location data collected
+        //for this run.
+        line.addAll(mPoints);
+        //Create mPolyline using the List of LatLngs RunFragment stored for us in the singleton
+        //class rather than reading them in again from the database.
+        mPolyline = mGoogleMap.addPolyline(line);
         //Now that we've fixed the position of mEndMarker, add it to the map.
         mEndMarker = mGoogleMap.addMarker(endMarkerOptions);
-        Log.i(TAG, "In prepareMap(), mViewMode is " + mViewMode);
+        Log.i(TAG, "In prepareMap(), mViewMode for Run #" + mRunId + " is " + mViewMode);
         //Now we need to set up the map for the first time by telling the system how large the
         //map needs to be and then render the map. Then set the camera over the center of a map
         //Bounds large enough to take in all the points in mPolyline.
@@ -544,6 +585,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
    * locations.
    */
     private void setupWidgets() {
+        Log.i(TAG, "Enter setupWidgets for Run #" + mRunId + ".");
         //Rather than define our own zoom controls, just enable the UiSettings' zoom controls and
         //listen for changes in CameraPosition to update mZoomLevel
         mGoogleMap.getUiSettings().setZoomControlsEnabled(true);
@@ -584,21 +626,32 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         //Note that the TextViews are defined in the Activity's layout file even though their text
         //is set here. Putting them in a Frame Layout in the Activity's layout allows them to
         //"float" over the contents of the MapFragment.
+        TextView runIdTextView = (TextView) getActivity().findViewById(R.id.runIdTextView);
+        runIdTextView.setText("Run #" + mRunId);
         TextView startDateTextView = (TextView) getActivity().findViewById(R.id.startDateTextView);
-        startDateTextView.setText(getString(R.string.started, mStartDate));
+        ///startDateTextView.setText(getString(R.string.started, mStartDate));
+        startDateTextView.setText(getString(R.string.started, mRunManager.getRun(mRunId).getStartDate()));
+        Log.i(TAG, "Set Start Date for Run #" + mRunId + " in setupWidgets as " + mRunManager.getRun(mRunId).getStartDate());
         mEndDateTextView = (TextView) getActivity().findViewById(R.id.endDateTextView);
         if (mLastLocation != null) {
+            //mEndDateTextView.setText(getString(R.string.ended,
+            //        Constants.DATE_FORMAT.format(mLastLocation.getTime())));
             mEndDateTextView.setText(getString(R.string.ended,
-                    Constants.DATE_FORMAT.format(mLastLocation.getTime())));
+                    Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime())));
+            Log.i(TAG, "Set End Date for Run #" + mRunId + " in setupWidgets as " + Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime()));
         }
         mDistanceTextView = (TextView) getActivity().findViewById(R.id.distanceTextView);
         mDistanceTraveled = RunManager.get(getActivity()).getRun(mRunId).getDistance();
+        //mDistanceTextView.setText(getString(R.string.distance_traveled_format,
+        //        String.format(Locale.US, "%.2f", mDistanceTraveled * Constants.METERS_TO_MILES)));
         mDistanceTextView.setText(getString(R.string.distance_traveled_format,
-                String.format(Locale.US, "%.2f", mDistanceTraveled * Constants.METERS_TO_MILES)));
+                String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES)));
+        Log.i(TAG, "Set Distance Traveled for Run #" + mRunId + " in setupWidgets as " + String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES));
         mDurationTextView = (TextView) getActivity().findViewById(R.id.durationTextView);
         mDurationMillis = RunManager.get(getActivity()).getRun(mRunId).getDuration();
         int durationSeconds = (int)mDurationMillis / 1000;
         mDurationTextView.setText(getString(R.string.run_duration_format, Run.formatDuration(durationSeconds)));
+        Log.i(TAG, "Set Duration for Run #" + mRunId + " in setupWidgets as " + Run.formatDuration(durationSeconds));
         //Set up a listener for when the user clicks on the End Marker. We update its snippet while
         //tracking this run only when the user clicks on it to avoid the overhead of updating the
         //EndAddress on every location update. If we're not tracking the run, just load the end address
@@ -626,7 +679,7 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         //The graphic elements of the map display have now all been configured, so clear the
         //mNeedToPrepare flag so that succeeding calls to onLoadFinished will merely update them as
         //new location data comes in.
-        mNeedToPrepare = false;
+        mPrepared = true;
     }
 
     private CameraUpdate updateCamera(int mode, LatLng latLng) {

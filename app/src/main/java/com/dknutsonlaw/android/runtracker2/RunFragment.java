@@ -71,7 +71,7 @@ public class RunFragment extends Fragment {
             mStartingLongitudeTextView, mStartingAltitudeTextView, mStartingAddressTextView,
             mEndedTextView, mEndingLatitudeTextView, mEndingLongitudeTextView,
             mEndingAltitudeTextView, mEndingAddressTextView, mDurationTextView,
-            mDistanceCoveredTextView;
+            mDistanceCoveredTextView, mRunIdTextView;
     private Menu mOptionsMenu;
     private LoaderManager mLoaderManager;
     //We load two data objects in this Fragment, the Run and its last location, so we set up a
@@ -108,7 +108,6 @@ public class RunFragment extends Fragment {
             } catch (RemoteException e){
                 Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_REGISTER_CLIENT");
             }
-
             updateUI();
         }
 
@@ -132,7 +131,7 @@ public class RunFragment extends Fragment {
         // Required empty public constructor
     }
     //Save essential variables of the run upon a configuration change
-    @Override
+    /*@Override
     public void onSaveInstanceState(Bundle out){
         out.putLong(Constants.ARG_RUN_ID, mRunId);
         out.putParcelable(Constants.PARAM_RUN, mRun);
@@ -145,12 +144,14 @@ public class RunFragment extends Fragment {
         out.putParcelable(Constants.LOCATION_SERVICE, mLocationService);
         out.putParcelable(Constants.LOCAL_MESSENGER, mMessenger);
         out.putBoolean(Constants.IS_BOUND, mIsBound);
-    }
+    }*/
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+        //It's easier to keep the connection to the BackgroundLocationService by retaining the fragment
+        //instance than any other method I've found
         setRetainInstance(true);
         mRunManager = RunManager.get(getActivity());
         //Turn off DisplayHomeAsUpEnabled so that more of the ActionBar's subtitle will appear in portrait mode
@@ -158,7 +159,7 @@ public class RunFragment extends Fragment {
             //noinspection ConstantConditions
             ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(false);
         }
-        if (savedInstanceState != null){
+        /*if (savedInstanceState != null){
             mRunId = savedInstanceState.getLong(Constants.ARG_RUN_ID);
             mRun = savedInstanceState.getParcelable(Constants.PARAM_RUN);
             mIsTrackingThisRun = savedInstanceState.getBoolean(Constants.TRACKING_THIS_RUN);
@@ -170,7 +171,7 @@ public class RunFragment extends Fragment {
             mLocationService = savedInstanceState.getParcelable(Constants.LOCATION_SERVICE);
             mMessenger = savedInstanceState.getParcelable(Constants.LOCAL_MESSENGER);
             mIsBound = savedInstanceState.getBoolean(Constants.IS_BOUND);
-        } else {
+        } else {*/
             Bundle args = getArguments();
             if (args != null) {
                 long runId = args.getLong(Constants.ARG_RUN_ID, -1);
@@ -182,7 +183,7 @@ public class RunFragment extends Fragment {
                     mRun = mRunManager.getRun(mRunId);
                     Log.i(TAG, "mRunId is " + mRunId + " in onCreate()");
                 }
-            }
+            //}
 
             //Load a cursor with all the locations for this Run and hand it to an AsyncTask to initialize
             //the LatLngBounds and List<LatLng> we're going to store for the RunMapFragment to use.
@@ -243,6 +244,7 @@ public class RunFragment extends Fragment {
         mEndingAddressTextView = (TextView) v.findViewById(R.id.run_ending_address_TextView);
         mDurationTextView = (TextView) v.findViewById(R.id.run_durationTextView);
         mDistanceCoveredTextView = (TextView) v.findViewById(R.id.distance_coveredTextView);
+        mRunIdTextView = (TextView) v.findViewById(R.id.runIdTextView);
 
         mStartButton = (Button) v.findViewById(R.id.run_startButton);
         mStartButton.setOnClickListener(v1 -> {
@@ -280,10 +282,12 @@ public class RunFragment extends Fragment {
 
         mMapButton = (Button) v.findViewById(R.id.run_mapButton);
         mMapButton.setOnClickListener(v13 -> {
-            //Create new instance of RunMapActivity and pass it a reference to this run.
-            Intent i = new Intent(getActivity(), RunMapActivity.class);
-            Log.i(TAG, "Started RunMapActivity for Run " + mRunId);
-            i.putExtra(Constants.EXTRA_RUN_ID, mRun.getId());
+            //Create new instance of RunMapPagerActivity and pass it a reference to this run and the
+            //desired sort order.
+            //Intent i = new Intent(getActivity(), RunMapPagerActivity.class);
+            //i.putExtra(Constants.EXTRA_RUN_ID, mRun.getId());
+            Intent i = RunMapPagerActivity.newIntent(getActivity(), Constants.KEEP_EXISTING_SORT, mRunId);
+            Log.i(TAG, "Started RunMapPagerActivity for Run " + mRunId);
             startActivity(i);
         });
         //If this isn't a new run, we should immediately populate the textviews.
@@ -306,6 +310,8 @@ public class RunFragment extends Fragment {
                 //mRunManager.updateRunStartAddress(mRun, mStartLocation);
                 TrackingLocationIntentService.startActionUpdateStartAddress(getActivity(), mRun, mStartLocation);
             }
+            //runIdTextView.setText(String.valueOf(mRunId));
+            //runIdTextView.setText(String.valueOf(getArguments().getLong(Constants.ARG_RUN_ID)));
         }
         //Now display what we have concerning the ending point.
         mLastLocation = mRunManager.getLastLocationForRun(mRunId);
@@ -395,6 +401,8 @@ public class RunFragment extends Fragment {
             mStartButton.setEnabled(!mStarted);
             //Enable Stop button only if we're tracking and tracking THIS run
             mStopButton.setEnabled(mStarted && mIsTrackingThisRun);
+            //Fill in value for RunId TextView
+            mRunIdTextView.setText(String.valueOf(mRunId));
             //The OptionsMenu Item needs to be checked here so that the New Run menu item will be
             //re-enabled after the user presses Stop.
             if (mOptionsMenu != null) {
@@ -776,7 +784,7 @@ public class RunFragment extends Fragment {
                     case Constants.ACTION_UPDATE_START_DATE: {
                         int result =
                                 intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
-                        int toastTextRes = 0;
+                        int toastTextRes;
                         //The getWritableDatabase.update() method returns the number of rows affected; that
                         //value is returned to the IntentService and passed on to here. If no rows were
                         //affected or more than one row was affected, something went wrong! The
@@ -802,7 +810,7 @@ public class RunFragment extends Fragment {
                     }
                     case Constants.ACTION_UPDATE_START_ADDRESS: {
                         int result = intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
-                        int toastTextRes = 0;
+                        int toastTextRes;
                         //The getWritableDatabase.update() method returns the number of rows affected; that
                         //value is returned to the IntentService and passed on to here. If no rows were
                         //affected or more than one row was affected, something went wrong! The IntentService
@@ -827,7 +835,7 @@ public class RunFragment extends Fragment {
                     case Constants.ACTION_UPDATE_END_ADDRESS: {
                         int result =
                                 intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
-                        int toastTextRes = 0;
+                        int toastTextRes;
                         //The getWritableDatabase.update() method returns the number of rows affected; that
                         //value is returned to the IntentService and passed on to here. If no rows were
                         //affected or more than one row was affected, something went wrong! The
