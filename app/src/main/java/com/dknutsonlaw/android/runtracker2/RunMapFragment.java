@@ -23,16 +23,19 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -42,7 +45,9 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.MapsInitializer;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -56,12 +61,13 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class RunMapFragment extends SupportMapFragment implements LoaderManager.LoaderCallbacks<Cursor>{
+public class RunMapFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
     private static final String TAG = "RunMapFragment";
 
     private final RunManager mRunManager = RunManager.get(getActivity());
     private long mRunId;
     private GoogleMap mGoogleMap;
+    private MapView mMapView;
     private Messenger mLocationService;
     private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
     private RunDatabaseHelper.LocationCursor mLocationCursor;
@@ -113,7 +119,6 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         args.putLong(Constants.ARG_RUN_ID, runId);
         RunMapFragment runMapFragment = new RunMapFragment();
         runMapFragment.setArguments(args);
-        runMapFragment.setRetainInstance(true);
         return runMapFragment;
     }
 
@@ -157,19 +162,124 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         super.onActivityCreated(savedInstanceState);
         //Developer docs say call getMapAsync() in onActivityCreated() because the map won't be
         //returned non-null until after onCreateView() returns.
+    }
 
-        getMapAsync(googleMap -> {
-            //Stash a reference to the GoogleMap
-            mGoogleMap = googleMap;
-            if (mGoogleMap != null) {
-                Log.i(TAG, "In on ActivityCreated for Run #" + mRunId + " got a map.");
-                mGoogleMap.getUiSettings().setScrollGesturesEnabled(false);
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState){
+        View rootView = inflater.inflate(R.layout.map_activity_fragment, container, false);
+        mMapView = (MapView) rootView.findViewById(R.id.mapViewContainer);
+        mMapView.onCreate(savedInstanceState);
+        mMapView.onResume(); //needed to get map to display immediately
+
+        try{
+            MapsInitializer.initialize(getActivity().getApplicationContext());
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
+        mMapView.getMapAsync(new OnMapReadyCallback() {
+            @Override
+            public void onMapReady(GoogleMap googleMap) {
+                //Stash a reference to the GoogleMap
+                mGoogleMap = googleMap;
+                if (mGoogleMap != null) {
+                    Log.i(TAG, "In on ActivityCreated for Run #" + mRunId + " got a map.");
+                    //Rather than define our own zoom controls, just enable the UiSettings' zoom controls and
+                    //listen for changes in CameraPosition to update mZoomLevel
+                    mGoogleMap.getUiSettings().setZoomControlsEnabled(true);
+                    mGoogleMap.getUiSettings().setZoomGesturesEnabled(true);
+                    //Disable map scrolling so we can easily swipe from one map to another.
+                    mGoogleMap.getUiSettings().setScrollGesturesEnabled(false);
+                    //Set up an overlay on the map for this run's prerecorded locations. We need a custom
+                    //InfoWindowAdapter to allow multiline text snippets in markers.
+                    mGoogleMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+                        @Override
+                        public View getInfoWindow(Marker marker) {
+                            return null;
+                        }
+
+                        //Define layout for markers' information windows.
+                        @Override
+                        public View getInfoContents(Marker marker) {
+                            //Set up vertical Linear Layout to hold TextViews for a marker's Title and Snippet
+                            //fields.
+                            LinearLayout layout = new LinearLayout(getActivity());
+                            layout.setOrientation(LinearLayout.VERTICAL);
+                            //Define TextView with desired text attributes for the marker's Title
+                            TextView title = new TextView(getActivity());
+                            title.setTextColor(Color.BLACK);
+                            title.setGravity(Gravity.CENTER);
+                            title.setTypeface(null, Typeface.BOLD);
+                            title.setText(marker.getTitle());
+                            //Define TextView with desired text attributes for the marker's Snippet
+                            TextView snippet = new TextView(getActivity());
+                            snippet.setTextColor(Color.BLACK);
+                            snippet.setText(marker.getSnippet());
+                            //Add the TextViews to the Linear Layout and return the layout for addition to the
+                            //Fragment's overall View hierarchy.
+                            layout.addView(title);
+                            layout.addView(snippet);
+                            return layout;
+                        }
+                    });
+                    //Set up a listener for when the user clicks on the End Marker. We update its snippet while
+                    //tracking this run only when the user clicks on it to avoid the overhead of updating the
+                    //EndAddress on every location update. If we're not tracking the run, just load the end address
+                    //from the database. The Start Marker's data never changes, so the listener can ignore clicks
+                    //on it and simply allow the default behavior to occur.
+                    mGoogleMap.setOnMarkerClickListener(marker -> {
+                        if (marker.equals(mEndMarker)) {
+                            String endDate = "";
+                            String snippetAddress;
+                            if (mRunManager.getLastLocationForRun(mRunId) != null) {
+                                endDate = Constants.DATE_FORMAT.format(
+                                        mRunManager.getLastLocationForRun(mRunId).getTime());
+                            }
+                            if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))) {
+                                snippetAddress = mRunManager.getAddress(getActivity(), marker.getPosition());
+                            } else {
+                                snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
+                            }
+                            marker.setSnippet(endDate + "\n" + snippetAddress);
+                        }
+                        //Need to return "false" so the default action for clicking on a marker will also occur
+                        //for the Start Marker and for the End Marker after we've updated its snippet.
+                        return false;
+                    });
+                }
+                //Turn off the DisplayHomeAsUp - we might not return to the correct instance of RunFragment
+                //noinspection ConstantConditions
+                ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(false);
             }
         });
 
-        //Turn off the DisplayHomeAsUp - we might not return to the correct instance of RunFragment
-        //noinspection ConstantConditions
-        ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+        TextView runIdTextView = (TextView) rootView.findViewById(R.id.runIdTextView);
+        runIdTextView.setText("Run #" + mRunId);
+        TextView startDateTextView = (TextView) rootView.findViewById(R.id.startDateTextView);
+        ///startDateTextView.setText(getString(R.string.started, mStartDate));
+        startDateTextView.setText(getString(R.string.started, mRunManager.getRun(mRunId).getStartDate()));
+        Log.i(TAG, "Set Start Date for Run #" + mRunId + " in setupWidgets as " + mRunManager.getRun(mRunId).getStartDate());
+        mEndDateTextView = (TextView) rootView.findViewById(R.id.endDateTextView);
+        //if (mLastLocation != null) {
+            //mEndDateTextView.setText(getString(R.string.ended,
+            //        Constants.DATE_FORMAT.format(mLastLocation.getTime())));
+            mEndDateTextView.setText(getString(R.string.ended,
+                    Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime())));
+            Log.i(TAG, "Set End Date for Run #" + mRunId + " in setupWidgets as " + Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime()));
+        //}
+        mDistanceTextView = (TextView) rootView.findViewById(R.id.distanceTextView);
+        mDistanceTraveled = mRunManager.getRun(mRunId).getDistance();
+        //mDistanceTextView.setText(getString(R.string.distance_traveled_format,
+        //        String.format(Locale.US, "%.2f", mDistanceTraveled * Constants.METERS_TO_MILES)));
+        mDistanceTextView.setText(getString(R.string.distance_traveled_format,
+                String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES)));
+        Log.i(TAG, "Set Distance Traveled for Run #" + mRunId + " in setupWidgets as " + String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES));
+        mDurationTextView = (TextView) rootView.findViewById(R.id.durationTextView);
+        mDurationMillis = mRunManager.getRun(mRunId).getDuration();
+        int durationSeconds = (int)mDurationMillis / 1000;
+        mDurationTextView.setText(getString(R.string.run_duration_format, Run.formatDuration(durationSeconds)));
+        Log.i(TAG, "Set Duration for Run #" + mRunId + " in setupWidgets as " + Run.formatDuration(durationSeconds));
+        return rootView;
     }
 
     @Override
@@ -240,9 +350,28 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
     @Override
     public void onResume() {
         Log.i(TAG, "onResume() called for Run #" + mRunId + ".");
+        mMapView.onResume();
         super.onResume();
         mPrepared = false;
         restartLoader();
+    }
+
+    @Override
+    public void onPause(){
+        mMapView.onPause();
+        super.onPause();
+    }
+
+    @Override
+    public void onDestroy(){
+        mMapView.onDestroy();
+        super.onDestroy();
+    }
+
+    @Override
+    public void onLowMemory(){
+        mMapView.onLowMemory();
+        super.onLowMemory();
     }
 
     @Override
@@ -368,39 +497,6 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         //We can't prepare the map until we actually get a map and a location cursor.
         if (mGoogleMap == null || mLocationCursor == null)
             return;
-        //Set up an overlay on the map for this run's prerecorded locations. We need a custom
-        //InfoWindowAdapter to allow multiline text snippets in markers.
-        mGoogleMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
-            @Override
-            public View getInfoWindow(Marker marker) {
-                return null;
-            }
-
-            //Define layout for markers' information windows.
-            @Override
-            public View getInfoContents(Marker marker) {
-                //Set up vertical Linear Layout to hold TextViews for a marker's Title and Snippet
-                //fields.
-                LinearLayout layout = new LinearLayout(getActivity());
-                layout.setOrientation(LinearLayout.VERTICAL);
-                //Define TextView with desired text attributes for the marker's Title
-                TextView title = new TextView(getActivity());
-                title.setTextColor(Color.BLACK);
-                title.setGravity(Gravity.CENTER);
-                title.setTypeface(null, Typeface.BOLD);
-                title.setText(marker.getTitle());
-                //Define TextView with desired text attributes for the marker's Snippet
-                TextView snippet = new TextView(getActivity());
-                snippet.setTextColor(Color.BLACK);
-                snippet.setText(marker.getSnippet());
-                //Add the TextViews to the Linear Layout and return the layout for addition to the
-                //Fragment's overall View hierarchy.
-                layout.addView(title);
-                layout.addView(snippet);
-                return layout;
-            }
-        });
-
         //We need to use the LocationCursor for the map markers because we need time data, which the
         //LatLng objects in mPoints lack.
         mLocationCursor.moveToFirst();
@@ -509,13 +605,15 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
         movement = CameraUpdateFactory.newLatLngBounds(mBounds,
                 point.x, point.y, 110);
         //Move the camera to set the map within the bounds we set.
-        mGoogleMap.animateCamera(movement);
+        mGoogleMap.moveCamera(movement);
         //We need to render the map first in SHOW_ENTIRE_ROUTE mode so the GoogleMap will know how
         //large the map needs to be. Once that is done, we can use the View Mode that's been set in
         //the setTrackingMode() method.
         setTrackingMode();
-        //Finally, initialize the widgets that appear on this fragment
-        setupWidgets();
+        //The graphic elements of the map display have now all been configured, so clear the
+        //mNeedToPrepare flag so that succeeding calls to onLoadFinished will merely update them as
+        //new location data comes in.
+        mPrepared = true;
     }
 
     /*Set up tracking depending up mViewMode. SHOW_ENTIRE_ROUTE is the default, but mViewMode may
@@ -584,103 +682,6 @@ public class RunMapFragment extends SupportMapFragment implements LoaderManager.
    * comes in during live update. Also set up an overlay on the map for this run's prerecorded
    * locations.
    */
-    private void setupWidgets() {
-        Log.i(TAG, "Enter setupWidgets for Run #" + mRunId + ".");
-        //Rather than define our own zoom controls, just enable the UiSettings' zoom controls and
-        //listen for changes in CameraPosition to update mZoomLevel
-        mGoogleMap.getUiSettings().setZoomControlsEnabled(true);
-        mGoogleMap.getUiSettings().setZoomGesturesEnabled(true);
-        //We need a custom InfoWindowAdapter to allow multiline text snippets in markers.
-        mGoogleMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
-            @Override
-            public View getInfoWindow(Marker marker) {
-                return null;
-            }
-
-            //Define layout for markers' information windows.
-            @Override
-            public View getInfoContents(Marker marker) {
-                //Set up vertical Linear Layout to hold TextViews for a marker's Title and Snippet
-                //fields.
-                LinearLayout layout = new LinearLayout(getActivity());
-                layout.setOrientation(LinearLayout.VERTICAL);
-                //Define TextView with desired text attributes for the marker's Title
-                TextView title = new TextView(getActivity());
-                title.setTextColor(Color.BLACK);
-                title.setGravity(Gravity.CENTER);
-                title.setTypeface(null, Typeface.BOLD);
-                title.setText(marker.getTitle());
-                //Define TextView with desired text attributes for the marker's Snippet. Using a
-                //TextView for this purpose allows use of multi-line Snippets.
-                TextView snippet = new TextView(getActivity());
-                snippet.setTextColor(Color.BLACK);
-                snippet.setText(marker.getSnippet());
-                //Add the TextViews to the Linear Layout and return the layout for addition to the
-                //Fragment's overall View hierarchy.
-                layout.addView(title);
-                layout.addView(snippet);
-                return layout;
-            }
-        });
-
-        //Note that the TextViews are defined in the Activity's layout file even though their text
-        //is set here. Putting them in a Frame Layout in the Activity's layout allows them to
-        //"float" over the contents of the MapFragment.
-        TextView runIdTextView = (TextView) getActivity().findViewById(R.id.runIdTextView);
-        runIdTextView.setText("Run #" + mRunId);
-        TextView startDateTextView = (TextView) getActivity().findViewById(R.id.startDateTextView);
-        ///startDateTextView.setText(getString(R.string.started, mStartDate));
-        startDateTextView.setText(getString(R.string.started, mRunManager.getRun(mRunId).getStartDate()));
-        Log.i(TAG, "Set Start Date for Run #" + mRunId + " in setupWidgets as " + mRunManager.getRun(mRunId).getStartDate());
-        mEndDateTextView = (TextView) getActivity().findViewById(R.id.endDateTextView);
-        if (mLastLocation != null) {
-            //mEndDateTextView.setText(getString(R.string.ended,
-            //        Constants.DATE_FORMAT.format(mLastLocation.getTime())));
-            mEndDateTextView.setText(getString(R.string.ended,
-                    Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime())));
-            Log.i(TAG, "Set End Date for Run #" + mRunId + " in setupWidgets as " + Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime()));
-        }
-        mDistanceTextView = (TextView) getActivity().findViewById(R.id.distanceTextView);
-        mDistanceTraveled = RunManager.get(getActivity()).getRun(mRunId).getDistance();
-        //mDistanceTextView.setText(getString(R.string.distance_traveled_format,
-        //        String.format(Locale.US, "%.2f", mDistanceTraveled * Constants.METERS_TO_MILES)));
-        mDistanceTextView.setText(getString(R.string.distance_traveled_format,
-                String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES)));
-        Log.i(TAG, "Set Distance Traveled for Run #" + mRunId + " in setupWidgets as " + String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES));
-        mDurationTextView = (TextView) getActivity().findViewById(R.id.durationTextView);
-        mDurationMillis = RunManager.get(getActivity()).getRun(mRunId).getDuration();
-        int durationSeconds = (int)mDurationMillis / 1000;
-        mDurationTextView.setText(getString(R.string.run_duration_format, Run.formatDuration(durationSeconds)));
-        Log.i(TAG, "Set Duration for Run #" + mRunId + " in setupWidgets as " + Run.formatDuration(durationSeconds));
-        //Set up a listener for when the user clicks on the End Marker. We update its snippet while
-        //tracking this run only when the user clicks on it to avoid the overhead of updating the
-        //EndAddress on every location update. If we're not tracking the run, just load the end address
-        //from the database. The Start Marker's data never changes, so the listener can ignore clicks
-        //on it and simply allow the default behavior to occur.
-        mGoogleMap.setOnMarkerClickListener(marker -> {
-            if (marker.equals(mEndMarker)) {
-                String endDate = "";
-                String snippetAddress;
-                if (mRunManager.getLastLocationForRun(mRunId) != null) {
-                    endDate = Constants.DATE_FORMAT.format(
-                            mRunManager.getLastLocationForRun(mRunId).getTime());
-                }
-                if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))) {
-                    snippetAddress = mRunManager.getAddress(getActivity(), marker.getPosition());
-                } else {
-                    snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
-                }
-                marker.setSnippet(endDate + "\n" + snippetAddress);
-            }
-            //Need to return "false" so the default action for clicking on a marker will also occur
-            //for the Start Marker and for the End Marker after we've updated its snippet.
-            return false;
-        });
-        //The graphic elements of the map display have now all been configured, so clear the
-        //mNeedToPrepare flag so that succeeding calls to onLoadFinished will merely update them as
-        //new location data comes in.
-        mPrepared = true;
-    }
 
     private CameraUpdate updateCamera(int mode, LatLng latLng) {
         //This method will be called after every location update and move the Camera location

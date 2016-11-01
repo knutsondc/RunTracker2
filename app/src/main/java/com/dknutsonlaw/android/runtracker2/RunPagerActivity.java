@@ -85,6 +85,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
             //RunFragment as we page through them.
             RunFragment fragment = (RunFragment)mAdapter.getItem(position);
             mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID, -1);
+            mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
             setSubtitle();
         }
 
@@ -117,6 +118,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
             mRunId = getIntent().getLongExtra(Constants.EXTRA_RUN_ID, -1);
             Log.i(TAG, "runId is " + mRunId);
         }
+        mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
         mViewPager = (ViewPager) findViewById(R.id.activity_run_pager_view_pager);
         //Set up BroadcastReceiver to receive results of operations we're interested in.
         mIntentFilter = new IntentFilter(Constants.SEND_RESULT_ACTION);
@@ -136,57 +138,21 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         switch (mSortOrder){
             case Constants.SORT_BY_DATE_ASC:
                 cursor = mRunManager.queryRunsDateAsc();
-                /*mAdapter = new RunCursorFragmentStatePagerAdapter(this, getSupportFragmentManager(),
-                        mRunManager.queryRunsDateAsc());
-                mViewPager.setAdapter(mAdapter);
-                //Make sure the ViewPager makes the designated Run's RunFragment the current view
-                setViewPager((RunDatabaseHelper.RunCursor) mAdapter.getCursor(), mRunId);
-                setSubtitle();*/
                 break;
             case Constants.SORT_BY_DATE_DESC:
                 cursor = mRunManager.queryRunsDateDesc();
-                /*mAdapter = new RunCursorFragmentStatePagerAdapter(this, getSupportFragmentManager(),
-                        mRunManager.queryRunsDateDesc());
-                mViewPager.setAdapter(mAdapter);
-                //Make sure the ViewPager makes the designated Run's RunFragment the current view
-                setViewPager((RunDatabaseHelper.RunCursor) mAdapter.getCursor(), mRunId);
-                setSubtitle();*/
                 break;
             case Constants.SORT_BY_DISTANCE_ASC:
                 cursor = mRunManager.queryRunsDistanceAsc();
-               /* mAdapter = new RunCursorFragmentStatePagerAdapter(this, getSupportFragmentManager(),
-                        mRunManager.queryRunsDistanceAsc());
-                mViewPager.setAdapter(mAdapter);
-                //Make sure the ViewPager makes the designated Run's RunFragment the current view
-                setViewPager((RunDatabaseHelper.RunCursor) mAdapter.getCursor(), mRunId);
-                setSubtitle();*/
                 break;
             case Constants.SORT_BY_DISTANCE_DESC:
                 cursor = mRunManager.queryRunsDistanceDesc();
-                /*mAdapter = new RunCursorFragmentStatePagerAdapter(this, getSupportFragmentManager(),
-                        mRunManager.queryRunsDistanceDesc());
-                mViewPager.setAdapter(mAdapter);
-                //Make sure the ViewPager makes the designated Run's RunFragment the current view
-                setViewPager((RunDatabaseHelper.RunCursor) mAdapter.getCursor(), mRunId);
-                setSubtitle();*/
                 break;
             case Constants.SORT_BY_DURATION_ASC:
                 cursor = mRunManager.queryRunsDurationAsc();
-                /*mAdapter = new RunCursorFragmentStatePagerAdapter(this, getSupportFragmentManager(),
-                        mRunManager.queryRunsDurationAsc());
-                mViewPager.setAdapter(mAdapter);
-                //Make sure the ViewPager makes the designated Run's RunFragment the current view
-                setViewPager((RunDatabaseHelper.RunCursor) mAdapter.getCursor(), mRunId);
-                setSubtitle();*/
                 break;
             case Constants.SORT_BY_DURATION_DESC:
                 cursor = mRunManager.queryRunsDurationDesc();
-                /*mAdapter = new RunCursorFragmentStatePagerAdapter(this, getSupportFragmentManager(),
-                        mRunManager.queryRunsDurationDesc());
-                mViewPager.setAdapter(mAdapter);
-                //Make sure the ViewPager makes the designated Run's RunFragment the current view
-                setViewPager((RunDatabaseHelper.RunCursor) mAdapter.getCursor(), mRunId);
-                setSubtitle();*/
                 break;
             default:
                 Log.i(TAG, "Invalid sort order - how'd you get here!?!");
@@ -273,6 +239,23 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         //Bind to the BackgroundLocationService here to enable use of its functions throughout this Activity.
         Intent intent = new Intent(this, BackgroundLocationService.class);
         bindService(intent, mLocationServiceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    public void onRestart(){
+        super.onRestart();
+        //If the user gets to the RunPagerActivity by hitting the Back button in the RunMapPagerActivity,
+        //we need to retrieve the RunId and Sort Order from SharedPrefs. This code has to go here, not
+        //in onResume(), because we only want this behavior the happen when the Activity has already been
+        //opened before with an Intent. When this Activity is opened for the first time, it gets its
+        //values from the Intent dispatched by the RunRecyclerListFragment.
+        Log.i(TAG, "Calling onRestart()");
+        mRunId = mRunManager.mPrefs.getLong(Constants.ARG_RUN_ID, -1);
+        Log.i(TAG, "mRunId in onRestart() is " + mRunId);
+        mSortOrder = mRunManager.mPrefs.getInt(Constants.SORT_ORDER, Constants.KEEP_EXISTING_SORT);
+        Log.i(TAG, "mSortOrder in onRestart() is " + mSortOrder);
+        Bundle args = setupAdapterAndLoader();
+        getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
     }
 
     @Override

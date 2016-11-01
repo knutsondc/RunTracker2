@@ -209,7 +209,7 @@ public class RunRecyclerListFragment extends Fragment
             ((AppCompatActivity)getActivity()).getSupportActionBar().setSubtitle(savedInstanceState.getString(Constants.SUBTITLE));
         } else {
             //When Activity is created for the first time or if the Fragment is getting created
-            //for the first time even thought the Activity isn't, get sort order and subtitle
+            //for the first time even though the Activity isn't, get sort order and subtitle
             //from SharedPreferences.
             Log.i(TAG, "Getting Sort Order from SharedPreferences in onCreate");
             mSortOrder = mRunManager.mPrefs.getInt(Constants.SORT_ORDER, Constants.SORT_BY_DATE_DESC);

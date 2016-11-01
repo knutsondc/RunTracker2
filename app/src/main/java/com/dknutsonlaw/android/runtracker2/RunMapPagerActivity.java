@@ -89,6 +89,10 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
             Log.i(TAG, "PageChangeListener fetched Run #" + mRunId + " at position " + position);
             setSubtitle();
             setViewPager((RunDatabaseHelper.RunCursor)mAdapter.getCursor(), mRunId);
+            //Write the RunId to Shared Prefs so that if the user goes back to RunPagerActivity, the
+            //same Run will be displayed there
+            mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
+            Log.i(TAG, "Wrote RunId " + mRunId + " to Shared Prefs");
         }
 
     };
@@ -287,36 +291,48 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
             //adapter and subtitle and restart the RunListLoader
             case R.id.run_map_pager_menu_item_sort_by_date_asc:
                 mSortOrder = Constants.SORT_BY_DATE_ASC;
+                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
+                //the Runs will be sorted in the same order
                 mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
                 args = setupAdapterAndLoader();
                 getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
                 return true;
             case R.id.run_map_pager_menu_item_sort_by_date_desc:
                 mSortOrder = Constants.SORT_BY_DATE_DESC;
+                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
+                //the Runs will be sorted in the same order
                 mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
                 args = setupAdapterAndLoader();
                 getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
                 return true;
             case R.id.run_map_pager_menu_item_sort_by_distance_asc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_ASC;
+                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
+                //the Runs will be sorted in the same order
                 mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
                 args = setupAdapterAndLoader();
                 getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
                 return true;
             case R.id.run_map_pager_menu_item_sort_by_distance_desc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_DESC;
+                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
+                //the Runs will be sorted in the same order
                 mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
                 args = setupAdapterAndLoader();
                 getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
                 return true;
             case R.id.run_map_pager_menu_item_sort_by_duration_asc:
                 mSortOrder = Constants.SORT_BY_DURATION_ASC;
+                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
+                //the Runs will be sorted in the same order
                 mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
                 args = setupAdapterAndLoader();
                 getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
                 return true;
             case R.id.run_map_pager_menu_item_sort_by_duration_desc:
                 mSortOrder = Constants.SORT_BY_DURATION_DESC;
+                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
+                //the Runs will be sorted in the same order
                 mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
                 args = setupAdapterAndLoader();
                 getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
