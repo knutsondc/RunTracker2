@@ -68,6 +68,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     private long mRunId;
     private GoogleMap mGoogleMap;
     private MapView mMapView;
+    private LoaderManager mLoaderManager;
     private Messenger mLocationService;
     private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
     private RunDatabaseHelper.LocationCursor mLocationCursor;
@@ -150,18 +151,22 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //Query - why doesn't it work to initiate the loader in onActivityCreated()? That results
         //in a crash upon a configuration change because apparently the cursor is released before
         //the loader gets possession of it.
-        if (mRunId != -1) {
+        /*if (mRunId != -1) {
             LoaderManager lm = getLoaderManager();
             lm.initLoader(Constants.LOAD_LOCATION, args, this);
-        }
+        }*/
 
     }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        //Developer docs say call getMapAsync() in onActivityCreated() because the map won't be
-        //returned non-null until after onCreateView() returns.
+        doBindService(this);
+        mLoaderManager = getLoaderManager();
+        Bundle args = getArguments();
+        //Bundle args = new Bundle();
+        //args.putLong(Constants.ARG_RUN_ID, mRunId);
+        mLoaderManager.initLoader(Constants.LOAD_LOCATION, args, this);
     }
 
     @Override
@@ -257,7 +262,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         runIdTextView.setText("Run #" + mRunId);
         TextView startDateTextView = (TextView) rootView.findViewById(R.id.startDateTextView);
         ///startDateTextView.setText(getString(R.string.started, mStartDate));
-        startDateTextView.setText(getString(R.string.started, mRunManager.getRun(mRunId).getStartDate()));
+        startDateTextView.setText(getString(R.string.started,
+                Constants.DATE_FORMAT.format(mRunManager.getRun(mRunId).getStartDate())));
         Log.i(TAG, "Set Start Date for Run #" + mRunId + " in setupWidgets as " + mRunManager.getRun(mRunId).getStartDate());
         mEndDateTextView = (TextView) rootView.findViewById(R.id.endDateTextView);
         //if (mLastLocation != null) {
@@ -282,11 +288,11 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         return rootView;
     }
 
-    @Override
+    /*@Override
     public void onStart(){
         super.onStart();
-        doBindService(this);
-    }
+        //doBindService(this);
+    }*/
 
     private static void doBindService(RunMapFragment fragment){
         fragment.getActivity().getApplicationContext().bindService(new Intent(fragment.getActivity(), BackgroundLocationService.class),
@@ -349,11 +355,11 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     //mNeedToPrepare to true so that the reconstruction will start from the beginning.
     @Override
     public void onResume() {
+        super.onResume();
+        restartLoader();
         Log.i(TAG, "onResume() called for Run #" + mRunId + ".");
         mMapView.onResume();
-        super.onResume();
         mPrepared = false;
-        restartLoader();
     }
 
     @Override
@@ -403,6 +409,12 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
         Log.i(TAG, "In onLoadFinished() for Run #" + mRunId);
         mLocationCursor = (RunDatabaseHelper.LocationCursor) cursor;
+        //A cursor returned by a cursor loader supposedly is guaranteed to be open, but I've had
+        //crashes on configuration changes claiming we're trying to open an object that's already
+        //been closed. Checking here to see if the cursor is open seems to have cured the problem
+        if (mLocationCursor.isClosed()){
+            return;
+        }
         //Now that we've got a cursor holding all the location data for this run, we can process it.
         if (!mPrepared) {
             Log.i(TAG, "mPrepared is false for Run #" + mRunId + " - preparing map.");
@@ -475,8 +487,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         //Stop using the data
-        mLocationCursor.close();
-        mLocationCursor = null;
+        //mLocationCursor.close();
+        //mLocationCursor = null;
     }
 
     //Reload the location data for this run, thus forcing an update of the map display
@@ -485,8 +497,9 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         if (args != null) {
             long runId = args.getLong(Constants.ARG_RUN_ID, -1);
             if (runId != -1) {
-                LoaderManager lm = getLoaderManager();
-                lm.restartLoader(Constants.LOAD_LOCATION, args, this);
+                //LoaderManager lm = getLoaderManager();
+                //lm.restartLoader(Constants.LOAD_LOCATION, args, this);
+                mLoaderManager.restartLoader(Constants.LOAD_LOCATION, args, this);
             }
         }
     }

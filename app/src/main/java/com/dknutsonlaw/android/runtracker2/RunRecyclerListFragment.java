@@ -69,6 +69,8 @@ public class RunRecyclerListFragment extends Fragment
     private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
     //Are we bound to the BackgroundLocationService?
     private boolean mIsBound = false;
+    //Are we newly opening this fragment or are we coming back from RunPagerActivity?
+    private boolean mFirstVisit;
     //Callback invoked when binding to BackgroundLocationService is accomplished
     private final ServiceConnection mLocationServiceConnection = new ServiceConnection() {
         @Override
@@ -313,6 +315,9 @@ public class RunRecyclerListFragment extends Fragment
             TrackingLocationIntentService.startActionInsertRun(getActivity(), new Run());
             //mRunManager.startNewRun();
         });
+        //Flag first visit so we don't check for which Run we were on when we pressed the Back button
+        //in RunPagerAdapter
+        mFirstVisit = true;
         refreshUI();
         return v;
     }
@@ -427,6 +432,19 @@ public class RunRecyclerListFragment extends Fragment
                 "Stub Value");
         changeSortOrder(mSortOrder);
         refreshUI();
+        //If we're coming back here from the RunPagerActivity, check which Run was displayed there
+        //and scroll the RecyclerList to place that Run at the top of the display
+        if (!mFirstVisit){
+            //First fetch the position the displayed Run had in the RunPager - all positions in
+            //the RunPager map directly to positions in the adapter and the RecyclerView
+            int adapterPosition = mRunManager.mPrefs.getInt(Constants.ADAPTER_POSITION, 0);
+            LinearLayoutManager lm = (LinearLayoutManager)mRunListRecyclerView.getLayoutManager();
+            //Scroll RecyclerView so the designated Run is displayed 20 pixels below the top of the
+            //display
+            lm.scrollToPositionWithOffset(adapterPosition, 20);
+        }
+        //We willl now have displayed the RecyclerView at least once, so clear the FirstVisit flag.
+        mFirstVisit = false;
         Log.i(TAG, "onResume called - mSortOrder is " + mSortOrder);
     }
 

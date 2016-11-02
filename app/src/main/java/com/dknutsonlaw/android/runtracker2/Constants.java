@@ -116,6 +116,9 @@ final class Constants {
     //Bundles
     static final String ADAPTER_ITEM_COUNT =
             "com.dknutsonlaw.android.runtracker2.adapter.item.count";
+    //Label for saving adapter position of Run currently being displayed in RunPagerActivity
+    static final String ADAPTER_POSITION =
+            "com.dknutsonlaw.com.android.runtracker2.adapter.position";
     //Label used to pass ID of run to use in a new instance of RunFragment
     static final String ARG_RUN_ID = "RUN_ID";
     static final String ARG_ERROR_CODE = "error_code";

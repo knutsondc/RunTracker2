@@ -84,9 +84,9 @@ public class RunFragment extends Fragment {
     private ResultsReceiver mResultsReceiver;
     //Set up Service Connection for BackgroundLocationService
     private Messenger mLocationService = null;
-    private Messenger mMessenger = new Messenger(new IncomingHandler(this));
+    private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
     //ArrayList to hold the LatLngs needed to build a Polyline iin a RunMapFragment
-    private ArrayList<LatLng> mPoints = new ArrayList<>();
+    private final ArrayList<LatLng> mPoints = new ArrayList<>();
     //Bounds to define area a map for this run
     private LatLngBounds mBounds = null;
     private final LatLngBounds.Builder mBuilder = new LatLngBounds.Builder();

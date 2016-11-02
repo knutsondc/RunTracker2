@@ -11,6 +11,7 @@ public class RunRecyclerListActivity extends SingleFragmentActivity {
 
     private static final String TAG = "RunRecyclerListActivity";
 
+    @Override
     protected Fragment createFragment(){
         Log.i(TAG, "Inside RunRecyclerListActivity createFragment");
         return new RunRecyclerListFragment();

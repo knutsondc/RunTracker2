@@ -14,11 +14,14 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -77,7 +80,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         }
     };
 
-    private final ViewPager.SimpleOnPageChangeListener mListener = new ViewPager.SimpleOnPageChangeListener() {
+    private final ViewPager.SimpleOnPageChangeListener mPageChangeListener = new ViewPager.SimpleOnPageChangeListener() {
 
         @Override
         public void onPageSelected(int position) {
@@ -86,9 +89,21 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
             RunFragment fragment = (RunFragment)mAdapter.getItem(position);
             mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID, -1);
             mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
+            //Keep the currently displayed Run's position in the ViewPager and Adapter so the
+            //RecyclerView can scroll that Run to the top of its display when we go back there
+            mRunManager.mPrefs.edit().putInt(Constants.ADAPTER_POSITION, position).apply();
             setSubtitle();
         }
 
+    };
+
+    private final ViewPager.OnAdapterChangeListener mAdapterChangeListener = new ViewPager.OnAdapterChangeListener() {
+        @Override
+        public void onAdapterChanged(@NonNull ViewPager viewPager, @Nullable PagerAdapter oldAdapter, @Nullable PagerAdapter newAdapter) {
+            //A new Adapter means a new SortOrder, so we need to update the Run's position in the
+            //Adapter and ViewPager so that the RecyclerView can scroll to it when we go back there
+            mRunManager.mPrefs.edit().putInt(Constants.ADAPTER_POSITION, mViewPager.getCurrentItem()).apply();
+        }
     };
 
     @Override
@@ -212,7 +227,8 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
 
     @Override
     public void onPause(){
-        mViewPager.removeOnPageChangeListener(mListener);
+        mViewPager.removeOnPageChangeListener(mPageChangeListener);
+        mViewPager.removeOnAdapterChangeListener(mAdapterChangeListener);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mResultsReceiver);
         super.onPause();
     }
@@ -226,7 +242,8 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     @Override
     public void onResume(){
         super.onResume();
-        mViewPager.addOnPageChangeListener(mListener);
+        mViewPager.addOnPageChangeListener(mPageChangeListener);
+        mViewPager.addOnAdapterChangeListener(mAdapterChangeListener);
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 mResultsReceiver,
                 mIntentFilter);
@@ -397,15 +414,18 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         outState.putLong(Constants.SAVED_RUN_ID, mRunId);
         outState.putInt(Constants.SORT_ORDER, mSortOrder);
     }
-    //Set the ViewPager's current (displayed) item to the specified Run.
+    //Set the ViewPager's current (displayed) item to the specified Run and save the Adapter and
+    //ViewPager position of the Run so the RecyclerView can scroll to it when we go back there.
     private void setViewPager(RunDatabaseHelper.RunCursor cursor, long runId){
         cursor.moveToFirst();
         Log.i(TAG, "In setViewPager(), runId is " + runId);
         //Iterate over the Runs in the cursor until we find the one with an Id equal to the one we
-        //specified in the runId parameter, then set the ViewPager's current item to that Run
+        //specified in the runId parameter, then set the ViewPager's current item to that Run and
+        //save the Adapter/ViewPager position.
         while (!cursor.isAfterLast()){
             if (cursor.getRun().getId() == runId){
                 mViewPager.setCurrentItem(cursor.getPosition());
+                mRunManager.mPrefs.edit().putInt(Constants.ADAPTER_POSITION, mViewPager.getCurrentItem()).apply();
                 break;
             }
             cursor.moveToNext();
@@ -413,7 +433,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     }
 
     //setResolutionForResult() gets called from the currently displayed RunFragment, but the result
-    //of that call is delivered to the Activity in this method. This method uses the SparseArray
+    //of that call is delivered to the Activity in this callback. This method uses the SparseArray
     //associating RunIds with the RunFragments in the Adapter to get a reference to the currently
     //displayed RunFragment and then forwards the results it received to the onActivityResult()
     //method of that RunFragment
