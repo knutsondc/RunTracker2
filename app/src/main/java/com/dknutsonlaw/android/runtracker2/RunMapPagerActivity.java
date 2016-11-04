@@ -14,11 +14,14 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -31,6 +34,7 @@ import java.lang.ref.WeakReference;
 
 /**
  * Created by dck on 9/25/16.
+ * This Activity hosts a ViewPager within which RunMapFragments are displayed.
  */
 
 public class RunMapPagerActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
@@ -43,7 +47,6 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
     private Messenger mLocationService = null;
     private ResultsReceiver mResultsReceiver;
     private IntentFilter mIntentFilter;
-    private Menu mMenu;
     //Custom Adapter to feed RunFragments to the ViewPager
     private RunMapPagerActivity.RunCursorMapFragmentStatePagerAdapter mAdapter;
     private long mRunId = -1;
@@ -77,7 +80,7 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
         }
     };
 
-    private final ViewPager.SimpleOnPageChangeListener mListener = new ViewPager.SimpleOnPageChangeListener() {
+    private final ViewPager.SimpleOnPageChangeListener mOnPageChangeListener = new ViewPager.SimpleOnPageChangeListener() {
 
         @Override
         public void onPageSelected(int position) {
@@ -95,6 +98,15 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
             Log.i(TAG, "Wrote RunId " + mRunId + " to Shared Prefs");
         }
 
+    };
+
+    private final ViewPager.OnAdapterChangeListener mOnAdapterChangeListener = new ViewPager.OnAdapterChangeListener() {
+        @Override
+        public void onAdapterChanged(@NonNull ViewPager viewPager, @Nullable PagerAdapter oldAdapter, @Nullable PagerAdapter newAdapter) {
+            //A new Adapter means a new SortOrder, so we need to update the Run's position in the
+            //Adapter and ViewPager so that the RecyclerView can scroll to it when we go back there
+            mRunManager.mPrefs.edit().putInt(Constants.ADAPTER_POSITION, mViewPager.getCurrentItem()).apply();
+        }
     };
 
     @Override
@@ -124,6 +136,8 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
             Log.i(TAG, "runId is " + mRunId);
         }
         mViewPager = (ViewPager) findViewById(R.id.activity_run_map_pager_view_pager);
+        //Force all RunMapFragments to be created only when called to be displayed
+        mViewPager.setOffscreenPageLimit(0);
         //Set up BroadcastReceiver to receive results of operations we're interested in.
         mIntentFilter = new IntentFilter(Constants.SEND_RESULT_ACTION);
         mIntentFilter.addAction(Constants.ACTION_DELETE_RUN);
@@ -210,12 +224,15 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
             default:
                 subtitle = r.getString(R.string.goof_up);
         }
-        getSupportActionBar().setSubtitle(subtitle);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setSubtitle(subtitle);
+        }
     }
 
     @Override
     public void onPause(){
-        mViewPager.removeOnPageChangeListener(mListener);
+        mViewPager.removeOnPageChangeListener(mOnPageChangeListener);
+        mViewPager.removeOnAdapterChangeListener(mOnAdapterChangeListener);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mResultsReceiver);
         super.onPause();
     }
@@ -229,7 +246,8 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
     @Override
     public void onResume(){
         super.onResume();
-        mViewPager.addOnPageChangeListener(mListener);
+        mViewPager.addOnPageChangeListener(mOnPageChangeListener);
+        mViewPager.addOnAdapterChangeListener(mOnAdapterChangeListener);
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 mResultsReceiver,
                 mIntentFilter);
@@ -247,7 +265,6 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
         super.onCreateOptionsMenu(menu);
-        mMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.run_map_pager_options, menu);
         //If we have fewer than two Runs, there's nothing to sort, so disable sort menu
@@ -291,55 +308,31 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
             //adapter and subtitle and restart the RunListLoader
             case R.id.run_map_pager_menu_item_sort_by_date_asc:
                 mSortOrder = Constants.SORT_BY_DATE_ASC;
-                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
-                //the Runs will be sorted in the same order
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_date_desc:
                 mSortOrder = Constants.SORT_BY_DATE_DESC;
-                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
-                //the Runs will be sorted in the same order
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_distance_asc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_ASC;
-                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
-                //the Runs will be sorted in the same order
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_distance_desc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_DESC;
-                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
-                //the Runs will be sorted in the same order
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_duration_asc:
                 mSortOrder = Constants.SORT_BY_DURATION_ASC;
-                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
-                //the Runs will be sorted in the same order
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_duration_desc:
                 mSortOrder = Constants.SORT_BY_DURATION_DESC;
-                //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
-                //the Runs will be sorted in the same order
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
+        //Save Sort Order to Shared Prefs so that when when we go back to the RunPagerActivity,
+        //the Runs will be sorted in the same order
+        mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
+        args = setupAdapterAndLoader();
+        getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
+        return true;
     }
 
     @Override
@@ -357,6 +350,7 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
         while (!cursor.isAfterLast()){
             if (cursor.getRun().getId() == runId){
                 mViewPager.setCurrentItem(cursor.getPosition());
+                mRunManager.mPrefs.edit().putInt(Constants.ADAPTER_POSITION, mViewPager.getCurrentItem()).apply();
                 break;
             }
             cursor.moveToNext();
@@ -532,13 +526,13 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
                             if (currentPosition < mViewPager.getChildCount() - 1) {
                                 int index = currentPosition + 1;
                                 mViewPager.setCurrentItem(index);
-                                RunFragment fragment = (RunFragment) mAdapter.getItem(index);
+                                RunMapFragment fragment = (RunMapFragment) mAdapter.getItem(index);
                                 mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID);
                                 Log.i(TAG, "After Run deletion, we moved UP one position and RunId is " + mRunId);
                             } else {
                                 int index = currentPosition - 1;
                                 mViewPager.setCurrentItem(index);
-                                RunFragment fragment = (RunFragment)mAdapter.getItem(index);
+                                RunMapFragment fragment = (RunMapFragment)mAdapter.getItem(index);
                                 mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID);
                                 Log.i(TAG, "After Run deletion, we moved DOWN one position and RunId is " + mRunId);
                             }

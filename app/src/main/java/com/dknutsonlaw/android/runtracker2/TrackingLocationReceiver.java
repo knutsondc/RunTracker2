@@ -34,7 +34,7 @@ public class TrackingLocationReceiver extends LocationReceiver {
            //Reject all location updates that have no altitude value - this insures that only
            //GPS locations get accepted
            Log.i(TAG, "Location rejected - no altitude value");
-       } else if (loc.getAccuracy() > 40.0) {
+       } else if (loc.getAccuracy() > 10.0) {
            //Reject all location updates that have an accuracy of greater than
            //40 meters.
            Log.i(TAG, "Location rejected - insufficiently accurate: " + loc.getAccuracy());

@@ -5,9 +5,11 @@ package com.dknutsonlaw.android.runtracker2;
  * "live" if the Run is being tracked.
  */
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.ServiceConnection;
 import android.content.res.Resources;
@@ -22,10 +24,10 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Display;
@@ -47,7 +49,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
-import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -61,7 +62,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class RunMapFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+public class RunMapFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
     private static final String TAG = "RunMapFragment";
 
     private final RunManager mRunManager = RunManager.get(getActivity());
@@ -76,11 +77,13 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     private ArrayList<LatLng> mPoints;
     private LatLngBounds mBounds;
     private final LatLngBounds.Builder mBuilder = new LatLngBounds.Builder();
+    private final LocalBroadcastManager mBroadcastManager = LocalBroadcastManager.getInstance(getActivity());
+    private IntentFilter mIntentFilter;
+    private ResultsReceiver mResultsReceiver;
     private Marker mEndMarker;
     private TextView mEndDateTextView;
     private TextView mDistanceTextView;
     private TextView mDurationTextView;
-    private String mStartDate;
     private Location mStartLocation, mLastLocation = null;
     private double mDistanceTraveled = 0.0;
     private long mDurationMillis = 0;
@@ -147,15 +150,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
 
             Log.i(TAG, "In onCreate for Run #" + mRunId +" is mBounds null? " + (mBounds == null));
         }
-        //If we got a legitimate RunId, start the loader for the location data for that Run
-        //Query - why doesn't it work to initiate the loader in onActivityCreated()? That results
-        //in a crash upon a configuration change because apparently the cursor is released before
-        //the loader gets possession of it.
-        /*if (mRunId != -1) {
-            LoaderManager lm = getLoaderManager();
-            lm.initLoader(Constants.LOAD_LOCATION, args, this);
-        }*/
-
+        mIntentFilter = new IntentFilter(Constants.ACTION_REFRESH);
+        mResultsReceiver = new ResultsReceiver();
     }
 
     @Override
@@ -182,84 +178,85 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
             e.printStackTrace();
         }
 
-        mMapView.getMapAsync(new OnMapReadyCallback() {
-            @Override
-            public void onMapReady(GoogleMap googleMap) {
-                //Stash a reference to the GoogleMap
-                mGoogleMap = googleMap;
-                if (mGoogleMap != null) {
-                    Log.i(TAG, "In on ActivityCreated for Run #" + mRunId + " got a map.");
-                    //Rather than define our own zoom controls, just enable the UiSettings' zoom controls and
-                    //listen for changes in CameraPosition to update mZoomLevel
-                    mGoogleMap.getUiSettings().setZoomControlsEnabled(true);
-                    mGoogleMap.getUiSettings().setZoomGesturesEnabled(true);
-                    //Disable map scrolling so we can easily swipe from one map to another.
-                    mGoogleMap.getUiSettings().setScrollGesturesEnabled(false);
-                    //Set up an overlay on the map for this run's prerecorded locations. We need a custom
-                    //InfoWindowAdapter to allow multiline text snippets in markers.
-                    mGoogleMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
-                        @Override
-                        public View getInfoWindow(Marker marker) {
-                            return null;
-                        }
+        mMapView.getMapAsync(googleMap -> {
+            //Stash a reference to the GoogleMap
+            mGoogleMap = googleMap;
+            if (mGoogleMap != null) {
+                Log.i(TAG, "In on ActivityCreated for Run #" + mRunId + " got a map.");
+                //Rather than define our own zoom controls, just enable the UiSettings' zoom controls and
+                //listen for changes in CameraPosition to update mZoomLevel
+                mGoogleMap.getUiSettings().setZoomControlsEnabled(true);
+                mGoogleMap.getUiSettings().setZoomGesturesEnabled(true);
+                //Disable map scrolling so we can easily swipe from one map to another.
+                mGoogleMap.getUiSettings().setScrollGesturesEnabled(false);
+                //Set up an overlay on the map for this run's prerecorded locations. We need a custom
+                //InfoWindowAdapter to allow multiline text snippets in markers.
+                mGoogleMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+                    @Override
+                    public View getInfoWindow(Marker marker) {
+                        return null;
+                    }
 
-                        //Define layout for markers' information windows.
-                        @Override
-                        public View getInfoContents(Marker marker) {
-                            //Set up vertical Linear Layout to hold TextViews for a marker's Title and Snippet
-                            //fields.
-                            LinearLayout layout = new LinearLayout(getActivity());
-                            layout.setOrientation(LinearLayout.VERTICAL);
-                            //Define TextView with desired text attributes for the marker's Title
-                            TextView title = new TextView(getActivity());
-                            title.setTextColor(Color.BLACK);
-                            title.setGravity(Gravity.CENTER);
-                            title.setTypeface(null, Typeface.BOLD);
-                            title.setText(marker.getTitle());
-                            //Define TextView with desired text attributes for the marker's Snippet
-                            TextView snippet = new TextView(getActivity());
-                            snippet.setTextColor(Color.BLACK);
-                            snippet.setText(marker.getSnippet());
-                            //Add the TextViews to the Linear Layout and return the layout for addition to the
-                            //Fragment's overall View hierarchy.
-                            layout.addView(title);
-                            layout.addView(snippet);
-                            return layout;
+                    //Define layout for markers' information windows.
+                    @Override
+                    public View getInfoContents(Marker marker) {
+                        //Set up vertical Linear Layout to hold TextViews for a marker's Title and Snippet
+                        //fields.
+                        LinearLayout layout = new LinearLayout(getActivity());
+                        layout.setOrientation(LinearLayout.VERTICAL);
+                        //Define TextView with desired text attributes for the marker's Title
+                        TextView title = new TextView(getActivity());
+                        title.setTextColor(Color.BLACK);
+                        title.setGravity(Gravity.CENTER);
+                        title.setTypeface(null, Typeface.BOLD);
+                        title.setText(marker.getTitle());
+                        //Define TextView with desired text attributes for the marker's Snippet
+                        TextView snippet = new TextView(getActivity());
+                        snippet.setTextColor(Color.BLACK);
+                        snippet.setText(marker.getSnippet());
+                        //Add the TextViews to the Linear Layout and return the layout for addition to the
+                        //Fragment's overall View hierarchy.
+                        layout.addView(title);
+                        layout.addView(snippet);
+                        return layout;
+                    }
+                });
+                //Set up a listener for when the user clicks on the End Marker. We update its snippet while
+                //tracking this run only when the user clicks on it to avoid the overhead of updating the
+                //EndAddress on every location update. If we're not tracking the run, just load the end address
+                //from the database. The Start Marker's data never changes, so the listener can ignore clicks
+                //on it and simply allow the default behavior to occur.
+                mGoogleMap.setOnMarkerClickListener(marker -> {
+                    if (marker.equals(mEndMarker)) {
+                        String endDate = "";
+                        String snippetAddress;
+                        if (mRunManager.getLastLocationForRun(mRunId) != null) {
+                            endDate = Constants.DATE_FORMAT.format(
+                                    mRunManager.getLastLocationForRun(mRunId).getTime());
                         }
-                    });
-                    //Set up a listener for when the user clicks on the End Marker. We update its snippet while
-                    //tracking this run only when the user clicks on it to avoid the overhead of updating the
-                    //EndAddress on every location update. If we're not tracking the run, just load the end address
-                    //from the database. The Start Marker's data never changes, so the listener can ignore clicks
-                    //on it and simply allow the default behavior to occur.
-                    mGoogleMap.setOnMarkerClickListener(marker -> {
-                        if (marker.equals(mEndMarker)) {
-                            String endDate = "";
-                            String snippetAddress;
-                            if (mRunManager.getLastLocationForRun(mRunId) != null) {
-                                endDate = Constants.DATE_FORMAT.format(
-                                        mRunManager.getLastLocationForRun(mRunId).getTime());
-                            }
-                            if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))) {
-                                snippetAddress = mRunManager.getAddress(getActivity(), marker.getPosition());
-                            } else {
-                                snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
-                            }
-                            marker.setSnippet(endDate + "\n" + snippetAddress);
+                        if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))) {
+                            snippetAddress = mRunManager.getAddress(getActivity(), marker.getPosition());
+                        } else {
+                            snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
                         }
-                        //Need to return "false" so the default action for clicking on a marker will also occur
-                        //for the Start Marker and for the End Marker after we've updated its snippet.
-                        return false;
-                    });
-                }
-                //Turn off the DisplayHomeAsUp - we might not return to the correct instance of RunFragment
+                        marker.setSnippet(endDate + "\n" + snippetAddress);
+                    }
+                    //Need to return "false" so the default action for clicking on a marker will also occur
+                    //for the Start Marker and for the End Marker after we've updated its snippet.
+                    return false;
+                });
+            }
+            //Turn off the DisplayHomeAsUp - we might not return to the correct instance of RunFragment
+            //noinspection ConstantConditions
+            if (((AppCompatActivity)getActivity()).getSupportActionBar() != null){
                 //noinspection ConstantConditions
                 ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(false);
             }
-        });
 
+        });
+        Resources r = getActivity().getResources();
         TextView runIdTextView = (TextView) rootView.findViewById(R.id.runIdTextView);
-        runIdTextView.setText("Run #" + mRunId);
+        runIdTextView.setText(r.getString(R.string.specified_run_number, mRunId));
         TextView startDateTextView = (TextView) rootView.findViewById(R.id.startDateTextView);
         ///startDateTextView.setText(getString(R.string.started, mStartDate));
         startDateTextView.setText(getString(R.string.started,
@@ -326,26 +323,29 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //default of SHOW_ENTIRE_ROUTE
         switch (item.getItemId()){
             case R.id.show_entire_route_menu_item:
-                Log.i(TAG, "Entering show_entire_route_menu_item, getCameraPosition().zoom: " +
-                        mGoogleMap.getCameraPosition().zoom);
                 mViewMode = Constants.SHOW_ENTIRE_ROUTE;
-                setTrackingMode();
-                Log.i(TAG, "SHOW_ENTIRE_ROUTE getCameraPosition.zoom: " + mGoogleMap.getCameraPosition().zoom);
-                return true;
+                break;
             case R.id.track_end_point_menu_item:
                 mViewMode = Constants.FOLLOW_END_POINT;
-                setTrackingMode();
-                return true;
+                break;
             case R.id.track_start_point_menu_item:
                 mViewMode = Constants.FOLLOW_STARTING_POINT;
-                setTrackingMode();
-                return true;
+                break;
             case R.id.tracking_off_menu_item:
                 mViewMode = Constants.NO_UPDATES;
-                return true;
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
+        mRunManager.mPrefs.edit().putInt(Constants.TRACKING_MODE, mViewMode).apply();
+        setTrackingMode();
+        Intent trackingModeIntent = new Intent(Constants.ACTION_REFRESH)
+                .putExtra(Constants.ARG_RUN_ID, mRunId);
+        boolean receiver = mBroadcastManager.sendBroadcast(trackingModeIntent);
+        if (!receiver){
+            Log.i(TAG, "No receiver for trackingModeIntent!");
+        }
+        return true;
     }
 
     //Force loading of the run's locations from the database so that the map adornments will
@@ -359,12 +359,14 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         restartLoader();
         Log.i(TAG, "onResume() called for Run #" + mRunId + ".");
         mMapView.onResume();
+        mBroadcastManager.registerReceiver(mResultsReceiver, mIntentFilter);
         mPrepared = false;
     }
 
     @Override
     public void onPause(){
         mMapView.onPause();
+        mBroadcastManager.unregisterReceiver(mResultsReceiver);
         super.onPause();
     }
 
@@ -446,9 +448,6 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                     Log.i(TAG, "In onLoadFinished() for Run #" + mRunId +", adding latLng to mPoints");
                     mPoints.add(latLng);
                 }
-                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", is mPoints null?" + (mPoints == null));
-                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + " mPoints.size() is " + mPoints.size());
-                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", is mPolyline null? " + (mPolyline == null));
                 //Update mPolyline with the updated set of points.
                 Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + " mPolyline is null, so we're creating it here.");
                 mPolyline.setPoints(mPoints);
@@ -521,8 +520,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         if (mPoints.size() == 0){
             mPoints.add(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
         }
-        mStartDate = Constants.DATE_FORMAT.format(mStartLocation.getTime());
-        Log.i(TAG, "mStartDate for Run #" + mRunId + " is " + mStartDate);
+        String startDate = Constants.DATE_FORMAT.format(mStartLocation.getTime());
+        Log.i(TAG, "mStartDate for Run #" + mRunId + " is " + startDate);
         Resources r = getActivity().getResources();
         //Get the address where we started the Run from the database. If the database's StartAddress
         //is bad, get a new Starting Address from the geocoder. The geocoder needs a LatLng object,
@@ -537,7 +536,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         MarkerOptions startMarkerOptions = new MarkerOptions()
                 .position(mPoints.get(0))
                 .title(r.getString(R.string.run_start))
-                .snippet(mStartDate + "\n" + snippetAddress)
+                .snippet(startDate + "\n" + snippetAddress)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                 .flat(false);
         mGoogleMap.addMarker(startMarkerOptions);
@@ -564,11 +563,6 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //Update mPoints, mPolyline, mBounds and the position of mEndMarker with additional location
         //data if the number of locations in the cursor exceeds the number of locations stored by the
         //RunFragment.
-
-        Log.i(TAG, "In prepareMap() for Run #" + mRunId + " is mPoints null? " + (mPoints == null));
-        Log.i(TAG, "In prepareMap() mPoints.size() is " + mPoints.size());
-        Log.i(TAG, "In prepareMap(), is mBounds null? " + (mBounds == null));
-        Log.i(TAG, "In prepareMap(), mBounds.toString() is " + mBounds.toString());
         if (mLocationCursor.getCount() > mPoints.size()){
             Log.i(TAG, "Cursor for Run #" + mRunId + " has " + mLocationCursor.getCount() + " and " +
                     "mPoints has " + mPoints.size() + " elements.");
@@ -622,6 +616,13 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //We need to render the map first in SHOW_ENTIRE_ROUTE mode so the GoogleMap will know how
         //large the map needs to be. Once that is done, we can use the View Mode that's been set in
         //the setTrackingMode() method.
+
+        mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.KEEP_EXISTING_SORT);
+        if (mViewMode == Constants.FOLLOW_END_POINT || mViewMode == Constants.FOLLOW_STARTING_POINT) {
+            movement = CameraUpdateFactory.zoomTo(mRunManager.mPrefs.getFloat(Constants.ZOOM_LEVEL, 17f));
+            mGoogleMap.animateCamera(movement);
+        }
+
         setTrackingMode();
         //The graphic elements of the map display have now all been configured, so clear the
         //mNeedToPrepare flag so that succeeding calls to onLoadFinished will merely update them as
@@ -642,6 +643,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                 //placed at the same location so that the End Marker stays in sync with mLastLocation..
                 latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                 //Make sure the zoom level for this mode is at least 17.0
+
                 if (mGoogleMap.getCameraPosition().zoom >= 17.0f) {
                     Log.i(TAG, "zoom level greater than 17.0, so using current zoom level to position camera.");
                     movement = CameraUpdateFactory.newLatLng(latLng);
@@ -659,6 +661,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                 //for this or the FOLLOW_END_POINT view mode. The start marker never moves, so there's
                 //never any need to update it.
                 latLng = new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude());
+
                 if (mGoogleMap.getCameraPosition().zoom >= 17.0f) {
                     Log.i(TAG, "zoom level greater than 17.0, so using current zoom level to position camera.");
                     movement = CameraUpdateFactory.newLatLng(latLng);
@@ -785,6 +788,26 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                         break;
 
                 }
+        }
+    }
+
+    private class ResultsReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent){
+
+            String action = intent.getAction();
+            if (action.equals(Constants.ACTION_REFRESH)){
+                long senderId = intent.getLongExtra(Constants.ARG_RUN_ID, -1);
+                if (senderId == mRunId){
+                    Log.i(TAG, "This is a message this fragment sent - we've already switched tracking mode.");
+                } else {
+                    mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.KEEP_EXISTING_SORT);
+                    setTrackingMode();
+                }
+            } else {
+                Log.i(TAG, "Action isn't ACTION_REFRESH! How'd you get here!?!");
+            }
         }
     }
 }

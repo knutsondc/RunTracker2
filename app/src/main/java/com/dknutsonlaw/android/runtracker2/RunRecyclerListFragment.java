@@ -443,7 +443,7 @@ public class RunRecyclerListFragment extends Fragment
             //display
             lm.scrollToPositionWithOffset(adapterPosition, 20);
         }
-        //We willl now have displayed the RecyclerView at least once, so clear the FirstVisit flag.
+        //We will now have displayed the RecyclerView at least once, so clear the FirstVisit flag.
         mFirstVisit = false;
         Log.i(TAG, "onResume called - mSortOrder is " + mSortOrder);
     }
@@ -574,7 +574,7 @@ public class RunRecyclerListFragment extends Fragment
             //If this RunHolder hasn't been selected for deletion in an ActionMode, start RunPagerActivity
             //specifying its mRun as the one to be displayed when the ViewPager first opens.
             if (!mMultiSelector.tapSelection(this)){
-                Intent i = RunPagerActivity.newIntent(getActivity(), mSortOrder, mRun.getId());
+                Intent i = RunPagerActivity.newIntent(getActivity(), RunRecyclerListFragment.this.mSortOrder, mRun.getId());
                 startActivity(i);
             }
         }
