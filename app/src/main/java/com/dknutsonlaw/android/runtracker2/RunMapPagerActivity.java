@@ -137,7 +137,7 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
         }
         mViewPager = (ViewPager) findViewById(R.id.activity_run_map_pager_view_pager);
         //Force all RunMapFragments to be created only when called to be displayed
-        mViewPager.setOffscreenPageLimit(0);
+        //mViewPager.setOffscreenPageLimit(0);
         //Set up BroadcastReceiver to receive results of operations we're interested in.
         mIntentFilter = new IntentFilter(Constants.SEND_RESULT_ACTION);
         mIntentFilter.addAction(Constants.ACTION_DELETE_RUN);

@@ -171,7 +171,8 @@ public class RunManager {
         }
         Log.i(TAG, "mStpe null? " + (mStpe == null));
         if (mStpe != null) {
-            mStpe.shutdown();
+            List<Runnable> shutdownList = mStpe.shutdownNow();
+            Log.i(TAG, "There were " + shutdownList.size() + " tasks queued when Stop was pressed.");
             Log.i(TAG, "Called .shutdown() on ScheduledThreadPoolExecutor " + mStpe);
         }
     }

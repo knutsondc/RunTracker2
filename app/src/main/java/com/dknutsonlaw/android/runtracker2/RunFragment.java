@@ -263,8 +263,8 @@ public class RunFragment extends Fragment {
         mStopButton.setOnClickListener(v12 -> {
             Log.i(TAG, "Stop Button Pressed. Run is " + mRunId);
             //Do housekeeping for stopping tracking a run.
-            mRunManager.stopRun();
             mEndAddressUpdating = false;
+            mRunManager.stopRun();
             //Tell the BackgroundLocationService to stop location updates
             try {
                 mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
@@ -867,8 +867,20 @@ public class RunFragment extends Fragment {
                         //the last previous location, stop tracking this run, update the UI, and tell the
                         //user why.
                         if (result[Constants.CONTINUATION_LIMIT_RESULT] == -1) {
-
-                            getActivity().stopService(new Intent(getActivity(), BackgroundLocationService.class));
+                            mRunManager.stopRun();
+                            mEndAddressUpdating = false;
+                            //getActivity().stopService(new Intent(getActivity(), BackgroundLocationService.class));
+                            try {
+                                mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
+                            } catch (RemoteException e){
+                                Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_STOP_LOCATION_UPDATES");
+                            }
+                            if (mRun.getEndAddress() != null) {
+                                TrackingLocationIntentService.startActionUpdateEndAddress(getActivity(),
+                                        mRun, mRunManager.getLastLocationForRun(mRunId));
+                            }
+                            //We've stopped tracking the Run, so refresh the menu to enable "New Run" item
+                            updateUI();
                             toastTextRes = R.string.current_location_too_distant;
                             Toast.makeText(RunFragment.this.getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
                             return;

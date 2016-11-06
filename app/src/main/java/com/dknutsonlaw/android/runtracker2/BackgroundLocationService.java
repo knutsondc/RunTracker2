@@ -24,6 +24,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
@@ -149,31 +150,35 @@ public class BackgroundLocationService extends Service implements
                         sClient,
                         sLocationSettingsRequest
                 );
-        result.setResultCallback(locationSettingsResult -> {
-            Log.i(TAG, "Reached onResult(LocationSettingsResult");
-            final Status status = locationSettingsResult.getStatus();
-            switch (status.getStatusCode()) {
-                case LocationSettingsStatusCodes.SUCCESS:
-                    Log.i(TAG, "All Location Settings are satisfied.");
-                    startLocationUpdates(service);
-                    break;
-                case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-                    Log.i(TAG, "Location settings are not satisfied. Show the user a dialog to " +
-                            "update location settings.");
-                    try {
-                        sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED, locationSettingsResult));
-                    } catch (RemoteException e){
-                        Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED to RunFragment.");
-                    }
-                    break;
-                case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                    Log.i(TAG, "Location settings are inadequate and cannot be fixed here. Dialog not created.");
-                    try {
-                        sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE));
-                    } catch (RemoteException e){
-                        Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE to RunFragment.");
-                    }
-                    break;
+        //Please note that this anonymous ResultCallBack CANNOT be transformed into a lambda! Do not
+        //listen when Android Lint tells you it can!
+        result.setResultCallback(new ResultCallback<LocationSettingsResult> () {
+            public void onResult(@NonNull LocationSettingsResult locationSettingsResult) {
+                Log.i(TAG, "Reached onResult() for LocationSettingsRequest");
+                final Status status = locationSettingsResult.getStatus();
+                switch (status.getStatusCode()) {
+                    case LocationSettingsStatusCodes.SUCCESS:
+                        Log.i(TAG, "All Location Settings are satisfied.");
+                        startLocationUpdates(service);
+                        break;
+                    case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                        Log.i(TAG, "Location settings are not satisfied. Show the user a dialog to " +
+                                "update location settings.");
+                        try {
+                            sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED, locationSettingsResult));
+                        } catch (RemoteException e) {
+                            Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED to RunFragment.");
+                        }
+                        break;
+                    case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                        Log.i(TAG, "Location settings are inadequate and cannot be fixed here. Dialog not created.");
+                        try {
+                            sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE));
+                        } catch (RemoteException e) {
+                            Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE to RunFragment.");
+                        }
+                        break;
+                }
             }
         });
     }
@@ -409,7 +414,7 @@ public class BackgroundLocationService extends Service implements
                         startLocationUpdates(mService.get());
                         break;
                     case Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED:
-                        Log.i(TAG, "Reached MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED ini IncomingHandler.");
+                        Log.i(TAG, "Reached MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED in IncomingHandler.");
                         break;
                     case Constants.MESSAGE_PERMISSION_REQUEST_SUCCEEDED:
                         checkLocationSettings(service);

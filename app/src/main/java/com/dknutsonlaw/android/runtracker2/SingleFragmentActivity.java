@@ -1,13 +1,11 @@
 package com.dknutsonlaw.android.runtracker2;
 
-import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
@@ -40,7 +38,7 @@ import android.util.Log;
         super.onCreate(savedInstanceState);
         setContentView(getLayoutResId());
 
-        if (Build.VERSION.SDK_INT >= 23 && ActivityCompat.checkSelfPermission(this,
+        /*if (Build.VERSION.SDK_INT >= 23 && ActivityCompat.checkSelfPermission(this,
                 android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
 
                 final AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -51,7 +49,7 @@ import android.util.Log;
                         PERMISSION_REQUEST_FINE_LOCATION));
                 builder.show();
 
-        }
+        }*/
 
         FragmentManager fm = getSupportFragmentManager();
         Fragment fragment = fm.findFragmentById(R.id.fragmentContainer);
