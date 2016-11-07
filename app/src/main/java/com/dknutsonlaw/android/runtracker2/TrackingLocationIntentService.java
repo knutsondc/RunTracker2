@@ -8,15 +8,12 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.content.Context;
 import android.location.Location;
-import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
 
 /** Created by dck on 2/11/2015
  * An {@link IntentService} subclass for handling database task requests asynchronously in

@@ -205,8 +205,23 @@
             android:text="@string/distance_covered"
             tools:ignore="RtlHardcoded,RtlSymmetry"/>
         <TextView android:id="@+id/distance_coveredTextView"
-                  android:layout_width="fill_parent"
+                  android:layout_width="match_parent"
                   android:layout_height="wrap_content"
                   android:textSize="25sp"/>
+    </TableRow>
+    <TableRow>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:paddingRight="5sp"
+            android:paddingEnd="5sp"
+            android:text="@string/run_number"
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
+        <TextView
+            android:id="@+id/runIdTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="25sp"/>
     </TableRow>
 </TableLayout>

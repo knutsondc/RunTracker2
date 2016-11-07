@@ -52,7 +52,7 @@
                 android:value="com.dknutsonlaw.android.runtracker2.RunRecyclerListActivity"/>
         </activity>
         <activity
-            android:name=".RunMapActivity"
+            android:name=".RunMapPagerActivity"
             android:label="RunTracker2"
             android:parentActivityName=".RunPagerActivity">
             <meta-data

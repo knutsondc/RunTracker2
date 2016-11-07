@@ -60,6 +60,7 @@ final class Constants {
     static final int MESSENGER_RECYCLERFRAGMENT = 1;
     static final int MESSENGER_RUNMAPFRAGMENT = 2;
     static final int MESSENGER_RUNPAGERACTIVITY = 3;
+    static final int MESSENGER_RUNMAPPAGERACTIVITY = 4;
     //MapView Menu selection item in RunMapFragment
     static final int NO_UPDATES = 3;
     //Label for BackgroundLocationService to tell the UI Fragment that Location Permissions needed
@@ -105,6 +106,8 @@ final class Constants {
             "com.dknutsonlaw.android.runtracker.action.insert.run";
     static final String ACTION_LOCATION =
             "com.dknutsonlaw.android.runtracker2.ACTION_LOCATION";
+    static final String ACTION_REFRESH =
+            "com.dknutsonlaw.android.runtracker2.ACTION_REFRESH";
     static final String ACTION_UPDATE_END_ADDRESS =
             "com.dknutsonlaw.android.runtracker.action.update.end.address";
     static final String ACTION_UPDATE_START_ADDRESS =
@@ -115,10 +118,12 @@ final class Constants {
     //Bundles
     static final String ADAPTER_ITEM_COUNT =
             "com.dknutsonlaw.android.runtracker2.adapter.item.count";
+    //Label for saving adapter position of Run currently being displayed in RunPagerActivity
+    static final String ADAPTER_POSITION =
+            "com.dknutsonlaw.com.android.runtracker2.adapter.position";
     //Label used to pass ID of run to use in a new instance of RunFragment
     static final String ARG_RUN_ID = "RUN_ID";
     static final String ARG_ERROR_CODE = "error_code";
-    static final String MAP_BOUNDS = "map_bounds";
     //Labels for columns in the Location table
     static final String COLUMN_LOCATION_ALTITUDE = "altitude";
     static final String COLUMN_LOCATION_LATITUDE = "latitude";
@@ -144,11 +149,6 @@ final class Constants {
     //Label used to pass along the existing sort order from RunRecyclerListFragment to RunPagerActivity
     //and vice-versa
     static final String EXTRA_SORT_ORDER = "com.dknutsonlaw.android.runtracker2.sort_order";
-    static final String IS_BOUND = "is_bound";
-    static final String LAST_LOCATION = "last_location";
-    static final String LATLNG_LIST = "latlng_list";
-    static final String LOCATION_SERVICE = "location_service";
-    static final String LOCAL_MESSENGER = "local_messenger";
     //Label used to communicate a location parameter in an Intent or a Bundle
     static final String PARAM_LOCATION =
             "com.dknutsonlaw.android.runtracker.param.location";
@@ -166,7 +166,6 @@ final class Constants {
     //Label used to communicate results of TrackingLocationIntentService operations in response Intents
     static final String SEND_RESULT_ACTION =
             "com.dknutsonlaw.android.runtracker.send.result.action";
-    static final String STARTING_LOCATION = "starting_location";
     //Label used to store and retrieve the run sort order in Intents and Bundles
     static final String SORT_ORDER = "sort";
     //Label used to store and retrieve fragment subtitles in Intents and Bundles
@@ -174,9 +173,9 @@ final class Constants {
     //Labels for the two data tables in the database
     static final String TABLE_LOCATION = "location";
     static final String TABLE_RUN = "run";
-    static final String TRACKING = "tracking";
-    static final String TRACKING_THIS_RUN = "tracking_this_run";
+    static final String TRACKING_MODE = "tracking_mode";
     static final String UPDATED_ADDRESS_RESULT = "addressResult";
+    static final String ZOOM_LEVEL = "zoom_level";
 
     //Labels for the Uris for the two data tables used for observing and reporting changes in them to
     ///trigger appropriate actions in loaders

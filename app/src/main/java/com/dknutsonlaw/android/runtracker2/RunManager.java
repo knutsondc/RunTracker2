@@ -1,5 +1,6 @@
 package com.dknutsonlaw.android.runtracker2;
 
+import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.Context;
@@ -35,7 +36,9 @@ import java.util.concurrent.TimeUnit;
 public class RunManager {
 
     private static final String TAG = "RunManager";
+    @SuppressLint("StaticFieldLeak")
     private static Context mAppContext;
+    @SuppressLint("StaticFieldLeak")
     private static RunManager sRunManager;
     //LongSparseArray to associate location objects with Bounds for use in constructing RunMapFragment
     private static final LongSparseArray<WeakReference<LatLngBounds>> sBoundsMap = new LongSparseArray<>();
@@ -168,7 +171,8 @@ public class RunManager {
         }
         Log.i(TAG, "mStpe null? " + (mStpe == null));
         if (mStpe != null) {
-            mStpe.shutdown();
+            List<Runnable> shutdownList = mStpe.shutdownNow();
+            Log.i(TAG, "There were " + shutdownList.size() + " tasks queued when Stop was pressed.");
             Log.i(TAG, "Called .shutdown() on ScheduledThreadPoolExecutor " + mStpe);
         }
     }
@@ -262,7 +266,11 @@ public class RunManager {
     //Get the the Bounds for a particular Run
     LatLngBounds retrieveBounds(Long runId){
         WeakReference<LatLngBounds> latLngBoundsWeakReference = sBoundsMap.get(runId);
-        return latLngBoundsWeakReference.get();
+        if (latLngBoundsWeakReference != null) {
+            return latLngBoundsWeakReference.get();
+        } else {
+            return null;
+        }
     }
     //Save the SparseArray associating a Run with the locations, expressed as LatLngs, for that Run
     void savePoints(Long runId, List<LatLng> points){
@@ -271,7 +279,11 @@ public class RunManager {
     //Retrieve the list of locations, expressed as LatLngs, associated with a given Run
     List<LatLng> retrievePoints(Long runId){
         WeakReference<List<LatLng>> listWeakReference = sPointsMap.get(runId);
-        return listWeakReference.get();
+        if (listWeakReference != null) {
+            return listWeakReference.get();
+        } else {
+            return null;
+        }
     }
 
     /*Function to return the street address of the nearest building to the LatLng object
@@ -323,10 +335,7 @@ public class RunManager {
     RunDatabaseHelper.LocationCursor queryLocationsForRun(long runId) {
         return mHelper.queryLocationsForRun(runId);
     }
-    //Ask for number of locations recorded for a given Run
-    long getRunLocationCount(long runId){
-        return mHelper.getRunLocationCount(runId);
-    }
+
     //Are we tracking ANY Run? Note that getLocationPendingIntent(boolean) in this class is used by
     //the BackgroundLocationService to get the PendingIntent used to start and stop location updates.
     //If the call to getLocationPendingIntent returns null, we know that location updates have not
@@ -367,7 +376,7 @@ public class RunManager {
                 //update the database with the new ending address
                 int i = mHelper.updateEndAddress(mContext, mRun);
                 //This operation should update only one row of the Run table, so i should be 1. If
-                //not, something went wrong, so report the error back to the UI fragents
+                //not, something went wrong, so report the error back to the UI fragments
                 if (i != 1) {
                     //Send the results of the update operation to the UI using a local broadcast
                     LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(mContext);

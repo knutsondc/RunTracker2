@@ -167,6 +167,20 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="start"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="start"
+            android:paddingRight="5sp"
+            android:paddingEnd="5sp"
+            android:text="@string/run_number"
+            tools:ignore="RtlHardcoded,RtlSymmetry"/>
+        <TextView
+            android:id="@+id/runIdTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="start"
+            android:textSize="25sp"/>
     </TableRow>
     <TableRow>
         <TextView

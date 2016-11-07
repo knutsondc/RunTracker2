@@ -69,6 +69,8 @@ public class RunRecyclerListFragment extends Fragment
     private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
     //Are we bound to the BackgroundLocationService?
     private boolean mIsBound = false;
+    //Are we newly opening this fragment or are we coming back from RunPagerActivity?
+    private boolean mFirstVisit;
     //Callback invoked when binding to BackgroundLocationService is accomplished
     private final ServiceConnection mLocationServiceConnection = new ServiceConnection() {
         @Override
@@ -209,7 +211,7 @@ public class RunRecyclerListFragment extends Fragment
             ((AppCompatActivity)getActivity()).getSupportActionBar().setSubtitle(savedInstanceState.getString(Constants.SUBTITLE));
         } else {
             //When Activity is created for the first time or if the Fragment is getting created
-            //for the first time even thought the Activity isn't, get sort order and subtitle
+            //for the first time even though the Activity isn't, get sort order and subtitle
             //from SharedPreferences.
             Log.i(TAG, "Getting Sort Order from SharedPreferences in onCreate");
             mSortOrder = mRunManager.mPrefs.getInt(Constants.SORT_ORDER, Constants.SORT_BY_DATE_DESC);
@@ -313,6 +315,9 @@ public class RunRecyclerListFragment extends Fragment
             TrackingLocationIntentService.startActionInsertRun(getActivity(), new Run());
             //mRunManager.startNewRun();
         });
+        //Flag first visit so we don't check for which Run we were on when we pressed the Back button
+        //in RunPagerAdapter
+        mFirstVisit = true;
         refreshUI();
         return v;
     }
@@ -427,6 +432,19 @@ public class RunRecyclerListFragment extends Fragment
                 "Stub Value");
         changeSortOrder(mSortOrder);
         refreshUI();
+        //If we're coming back here from the RunPagerActivity, check which Run was displayed there
+        //and scroll the RecyclerList to place that Run at the top of the display
+        if (!mFirstVisit){
+            //First fetch the position the displayed Run had in the RunPager - all positions in
+            //the RunPager map directly to positions in the adapter and the RecyclerView
+            int adapterPosition = mRunManager.mPrefs.getInt(Constants.ADAPTER_POSITION, 0);
+            LinearLayoutManager lm = (LinearLayoutManager)mRunListRecyclerView.getLayoutManager();
+            //Scroll RecyclerView so the designated Run is displayed 20 pixels below the top of the
+            //display
+            lm.scrollToPositionWithOffset(adapterPosition, 20);
+        }
+        //We will now have displayed the RecyclerView at least once, so clear the FirstVisit flag.
+        mFirstVisit = false;
         Log.i(TAG, "onResume called - mSortOrder is " + mSortOrder);
     }
 
@@ -556,7 +574,7 @@ public class RunRecyclerListFragment extends Fragment
             //If this RunHolder hasn't been selected for deletion in an ActionMode, start RunPagerActivity
             //specifying its mRun as the one to be displayed when the ViewPager first opens.
             if (!mMultiSelector.tapSelection(this)){
-                Intent i = RunPagerActivity.newIntent(getActivity(), mSortOrder, mRun.getId());
+                Intent i = RunPagerActivity.newIntent(getActivity(), RunRecyclerListFragment.this.mSortOrder, mRun.getId());
                 startActivity(i);
             }
         }

@@ -28,51 +28,51 @@
     <string name="no_runs_recorded">No Runs Recorded</string>
     <plurals name="viewpager_subtitle_date_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Sorted by Date, Ascending Order</item>
+        <item quantity="other">Run %1$d of %2$d, Date, Ascending</item>
     </plurals>
     <plurals name="recycler_subtitle_date_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs Sorted by Date, Ascending Order</item>
+        <item quantity="other">%1$d Runs, Ascending by Date</item>
     </plurals>
     <plurals name="viewpager_subtitle_date_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Sorted by Date, Descending Order</item>
+        <item quantity="other">Run %1$d of %2$d, Descending by Date</item>
     </plurals>
     <plurals name="recycler_subtitle_date_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs Sorted by Date, Descending Order</item>
+        <item quantity="other">%1$d Runs, Descending by Date</item>
     </plurals>
     <plurals name="viewpager_subtitle_distance_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Sorted by Distance, Ascending Order</item>
+        <item quantity="other">Run %1$d of %2$d, Ascending by Distance</item>
     </plurals>
     <plurals name="recycler_subtitle_distance_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs Sorted by Distance, Ascending Order</item>
+        <item quantity="other">%1$d Runs, Ascending by Distance</item>
     </plurals>
     <plurals name="viewpager_subtitle_distance_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Sorted by Distance, Descending Order</item>
+        <item quantity="other">Run %1$d of %2$d, Descending by Distance</item>
     </plurals>
     <plurals name="recycler_subtitle_distance_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs Sorted by Distance, Descending Order</item>
+        <item quantity="other">%1$d Runs, Descending by Distance</item>
     </plurals>
     <plurals name="viewpager_subtitle_duration_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Sorted by Duration, Ascending Order</item>
+        <item quantity="other">Run %1$d of %2$d, Ascending by Duration</item>
     </plurals>
     <plurals name="recycler_subtitle_duration_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs Sorted by Duration, Ascending Order</item>
+        <item quantity="other">%1$d Runs, Ascending by Duration</item>
     </plurals>
     <plurals name="viewpager_subtitle_duration_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Sorted by Duration, Descending Order</item>
+        <item quantity="other">Run %1$d of %2$d, Descending by Duration</item>
     </plurals>
     <plurals name="recycler_subtitle_duration_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs Sorted by Duration, Descending Order</item>
+        <item quantity="other">%1$d Runs, Descending by Duration</item>
     </plurals>
     <string name="goof_up">You must have goofed up somewhere!</string>
     <string name="no_runs">No runs are recorded. Get out and get moving! Press the button below or
@@ -80,9 +80,11 @@
     <string name="notification_title">Run Monitor</string>
     <string name="notification_text">Your run is being monitored in the background</string>
     <string name="map">Map</string>
+    <string name="run_number">Run #</string>
+    <string name="specified_run_number">Run #%1$d</string>
     <string name="run_start">Run Start</string>
     <string name="run_finish">Run Finish</string>
-    <string name="delete_run">Delete Runs</string>
+    <string name="delete_run">Delete Run</string>
     <string name="run_pager_delete_run">Delete Run</string>
     <string name="distance_covered">Distance covered:</string>
     <string name="miles_travelled_format">%s miles</string>

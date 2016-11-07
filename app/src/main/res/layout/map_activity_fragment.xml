@@ -10,43 +10,47 @@
         can get replaced by a <merge> tag! These TextViews get instantiated in RunMapFragment.java
         because their content is derived from code there, but their xml is here so that their Views
         will be laid "on top" of the MapFragment itself-->
-    <FrameLayout
-             android:id="@+id/fragmentContainer"
+    <com.google.android.gms.maps.MapView
+             android:id="@+id/mapViewContainer"
              android:layout_width="match_parent"
-             android:layout_height="match_parent"
-             />
+             android:layout_height="match_parent"/>
 
-             <LinearLayout
-                 android:layout_width="wrap_content"
-                 android:layout_height="wrap_content"
-                 android:orientation="vertical"
-                 android:layout_gravity="bottom|start"
-                 android:layout_marginBottom="20dp"
-                 android:layout_marginStart="20dp"
-                 android:layout_marginLeft="20dp"
-                 tools:ignore="RtlHardcoded">
-                 <TextView
-                     android:id="@+id/startDateTextView"
-                     android:layout_width="wrap_content"
-                     android:layout_height="wrap_content"
-                     android:layout_marginBottom="5dp"
-                     tools:text="Starting Date Goes Here."/>
-                 <TextView
-                     android:id="@+id/endDateTextView"
-                     android:layout_width="wrap_content"
-                     android:layout_height="wrap_content"
-                     android:layout_marginBottom="5dp"
-                     tools:text="Ending Date Goes Here."/>
-                 <TextView
-                     android:id="@+id/durationTextView"
-                     android:layout_width="wrap_content"
-                     android:layout_height="wrap_content"
-                     android:layout_marginBottom="5dp"
-                     tools:text="Duration Goes Here."/>
-                 <TextView
-                     android:id="@+id/distanceTextView"
-                     android:layout_width="wrap_content"
-                     android:layout_height="wrap_content"
-                     tools:text="Distance Goes Here."/>
-             </LinearLayout>
+    <LinearLayout
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:orientation="vertical"
+         android:layout_gravity="bottom|start"
+         android:layout_marginBottom="20dp"
+         android:layout_marginStart="20dp"
+         android:layout_marginLeft="20dp"
+         tools:ignore="RtlHardcoded">
+        <TextView
+            android:id="@+id/runIdTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"/>
+         <TextView
+             android:id="@+id/startDateTextView"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginBottom="5dp"
+             tools:text="Starting Date Goes Here."/>
+         <TextView
+             android:id="@+id/endDateTextView"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginBottom="5dp"
+             tools:text="Ending Date Goes Here."/>
+         <TextView
+             android:id="@+id/durationTextView"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_marginBottom="5dp"
+             tools:text="Duration Goes Here."/>
+         <TextView
+             android:id="@+id/distanceTextView"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             tools:text="Distance Goes Here."/>
+    </LinearLayout>
 </FrameLayout>
