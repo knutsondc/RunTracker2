@@ -23,6 +23,7 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -94,11 +95,15 @@ public class RunManager {
     //properly initialized in time so the first call won't fail and suppress ALL subsequent
     //calls for the scheduled task.
     void startUpdatingEndAddress(Context context){
+        Log.i(TAG, "Reached startUpdatingEndAddress() for Run " + mCurrentRunId);
+        if (!isTrackingRun(getRun(mCurrentRunId)))
+            return;
         try {
-            mStpe = new ScheduledThreadPoolExecutor(3, /* mCrp */ new ThreadPoolExecutor.CallerRunsPolicy());
-            Log.i(TAG, "Created new ScheduledThreadPoolExecutor" + mStpe);
+            //mStpe = new ScheduledThreadPoolExecutor(3, /* mCrp */ new ThreadPoolExecutor.CallerRunsPolicy());
+            mStpe = new ScheduledThreadPoolExecutor(3);
+            Log.i(TAG, "Created new ScheduledThreadPoolExecutor" + mStpe + " for Run " + mCurrentRunId);
             mScheduledFuture = mStpe.scheduleAtFixedRate(new updateEndAddressTask(context, getRun(mCurrentRunId)), 20, 10, TimeUnit.SECONDS);
-            Log.i(TAG, "Created ScheduledFuture " + mScheduledFuture);
+            Log.i(TAG, "Created ScheduledFuture " + mScheduledFuture +  " for Run " + mCurrentRunId);
         } catch (RejectedExecutionException rJee){
             Log.i(TAG, "Caught rejected execution exception");
             Log.i(TAG, "Cause: " + rJee.getCause());
@@ -166,14 +171,14 @@ public class RunManager {
         //Stop the recurring task that does updates of the Ending Address.
         Log.i(TAG, "mScheduledFuture null? " + (mScheduledFuture == null));
         if (mScheduledFuture != null) {
-            mScheduledFuture.cancel(false);
-            Log.i(TAG, "Called .cancel() on ScheduledFuture " + mScheduledFuture);
+            mScheduledFuture.cancel(true);
+            Log.i(TAG, "Called .cancel(true) on ScheduledFuture " + mScheduledFuture);
         }
         Log.i(TAG, "mStpe null? " + (mStpe == null));
         if (mStpe != null) {
             List<Runnable> shutdownList = mStpe.shutdownNow();
             Log.i(TAG, "There were " + shutdownList.size() + " tasks queued when Stop was pressed.");
-            Log.i(TAG, "Called .shutdown() on ScheduledThreadPoolExecutor " + mStpe);
+            Log.i(TAG, "Called .shutdownNow() on ScheduledThreadPoolExecutor " + mStpe);
         }
     }
 
@@ -347,6 +352,37 @@ public class RunManager {
     //Are we tracking the specified Run?
     boolean isTrackingRun(Run run) {
         return run != null && run.getId() == mCurrentRunId;
+    }
+
+    protected String formatDistance(double meters){
+        boolean system = mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL);
+        String result;
+        if (system == Constants.METRIC){
+            if (meters < 1000f){
+                result = String.format(Locale.US, "%.0f", meters) + " meters";
+            } else {
+                result = String.format(Locale.US, "%.2f", (meters/1000)) + " kilometers";
+            }
+        } else {
+            double feet = (meters * Constants.METERS_TO_FEET);
+            if (feet < 5280.0f){
+                result = String.format(Locale.US, "%.0f", feet) + " feet";
+            } else {
+                result = String.format(Locale.US, "%.2f", (meters * Constants.METERS_TO_MILES)) + " miles";
+            }
+        }
+        return result;
+    }
+
+    protected String formatAltitude(double meters){
+        boolean system = mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL);
+        String result;
+        if (system == Constants.METRIC){
+            result = String.format(Locale.US, "%.0f", meters) + " meters";
+        } else {
+            result = String.format(Locale.US, "%.0f", meters * Constants.METERS_TO_FEET) + " feet";
+        }
+        return result;
     }
 
     //Set up task to update End Address field that can be submitted to the ScheduledThreadPoolExecutor.

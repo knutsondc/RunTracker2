@@ -194,6 +194,7 @@ public class RunFragment extends Fragment {
         //Set up Broadcast Receiver to get reports of results from TrackingLocationIntentService
         //First set up the IntentFilter for the Receiver so it will receive the Intents intended for it
         mResultsFilter = new IntentFilter(Constants.SEND_RESULT_ACTION);
+        mResultsFilter.addAction(Constants.ACTION_REFRESH);
         //Now instantiate the Broadcast Receiver
         mResultsReceiver = new ResultsReceiver();
     }
@@ -247,48 +248,57 @@ public class RunFragment extends Fragment {
         mRunIdTextView = (TextView) v.findViewById(R.id.runIdTextView);
 
         mStartButton = (Button) v.findViewById(R.id.run_startButton);
-        mStartButton.setOnClickListener(v1 -> {
-            Log.i(TAG, " Pressed StartButton. Run Id is " + mRun.getId());
-            mRunManager.startTrackingRun(getActivity(), mRunId);
-            Message msg = Message.obtain(null, Constants.MESSAGE_START_LOCATION_UPDATES);
-            msg.replyTo = new Messenger(new IncomingHandler(RunFragment.this));
-            try {
-                mLocationService.send(msg);
-            } catch (RemoteException e){
-                Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_START_LOCATION_UPDATES");
+        mStartButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.i(TAG, " Pressed StartButton. Run Id is " + mRun.getId());
+                mRunManager.startTrackingRun(getActivity(), mRunId);
+                Message msg = Message.obtain(null, Constants.MESSAGE_START_LOCATION_UPDATES);
+                msg.replyTo = new Messenger(new IncomingHandler(RunFragment.this));
+                try {
+                    mLocationService.send(msg);
+                } catch (RemoteException e){
+                    Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_START_LOCATION_UPDATES");
+                }
+                updateUI();
             }
-            updateUI();
         });
         mStopButton = (Button) v.findViewById(R.id.run_stopButton);
-        mStopButton.setOnClickListener(v12 -> {
-            Log.i(TAG, "Stop Button Pressed. Run is " + mRunId);
-            //Do housekeeping for stopping tracking a run.
-            mEndAddressUpdating = false;
-            mRunManager.stopRun();
-            //Tell the BackgroundLocationService to stop location updates
-            try {
-                mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
-            } catch (RemoteException e){
-                Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_STOP_LOCATION_UPDATES");
+        mStopButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.i(TAG, "Stop Button Pressed. Run is " + mRunId);
+                //Do housekeeping for stopping tracking a run.
+                mEndAddressUpdating = false;
+                mRunManager.stopRun();
+                //Tell the BackgroundLocationService to stop location updates
+                try {
+                    mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
+                } catch (RemoteException e){
+                    Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_STOP_LOCATION_UPDATES");
+                }
+                if (mRun.getEndAddress() != null) {
+                    TrackingLocationIntentService.startActionUpdateEndAddress(getActivity(),
+                            mRun, mRunManager.getLastLocationForRun(mRunId));
+                }
+                //We've stopped tracking the Run, so refresh the menu to enable "New Run" item
+                updateUI();
             }
-            if (mRun.getEndAddress() != null) {
-                TrackingLocationIntentService.startActionUpdateEndAddress(getActivity(),
-                        mRun, mRunManager.getLastLocationForRun(mRunId));
-            }
-            //We've stopped tracking the Run, so refresh the menu to enable "New Run" item
-            updateUI();
         });
 
 
         mMapButton = (Button) v.findViewById(R.id.run_mapButton);
-        mMapButton.setOnClickListener(v13 -> {
-            //Create new instance of RunMapPagerActivity and pass it a reference to this run and the
-            //desired sort order.
-            //Intent i = new Intent(getActivity(), RunMapPagerActivity.class);
-            //i.putExtra(Constants.EXTRA_RUN_ID, mRun.getId());
-            Intent i = RunMapPagerActivity.newIntent(getActivity(), Constants.KEEP_EXISTING_SORT, mRunId);
-            Log.i(TAG, "Started RunMapPagerActivity for Run " + mRunId);
-            startActivity(i);
+        mMapButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //Create new instance of RunMapPagerActivity and pass it a reference to this run and the
+                //desired sort order.
+                //Intent i = new Intent(getActivity(), RunMapPagerActivity.class);
+                //i.putExtra(Constants.EXTRA_RUN_ID, mRun.getId());
+                Intent i = RunMapPagerActivity.newIntent(getActivity(), Constants.KEEP_EXISTING_SORT, mRunId);
+                Log.i(TAG, "Started RunMapPagerActivity for Run " + mRunId);
+                startActivity(i);
+            }
         });
         //If this isn't a new run, we should immediately populate the textviews.
         //Start with information concerning the starting point.
@@ -300,7 +310,8 @@ public class RunFragment extends Fragment {
             mStartingLatitudeTextView.setText(Location.convert(mStartLocation.getLatitude(), Location.FORMAT_SECONDS));
             mStartingLongitudeTextView.setText(Location.convert(mStartLocation.getLongitude(), Location.FORMAT_SECONDS));
             //Report altitude values in feet
-            mStartingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", mStartLocation.getAltitude() * Constants.METERS_TO_FEET)));
+            //mStartingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", mStartLocation.getAltitude() * Constants.METERS_TO_FEET)));
+            mStartingAltitudeTextView.setText(mRunManager.formatAltitude(mStartLocation.getAltitude()));
             //Load what this Run has in the database for its Starting Address
             mStartingAddressTextView.setText(mRun.getStartAddress());
             //If what we're showing for the Starting Address is bad, try to get a good address from the
@@ -321,7 +332,8 @@ public class RunFragment extends Fragment {
             mEndedTextView.setText(Constants.DATE_FORMAT.format(mLastLocation.getTime()));
             mEndingLatitudeTextView.setText(Location.convert(mLastLocation.getLatitude(), Location.FORMAT_SECONDS));
             mEndingLongitudeTextView.setText(Location.convert(mLastLocation.getLongitude(), Location.FORMAT_SECONDS));
-            mEndingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", mLastLocation.getAltitude() * Constants.METERS_TO_FEET)));
+            //mEndingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", mLastLocation.getAltitude() * Constants.METERS_TO_FEET)));
+            mEndingAltitudeTextView.setText(mRunManager.formatAltitude(mLastLocation.getAltitude()));
             mEndingAddressTextView.setText(mRun.getEndAddress());
             //If our Ending Address loaded from the database is bad, get a new value from the geocoder and store it
             //to the database,then display it
@@ -329,8 +341,9 @@ public class RunFragment extends Fragment {
                 TrackingLocationIntentService.startActionUpdateEndAddress(getActivity(), mRun, mLastLocation);
             }
             mDurationTextView.setText(Run.formatDuration((int) (mRun.getDuration() / 1000)));
-            double miles = mRun.getDistance() * Constants.METERS_TO_MILES;
-            mDistanceCoveredTextView.setText(getString(R.string.miles_travelled_format, String.format(Locale.US, "%.2f", miles)));
+            //double miles = mRun.getDistance() * Constants.METERS_TO_MILES;
+            mDistanceCoveredTextView.setText(mRunManager.formatDistance(mRun.getDistance()));
+            //mDistanceCoveredTextView.setText(getString(R.string.miles_travelled_format, String.format(Locale.US, "%.2f", miles)));
         }
         //If we have at least one location in addition to the mStartLocation, we can make a map, so
         //enable the map button
@@ -414,93 +427,97 @@ public class RunFragment extends Fragment {
                     mOptionsMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(true);
                 }
             }
-            //If we're not tracking this Run, no need to check for updated data.
-            if (mIsTrackingThisRun) {
 
-                //If we haven't yet gotten a starting location for this run, try to get one. Once we've
-                //gotten a starting location, no need to ask for it again.
-                if (mRun != null && mStartLocation == null) {
-                    Log.i(TAG, "For Run " + mRunId + "at beginning of updateUI() section re mStartLocation mStartLocation is null");
-                    mStartLocation = mRunManager.getStartLocationForRun(mRunId);
-                    if (mStartLocation != null) {
-                        //Now that we've gotten a Starting Location, record and display information about it.
-                        //Change the start date to the timestamp of the first Location object received.
-                        mRun.setStartDate(new Date(mStartLocation.getTime()));
-                        //Now write the new start date to the database
-                        TrackingLocationIntentService.startActionUpdateStartDate(mAppContext, mRun);
-                        //Finally, display the new start date
-                        mStartedTextView.setText(Constants.DATE_FORMAT.format(mRun.getStartDate()));
-                        mStartingLatitudeTextView.setText(Location.convert(mStartLocation.getLatitude(), Location.FORMAT_SECONDS));
-                        mStartingLongitudeTextView.setText(Location.convert(mStartLocation.getLongitude(), Location.FORMAT_SECONDS));
-                        mStartingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", (mStartLocation.getAltitude() * Constants.METERS_TO_FEET))));
-                        //We won't have a Starting Address yet, so ask for one and record it.
-                        TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, mRun, mStartLocation);
-                        mStartingAddressTextView.setText(mRun.getStartAddress());
-                        //If we get here, mBounds should be null, but better to check. Put the starting location into the LatLngBounds
-                        //Builder and later, when at least one additional location has also been included, build mBounds.
-                        if (mBounds == null) {
-                            mBuilder.include(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
-                        }
-                        //If we get here, mPoints should have zero elements, but better to check, then add the
-                        //mStartLocation as the first element.
-                        if (mPoints.size() == 0) {
-                            mPoints.add(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
-                        }
-
-                    } else {
-                        Log.i(TAG, "getStartLocationForRun returned null for Run " + mRun.getId());
-                    }
-                }
-
-                //If we have a starting location but don't yet have a starting address, get one and update
-                //the Run Table with a new starting date equal to the time of the first location and with
-                //the new starting address. Once we have a starting address,no need to reload any data
-                //concerning the Start Location - it won't change as the Run goes on..
-                if (mRun != null && mStartLocation != null) {
-                    if (mRunManager.addressBad(getActivity(), mStartingAddressTextView.getText().toString())) {
-                        Log.i(TAG, "mRun.getStartAddress() for Run " + mRun.getId() + " is bad; calling updateRunStartAddress().");
-                        //Get the starting address from the geocoder and record that in the Run Table
-                        TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, mRun, mStartLocation);
-                        mStartingAddressTextView.setText(mRun.getStartAddress());
-                        Log.i(TAG, "After getting bad Start Address for Run " + mRunId + " and updating, Start Address is " + mRun.getStartAddress());
-                        //}
-                    }
-                }
-                //mLastLocation gets set by the LastLocationLoader
-                //When the Run is returned from the loader, it will have updated Duration and Distance
-                //values. If we have a run and a last location for it, we will have duration and
-                //distance values for it in the Run Table, so retrieve and display them. This has to
-                //be done every time a new location is recorded and, accordingly, the UI updates.
-                if (mRun != null && mLastLocation != null && mLastLocation != mStartLocation) {
-                    if (!mEndAddressUpdating) {
-                        mRunManager.startUpdatingEndAddress(mAppContext);
-                        mEndAddressUpdating = true;
-                    }
-                    Log.i(TAG, "In updateUI() section dealing with mLastLocation, mRunId is " + mRunId + " and mLastLocation is " + mLastLocation.toString());
-                    mDurationTextView.setText(Run.formatDuration((int) (mRun.getDuration() / 1000)));
-                    //Convert distance travelled from meters to miles and display to two decimal places
-                    double miles = mRun.getDistance() * Constants.METERS_TO_MILES;
-                    mDistanceCoveredTextView.setText(getString(R.string.miles_travelled_format, String.format(Locale.US, "%.2f", miles)));
-                    mEndingLatitudeTextView.setText(Location.convert(mLastLocation.getLatitude(), Location.FORMAT_SECONDS));
-                    mEndingLongitudeTextView.setText(Location.convert(mLastLocation.getLongitude(), Location.FORMAT_SECONDS));
-                    mEndingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", (mLastLocation.getAltitude() * Constants.METERS_TO_FEET))));
-                    mEndedTextView.setText(Constants.DATE_FORMAT.format(mLastLocation.getTime()));
-                    mEndingAddressTextView.setText(mRun.getEndAddress());
-                    Log.i(TAG, "In updateUI() Ending Address for Run " + mRun.getId() + " is " + mEndingAddressTextView.getText());
-                    //We don't check for bad Ending Addresses because the Ending Address gets updated every five seconds
-                    //while the Run is being tracked.
-                    //If mBounds hasn't been initialized yet, add this location to the Builder and create
-                    //mBounds. If mBounds has been created, simply add this point to it.
+            //If we haven't yet gotten a starting location for this run, try to get one. Once we've
+            //gotten a starting location, no need to ask for it again.
+            if (mRun != null && mStartLocation == null) {
+                Log.i(TAG, "For Run " + mRunId + "at beginning of updateUI() section re mStartLocation mStartLocation is null");
+                mStartLocation = mRunManager.getStartLocationForRun(mRunId);
+                if (mStartLocation != null) {
+                    //Now that we've gotten a Starting Location, record and display information about it.
+                    //Change the start date to the timestamp of the first Location object received.
+                    mRun.setStartDate(new Date(mStartLocation.getTime()));
+                    //Now write the new start date to the database
+                    TrackingLocationIntentService.startActionUpdateStartDate(mAppContext, mRun);
+                    //Finally, display the new start date
+                    mStartedTextView.setText(Constants.DATE_FORMAT.format(mRun.getStartDate()));
+                    mStartingLatitudeTextView.setText(Location.convert(mStartLocation.getLatitude(), Location.FORMAT_SECONDS));
+                    mStartingLongitudeTextView.setText(Location.convert(mStartLocation.getLongitude(), Location.FORMAT_SECONDS));
+                    mStartingAltitudeTextView.setText(mRunManager.formatAltitude(mStartLocation.getAltitude()));
+                    //mStartingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", (mStartLocation.getAltitude() * Constants.METERS_TO_FEET))));
+                    //We won't have a Starting Address yet, so ask for one and record it.
+                    TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, mRun, mStartLocation);
+                    mStartingAddressTextView.setText(mRun.getStartAddress());
+                    //If we get here, mBounds should be null, but better to check. Put the starting location into the LatLngBounds
+                    //Builder and later, when at least one additional location has also been included, build mBounds.
                     if (mBounds == null) {
-                        mBuilder.include(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                        mBounds = mBuilder.build();
-                    } else {
-                        mBounds.including(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                        mBuilder.include(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
                     }
-                    mPoints.add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                }
+                    //If we get here, mPoints should have zero elements, but better to check, then add the
+                    //mStartLocation as the first element.
+                    if (mPoints.size() == 0) {
+                        mPoints.add(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
+                    }
 
+                } else {
+                    Log.i(TAG, "getStartLocationForRun returned null for Run " + mRun.getId());
+                }
             }
+
+            //If we have a starting location but don't yet have a starting address, get one and update
+            //the Run Table with a new starting date equal to the time of the first location and with
+            //the new starting address. Once we have a starting address,no need to reload any data
+            //concerning the Start Location - it won't change as the Run goes on..
+            if (mRun != null && mStartLocation != null) {
+                mStartingAltitudeTextView.setText(mRunManager.formatAltitude(mStartLocation.getAltitude()));
+                if (mRunManager.addressBad(getActivity(), mStartingAddressTextView.getText().toString())) {
+                    Log.i(TAG, "mRun.getStartAddress() for Run " + mRun.getId() + " is bad; calling updateRunStartAddress().");
+                    //Get the starting address from the geocoder and record that in the Run Table
+                    TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, mRun, mStartLocation);
+                    mStartingAddressTextView.setText(mRun.getStartAddress());
+                    Log.i(TAG, "After getting bad Start Address for Run " + mRunId + " and updating, Start Address is " + mRun.getStartAddress());
+                    //}
+                }
+            }
+            //mLastLocation gets set by the LastLocationLoader
+            //When the Run is returned from the loader, it will have updated Duration and Distance
+            //values. If we have a run and a last location for it, we will have duration and
+            //distance values for it in the Run Table, so retrieve and display them. This has to
+            //be done every time a new location is recorded and, accordingly, the UI updates.
+            if (mRun != null && mLastLocation != null && mLastLocation != mStartLocation) {
+                //If we're tracking this Run and haven't started updating the ending address, start
+                //doing so
+                if (!mEndAddressUpdating && mRunManager.isTrackingRun(mRun)) {
+                    mRunManager.startUpdatingEndAddress(getActivity());
+                    mEndAddressUpdating = true;
+                    Log.i(TAG, "Called mRunManager.startUpdatingEndAddress(getActivity()) for Run " + mRunId);
+                }
+                Log.i(TAG, "In updateUI() section dealing with mLastLocation, mRunId is " + mRunId + " and mLastLocation is " + mLastLocation.toString());
+                mDurationTextView.setText(Run.formatDuration((int) (mRun.getDuration() / 1000)));
+                //Convert distance travelled from meters to miles and display to two decimal places
+                //double miles = mRun.getDistance() * Constants.METERS_TO_MILES;
+                //mDistanceCoveredTextView.setText(getString(R.string.miles_travelled_format, String.format(Locale.US, "%.2f", miles)));
+                mDistanceCoveredTextView.setText(mRunManager.formatDistance(mRun.getDistance()));
+                mEndingLatitudeTextView.setText(Location.convert(mLastLocation.getLatitude(), Location.FORMAT_SECONDS));
+                mEndingLongitudeTextView.setText(Location.convert(mLastLocation.getLongitude(), Location.FORMAT_SECONDS));
+                //mEndingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", (mLastLocation.getAltitude() * Constants.METERS_TO_FEET))));
+                mEndingAltitudeTextView.setText(mRunManager.formatAltitude(mLastLocation.getAltitude()));
+                mEndedTextView.setText(Constants.DATE_FORMAT.format(mLastLocation.getTime()));
+                mEndingAddressTextView.setText(mRun.getEndAddress());
+                Log.i(TAG, "In updateUI() Ending Address for Run " + mRun.getId() + " is " + mEndingAddressTextView.getText());
+                //We don't check for bad Ending Addresses because the Ending Address gets updated every five seconds
+                //while the Run is being tracked.
+                //If mBounds hasn't been initialized yet, add this location to the Builder and create
+                //mBounds. If mBounds has been created, simply add this point to it.
+                if (mBounds == null) {
+                    mBuilder.include(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                    mBounds = mBuilder.build();
+                } else {
+                    mBounds.including(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                }
+                mPoints.add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+            }
+
         }
         //Save mBounds and mPoints to singletons created by RunManager so they will be available to
         //the RunMapFragment for this run
@@ -765,11 +782,16 @@ public class RunFragment extends Fragment {
         //Called when the ResultsReceiver gets an Intent it's registered for -
         @Override
         public void onReceive(Context context, Intent intent) {
+
+            String action = intent.getAction();
+            if (action.equals(Constants.ACTION_REFRESH)) {
+                Log.i(TAG, "Received refresh broadcast - calling updateUI().");
+                updateUI();
+            }
             if (!mIsTrackingThisRun){
                 Log.i(TAG, "Not tracking Run " + mRunId + " - ignoring broadcast");
                 return;
             }
-            String action = intent.getAction();
             //This should always be SEND_ACTION_RESULT, but check for it anyway
             Log.i(TAG, "onReceive() getAction() is: " + action + " for Run " + mRunId);
             if (action.equals(Constants.SEND_RESULT_ACTION)) {

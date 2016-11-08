@@ -34,6 +34,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -164,7 +165,9 @@ public class RunRecyclerListFragment extends Fragment
                     //deleteList.get(i) + 1 works fine?
                     Log.i(TAG, "Notify adapter that item in position #" + (deleteList.get(i)) + " has been removed.");
                     mAdapter.notifyItemRemoved(deleteList.get(i));
-                    mRunListRecyclerView.removeViewAt(deleteList.get(i));
+                    if (mRunListRecyclerView.getChildAt(deleteList.get(i)) != null) {
+                        mRunListRecyclerView.removeViewAt(deleteList.get(i));
+                    }
                     mAdapter.notifyItemRangeChanged(deleteList.get(i), mAdapter.getItemCount());
                     Log.i(TAG, "Notified Adapter that Items in range " + deleteList.get(i) + " to " + mAdapter.getItemCount() + " changed.");
                     //update the running total of Runs and Locations deleted
@@ -364,9 +367,26 @@ public class RunRecyclerListFragment extends Fragment
         mOptionsMenu = menu;
     }
 
+    @Override
+    public void onPrepareOptionsMenu(Menu menu){
+        MenuItem item = mOptionsMenu.findItem(R.id.recycler_menu_item_units);
+        if (mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)){
+            item.setTitle(R.string.imperial);
+        } else {
+            item.setTitle(R.string.metric);
+        }
+    }
+
     public boolean onOptionsItemSelected(MenuItem item) {
 
         switch (item.getItemId()) {
+            case R.id.recycler_menu_item_units:
+                //Changed shared prefs value for measurement system and force adapter to redraw all
+                //items in the RecyclerView
+                mRunManager.mPrefs.edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
+                        !mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
+                mAdapter.notifyDataSetChanged();
+                return true;
             case R.id.menu_item_new_run:
                 //Now that we're using an auto-updating loader for the list of runs, we don't need
                 //to call startActivityForResult() - the loader and content observer system take
@@ -558,9 +578,9 @@ public class RunRecyclerListFragment extends Fragment
             String startDateText = Constants.DATE_FORMAT.format(mRun.getStartDate());
             mStartDateTextView.setText(startDateText);
             mStartAddressTextView.setText(mRun.getStartAddress());
-            double miles = mRun.getDistance() * Constants.METERS_TO_MILES;
-            String distanceText = r.getString(R.string.list_distance_text, miles);
-            mDistanceTextView.setText(distanceText);
+            //double miles = mRun.getDistance() * Constants.METERS_TO_MILES;
+            //String distanceText = r.getString(R.string.list_distance_text, miles);
+            mDistanceTextView.setText(r.getString(R.string.list_distance_text, mRunManager.formatDistance(mRun.getDistance())));
             String durationText = Run.formatDuration((int)mRun.getDuration()/1000);
             mDurationTextView.setText(r.getString(R.string.list_duration_text, durationText));
             mEndAddressTextView.setText(mRun.getEndAddress());

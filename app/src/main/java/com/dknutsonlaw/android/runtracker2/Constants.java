@@ -13,11 +13,14 @@ import java.util.Locale;
 final class Constants {
     static final SimpleDateFormat DATE_FORMAT =
             new SimpleDateFormat("E, MMM dd, yyyy, hh:mm:ss a z", Locale.US);
-
+    //Value for use of Imperial system for distance and altitute measurements
+    static final boolean IMPERIAL = true;
+    //Value for use of Metric system for distance and altitude measurements
+    static final boolean METRIC = false;
     //Conversion factors to convert meters (the unit by which the Android Location API calculates
     //distances) into the units we wish to display to the user
-    static final double METERS_TO_FEET = 3.28084;
-    static final double METERS_TO_MILES = .0006214;
+    static final double METERS_TO_FEET = 3.28083989501;
+    static final double METERS_TO_MILES = .000621371192237;
 
     //Identifies member of array of ints reporting results of attempt to insert a location signifying
     //whether the location was too far from last previous location to be considered a continuation of
@@ -108,6 +111,8 @@ final class Constants {
             "com.dknutsonlaw.android.runtracker2.ACTION_LOCATION";
     static final String ACTION_REFRESH =
             "com.dknutsonlaw.android.runtracker2.ACTION_REFRESH";
+    static final String ACTION_REFRESH_MAPS =
+            "com.dknutsonlaw.android.runtracker2.action.refresh.maps";
     static final String ACTION_UPDATE_END_ADDRESS =
             "com.dknutsonlaw.android.runtracker.action.update.end.address";
     static final String ACTION_UPDATE_START_ADDRESS =
@@ -149,6 +154,9 @@ final class Constants {
     //Label used to pass along the existing sort order from RunRecyclerListFragment to RunPagerActivity
     //and vice-versa
     static final String EXTRA_SORT_ORDER = "com.dknutsonlaw.android.runtracker2.sort_order";
+    //Label for distance/altitude measurement system
+    static final String MEASUREMENT_SYSTEM =
+            "com.dknutsonlaw.android.runtrakcer2.measurement_system";
     //Label used to communicate a location parameter in an Intent or a Bundle
     static final String PARAM_LOCATION =
             "com.dknutsonlaw.android.runtracker.param.location";

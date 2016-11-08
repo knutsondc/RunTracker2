@@ -267,12 +267,25 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
         super.onCreateOptionsMenu(menu);
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.run_map_pager_options, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu){
+        if (mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)){
+            menu.findItem(R.id.run_map_pager_menu_item_units).setTitle(R.string.imperial);
+        } else {
+            menu.findItem(R.id.run_map_pager_menu_item_units).setTitle(R.string.metric);
+        }
         //If we have fewer than two Runs, there's nothing to sort, so disable sort menu
         if (mAdapter.getCount() < 2){
             menu.findItem(R.id.run_map_pager_menu_item_sort_runs).setEnabled(false);
         } else {
             menu.findItem(R.id.run_map_pager_menu_item_sort_runs).setEnabled(true);
         }
+        //If we're tracking a Run, don't allow creation of a new Run - trying to track more than one
+        //Run will crash the app!
+        menu.findItem(R.id.run_map_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun());
         return true;
     }
 
@@ -284,6 +297,24 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
         //subtitle to match
         switch(item.getItemId()){
 
+            case R.id.run_map_pager_menu_item_units:
+                mRunManager.mPrefs.edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
+                        !mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
+                Intent refreshIntent = new Intent(Constants.ACTION_REFRESH_MAPS);
+                boolean receiver = LocalBroadcastManager.getInstance(this).sendBroadcast(refreshIntent);
+                if(!receiver){
+                    Log.i(TAG, "No receiver for RunFragment REFRESH broadcast!");
+                }
+                return true;
+
+            case R.id.run_map_pager_menu_item_new_run:
+                //Now that we're using an auto-updating loader for the list of runs, we don't need
+                //to call startActivityForResult() - the loader and content observer system take
+                //care of updating the list to reflect the presence of a new Run. Note that we
+                //don't have to call restartLoader() on the RUN_LIST_LOADER because the query on
+                //the database hasn't changed.
+                TrackingLocationIntentService.startActionInsertRun(this, new Run());
+                return true;
             case R.id.menu_item_map_pager_delete_run:
                 Log.i(TAG, "In Delete Run Menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
                 //First, stop location updates if the Run we're deleting is currently being tracked
@@ -460,14 +491,17 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
                         if (run.getId() != -1) {
                             //Now that the new Run has been added to the database, we need to reset
                             //the Adapter, Subtitle and Loader.
-                            mRunId = run.getId();
-                            setupAdapterAndLoader();
+                            mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, run.getId()).apply();
+                            Log.i(TAG, "Got Run " + run.getId() + " in ResultsReceiver.");
+                            Intent runPagerIntent = RunPagerActivity.newIntent(getApplicationContext(), Constants.KEEP_EXISTING_SORT, run.getId());
+                            startActivity(runPagerIntent);
+                            //setupAdapterAndLoader();
                         } else {
                             Toast.makeText(RunMapPagerActivity.this, R.string.insert_run_error,
                                     Toast.LENGTH_LONG).show();
                         }
-                        Log.i(TAG, "in ResultsReceiver on Insert Run, Runs in adapter: " + mViewPager.getAdapter().getCount());
-                        mAdapter.finishUpdate(mViewPager);
+                        //Log.i(TAG, "in ResultsReceiver on Insert Run, Runs in adapter: " + mViewPager.getAdapter().getCount());
+                        //mAdapter.finishUpdate(mViewPager);
                     } //ViewPager isn't interested in any other ACTION_ATTEMPTED, so no "else" clauses
                     //specifying what to do with them needed.
                     break;
@@ -555,7 +589,6 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
                     //Shouldn't ever get here - intent filter limits us to SEND_RESULT_ACTION
                     //and ACTION_DELETE_RUN
                     Log.i(TAG, "Intent Action wasn't SEND_RESULT_ACTION or ACTION_DELETE_RUN");
-                    break;
             }
         }
     }

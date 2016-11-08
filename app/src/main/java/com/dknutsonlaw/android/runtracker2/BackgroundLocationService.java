@@ -213,21 +213,28 @@ public class BackgroundLocationService extends Service implements
         if (sServicesAvailable && sClient != null && sClient.isConnected()) {
             sPi = RunManager.get(service).getLocationPendingIntent(service, true);
             try {
-                PendingResult<Status> result = LocationServices.FusedLocationApi.requestLocationUpdates(
-                        sClient, sLocationRequest, sPi);
-                result.setResultCallback(status -> {
-                    Log.i(TAG, "Reached OnResultCallback<Status> for location updates");
-                    if (status.isSuccess()){
-                        if (sRunPagerActivityMessenger != null && sRunFragmentMessenger != null){
-                            try {
-                                sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
-                                sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
-                            } catch (RemoteException e){
-                                Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STARTED.");
-                            }
+                PendingResult<Status> result =
+                        LocationServices.FusedLocationApi.requestLocationUpdates(
+                            sClient,
+                            sLocationRequest,
+                            sPi);
+                result.setResultCallback(new ResultCallback<Status>() {
+                    @Override
+                    public void onResult(@NonNull Status status) {
 
-                        } else {
-                            Log.i(TAG, "Attempt to start location updates failed!");
+                        Log.i(TAG, "Reached OnResultCallback<Status> for location updates");
+                        if (status.isSuccess()) {
+                            if (sRunPagerActivityMessenger != null && sRunFragmentMessenger != null) {
+                                try {
+                                    sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
+                                    sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
+                                } catch (RemoteException e) {
+                                    Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STARTED.");
+                                }
+
+                            } else {
+                                Log.i(TAG, "Attempt to start location updates failed!");
+                            }
                         }
                     }
                 });
@@ -242,18 +249,21 @@ public class BackgroundLocationService extends Service implements
     private static void stopLocationUpdates(){
         if (sServicesAvailable && sClient != null && sClient.isConnected()){
             PendingResult<Status> result = LocationServices.FusedLocationApi.removeLocationUpdates(sClient, sPi);
-            result.setResultCallback(status -> {
-                Log.i(TAG, "Reached onResult of removeLocationUpdates");
-                if (status.isSuccess()){
-                    Log.i(TAG, "Location Updates off.");
-                    if (sPi != null) {
-                        sPi.cancel();
-                    }
-                    try {
-                        sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
-                        sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
-                    } catch (RemoteException e){
-                        Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STOPPED");
+            result.setResultCallback(new ResultCallback<Status>() {
+                @Override
+                public void onResult(@NonNull Status status) {
+                    Log.i(TAG, "Reached onResult of removeLocationUpdates");
+                    if (status.isSuccess()){
+                        Log.i(TAG, "Location Updates off.");
+                        if (sPi != null) {
+                            sPi.cancel();
+                        }
+                        try {
+                            sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
+                            sRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
+                        } catch (RemoteException e){
+                            Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STOPPED");
+                        }
                     }
                 }
             });

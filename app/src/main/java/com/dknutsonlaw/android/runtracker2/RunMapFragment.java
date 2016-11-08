@@ -67,6 +67,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
 
     private final RunManager mRunManager = RunManager.get(getActivity());
     private long mRunId;
+    private Run mRun;
     private GoogleMap mGoogleMap;
     private MapView mMapView;
     private LoaderManager mLoaderManager;
@@ -138,6 +139,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         Bundle args = getArguments();
         if (args != null) {
             mRunId = args.getLong(Constants.ARG_RUN_ID, -1);
+            mRun = mRunManager.getRun(mRunId);
             try {
                 mPoints = new ArrayList<>(mRunManager.retrievePoints(mRunId));
                 Log.i(TAG, "For Run #" + mRunId + " mPoints retrieved.");
@@ -150,7 +152,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
 
             Log.i(TAG, "In onCreate for Run #" + mRunId +" is mBounds null? " + (mBounds == null));
         }
-        mIntentFilter = new IntentFilter(Constants.ACTION_REFRESH);
+        mIntentFilter = new IntentFilter(Constants.ACTION_REFRESH_MAPS);
         mResultsReceiver = new ResultsReceiver();
     }
 
@@ -271,11 +273,12 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
             Log.i(TAG, "Set End Date for Run #" + mRunId + " in setupWidgets as " + Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime()));
         //}
         mDistanceTextView = (TextView) rootView.findViewById(R.id.distanceTextView);
-        mDistanceTraveled = mRunManager.getRun(mRunId).getDistance();
+        //mDistanceTraveled = mRunManager.getRun(mRunId).getDistance();
         //mDistanceTextView.setText(getString(R.string.distance_traveled_format,
         //        String.format(Locale.US, "%.2f", mDistanceTraveled * Constants.METERS_TO_MILES)));
-        mDistanceTextView.setText(getString(R.string.distance_traveled_format,
-                String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES)));
+        //mDistanceTextView.setText(getString(R.string.distance_traveled_format,
+        //        String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES)));
+        mDistanceTextView.setText(getString(R.string.distance_traveled_format, mRunManager.formatDistance(mRun.getDistance())));
         Log.i(TAG, "Set Distance Traveled for Run #" + mRunId + " in setupWidgets as " + String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES));
         mDurationTextView = (TextView) rootView.findViewById(R.id.durationTextView);
         mDurationMillis = mRunManager.getRun(mRunId).getDuration();
@@ -309,6 +312,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.run_map_list_options, menu);
     }
+
+
     /*The Options Menu allows the user to specify whether to track the whole route (the default),
      *track the ending point of the route, track the starting point of the route, or turn off
      *tracking. Actually changing the tracking mode is done in the separate method setTrackingMode()
@@ -339,7 +344,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         }
         mRunManager.mPrefs.edit().putInt(Constants.TRACKING_MODE, mViewMode).apply();
         setTrackingMode();
-        Intent trackingModeIntent = new Intent(Constants.ACTION_REFRESH)
+        Intent trackingModeIntent = new Intent(Constants.ACTION_REFRESH_MAPS)
                 .putExtra(Constants.ARG_RUN_ID, mRunId);
         boolean receiver = mBroadcastManager.sendBroadcast(trackingModeIntent);
         if (!receiver){
@@ -414,7 +419,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //A cursor returned by a cursor loader supposedly is guaranteed to be open, but I've had
         //crashes on configuration changes claiming we're trying to open an object that's already
         //been closed. Checking here to see if the cursor is open seems to have cured the problem
-        if (mLocationCursor.isClosed()){
+        if (mLocationCursor.isClosed()) {
             return;
         }
         //Now that we've got a cursor holding all the location data for this run, we can process it.
@@ -427,61 +432,66 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
             //reflecting location data that's been previously recorded.
             prepareMap();
         } else {
-            Log.i(TAG, "mPrepared is true for Run #" + mRunId + ".");
-            //If mNeedToPrepare is false, we've already prepared the map, so we just need to update
-            //the Polyline, EndMarker, and mBounds based upon the latest location update. First,
-            //move to the last location update.
-            mLocationCursor.moveToLast();
-            mLastLocation = mLocationCursor.getLocation();
-            Log.i(TAG, "In onLoadFinished() for Run #" + mRunId +", is mLastLocation null? " + (mLastLocation == null));
-            if (mLastLocation != null) {
-                //Remember to check whether mLastLocation is null which it could be if this
-                //is a newly-opened run and no location data have been recorded to the database
-                //before the map got opened.
-                LatLng latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", latLng is " + latLng.toString());
-                //Get the time of the latest update into the correct format
-                String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
-                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", endDate is " + endDate);
-                //Update mPolyline's set of points
-                if (latLng != mPoints.get(mPoints.size() - 1)) {
-                    Log.i(TAG, "In onLoadFinished() for Run #" + mRunId +", adding latLng to mPoints");
-                    mPoints.add(latLng);
-                }
-                //Update mPolyline with the updated set of points.
-                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + " mPolyline is null, so we're creating it here.");
-                mPolyline.setPoints(mPoints);
-                //Update the position of mEndMarker. To avoid the overhead of looking up an address
-                //for every location update we don't update the snippet until the user clicks on it.
-                if (mEndMarker != null) {
-                    mEndMarker.setPosition(latLng);
-                }
-                //Make sure the bounds for the map are updated to include the new location
-                if (mBounds != null) {
-                    mBounds = mBounds.including(latLng);
-                }
-                //Update the map's camera position depending upon the desired map updating mode and
-                //the last reported location. We shouldn't have to specify the display size again
-                //because the map has already been initialized and laid out.
-                CameraUpdate movement = updateCamera(mViewMode, latLng);
-                //If the user has chosen to turn tracking off, updateCamera() will return null and
-                //the Camera will just stay where it was before.
-                if (movement != null)
-                    //Animate the camera for the cool effect...
-                    mGoogleMap.animateCamera(movement);
-                //Now update the TextViews
-                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", is mEndDateTextView null? " + (mEndDateTextView == null));
-                mEndDateTextView.setText(getString(R.string.ended, endDate));
-                mDistanceTraveled = RunManager.get(getActivity()).getRun(mRunId).getDistance();
-                mDistanceTextView.setText(getString(R.string.distance_traveled_format,
-                        String.format(Locale.US, "%.2f", mDistanceTraveled * Constants.METERS_TO_MILES)));
-                mDurationMillis = RunManager.get(getActivity()).getRun(mRunId).getDuration();
-                int durationSeconds = (int) mDurationMillis / 1000;
-                mDurationTextView.setText(getString(R.string.run_duration_format,
-                        Run.formatDuration(durationSeconds)));
-            }
+            updateMap();
         }
     }
+    public void updateMap(){
+        Log.i(TAG, "mPrepared is true for Run #" + mRunId + ".");
+        //If mNeedToPrepare is false, we've already prepared the map, so we just need to update
+        //the Polyline, EndMarker, and mBounds based upon the latest location update. First,
+        //move to the last location update.
+        mLocationCursor.moveToLast();
+        mLastLocation = mLocationCursor.getLocation();
+        Log.i(TAG, "In onLoadFinished() for Run #" + mRunId +", is mLastLocation null? " + (mLastLocation == null));
+        if (mLastLocation != null) {
+            //Remember to check whether mLastLocation is null which it could be if this
+            //is a newly-opened run and no location data have been recorded to the database
+            //before the map got opened.
+            LatLng latLng = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + ", latLng is " + latLng.toString());
+            //Get the time of the latest update into the correct format
+            //Update mPolyline's set of points
+            if (latLng != mPoints.get(mPoints.size() - 1)) {
+                Log.i(TAG, "In onLoadFinished() for Run #" + mRunId +", adding latLng to mPoints");
+                mPoints.add(latLng);
+            }
+            //Update mPolyline with the updated set of points.
+            Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + " mPolyline is null, so we're creating it here.");
+            mPolyline.setPoints(mPoints);
+            //Update the position of mEndMarker. To avoid the overhead of looking up an address
+            //for every location update we don't update the snippet until the user clicks on it.
+            if (mEndMarker != null) {
+                mEndMarker.setPosition(latLng);
+            }
+            //Make sure the bounds for the map are updated to include the new location
+            if (mBounds != null) {
+                mBounds = mBounds.including(latLng);
+            }
+            //Update the map's camera position depending upon the desired map updating mode and
+            //the last reported location. We shouldn't have to specify the display size again
+            //because the map has already been initialized and laid out.
+            CameraUpdate movement = updateCamera(mViewMode, latLng);
+            //If the user has chosen to turn tracking off, updateCamera() will return null and
+            //the Camera will just stay where it was before.
+            if (movement != null)
+                //Animate the camera for the cool effect...
+                mGoogleMap.animateCamera(movement);
+            updateTextViews();
+        }
+    }
+
+    public void updateTextViews(){
+        //Now update the TextViews
+        String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
+        mEndDateTextView.setText(getString(R.string.ended, endDate));
+        mDistanceTextView.setText(getString(R.string.distance_traveled_format,
+                mRunManager.formatDistance(mRunManager.getRun(mRunId).getDistance())));
+        mDurationMillis = RunManager.get(getActivity()).getRun(mRunId).getDuration();
+        int durationSeconds = (int) mDurationMillis / 1000;
+        mDurationTextView.setText(getString(R.string.run_duration_format,
+                Run.formatDuration(durationSeconds)));
+    }
+
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
@@ -509,6 +519,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //We can't prepare the map until we actually get a map and a location cursor.
         if (mGoogleMap == null || mLocationCursor == null)
             return;
+        Log.i(TAG, "mLocationCursor has " + mLocationCursor.getCount() + " entries.");
         //We need to use the LocationCursor for the map markers because we need time data, which the
         //LatLng objects in mPoints lack.
         mLocationCursor.moveToFirst();
@@ -617,7 +628,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //large the map needs to be. Once that is done, we can use the View Mode that's been set in
         //the setTrackingMode() method.
 
-        mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.KEEP_EXISTING_SORT);
+        mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.SHOW_ENTIRE_ROUTE);
         if (mViewMode == Constants.FOLLOW_END_POINT || mViewMode == Constants.FOLLOW_STARTING_POINT) {
             movement = CameraUpdateFactory.zoomTo(mRunManager.mPrefs.getFloat(Constants.ZOOM_LEVEL, 17f));
             mGoogleMap.animateCamera(movement);
@@ -797,7 +808,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         public void onReceive(Context context, Intent intent){
 
             String action = intent.getAction();
-            if (action.equals(Constants.ACTION_REFRESH)){
+            if (action.equals(Constants.ACTION_REFRESH_MAPS)){
                 long senderId = intent.getLongExtra(Constants.ARG_RUN_ID, -1);
                 if (senderId == mRunId){
                     Log.i(TAG, "This is a message this fragment sent - we've already switched tracking mode.");
@@ -805,6 +816,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                     mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.KEEP_EXISTING_SORT);
                     setTrackingMode();
                 }
+            updateTextViews();
             } else {
                 Log.i(TAG, "Action isn't ACTION_REFRESH! How'd you get here!?!");
             }

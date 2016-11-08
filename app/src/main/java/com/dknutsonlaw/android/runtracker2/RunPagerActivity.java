@@ -278,10 +278,20 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
         super.onCreateOptionsMenu(menu);
-        mMenu = menu;
+        //mMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.run_pager_options, menu);
         //If we have fewer than two Runs, there's nothing to sort, so disable sort menu
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu){
+        if (mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)){
+            menu.findItem(R.id.run_pager_menu_item_units).setTitle(R.string.imperial);
+        } else {
+            menu.findItem(R.id.run_pager_menu_item_units).setTitle(R.string.metric);
+        }
         if (mAdapter.getCount() < 2){
             menu.findItem(R.id.run_pager_menu_item_sort_runs).setEnabled(false);
         } else {
@@ -289,7 +299,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         }
         //If we're tracking a Run, don't allow creation of a new Run - trying to track more than one
         //Run will crash the app!
-        mMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun());
+        menu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun());
         return true;
     }
 
@@ -300,6 +310,15 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
         //Create a new blank Run or change the sort order of the recorded Runs and the Activity's
         //subtitle to match
         switch(item.getItemId()){
+            case R.id.run_pager_menu_item_units:
+                mRunManager.mPrefs.edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
+                        !mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
+                Intent refreshIntent = new Intent(Constants.ACTION_REFRESH);
+                boolean receiver = LocalBroadcastManager.getInstance(this).sendBroadcast(refreshIntent);
+                if(!receiver){
+                    Log.i(TAG, "No receiver for RunFragment REFRESH broadcast!");
+                }
+                return true;
             case R.id.run_pager_menu_item_new_run:
                 Log.i(TAG, "In New Run menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
                 //Don't need to tell the Adapter its getting an update because we're recreating the
@@ -517,6 +536,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                             //Now that the new Run has been added to the database, we need to reset
                             //the Adapter, Subtitle and Loader.
                             mRunId = run.getId();
+                            Log.i(TAG, "in ResultsReceiver, got Run " + run.getId());
                             setupAdapterAndLoader();
                         } else {
                             Toast.makeText(RunPagerActivity.this, R.string.insert_run_error,
@@ -524,6 +544,7 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                         }
                         Log.i(TAG, "in ResultsReceiver on Insert Run, Runs in adapter: " + mViewPager.getAdapter().getCount());
                         mAdapter.finishUpdate(mViewPager);
+                        setViewPager((RunDatabaseHelper.RunCursor)mAdapter.getCursor(), mRunId);
                     } //ViewPager isn't interested in any other ACTION_ATTEMPTED, so no "else" clauses
                       //specifying what to do with them needed.
                     break;

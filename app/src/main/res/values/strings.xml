@@ -15,7 +15,7 @@
     <string name="ending_altitude">Ending Altitude:</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
-    <string name="list_distance_text">Distance: %1$.2f miles</string>
+    <string name="list_distance_text">Distance: %1$s </string>
     <string name="list_duration_text">Duration: %1$s</string>
     <string name="new_run">New Run</string>
     <string name="sort">Sort Runs</string>
@@ -92,7 +92,7 @@
     <string name="current_location_too_distant">You are more than 100 meters from where this run
                     originally ended; you can\'t \"continue\" it from here. Cancelling further
                     tracking of this run.</string>
-    <string name="distance_traveled_format">Distance traveled: %s miles</string>
+    <string name="distance_traveled_format">Distance traveled: %s</string>
     <string name="run_duration_format">Run duration: %s</string>
     <string name="location_insert_failed">Insertion of location failed!</string>
     <string name="update_run_start_date_failed">Starting Date update failed! No rows were updated!</string>
@@ -132,4 +132,6 @@
     <string name="functionality_limited">Functionality limited</string>
     <string name="no_tracking">Because location access has not been granted, this app will not be able to track new runs.</string>
     <string name="run_list_run_number">Run #%1$d, RunID #%2$d</string>
+    <string name="imperial">Switch to Metric Distances</string>
+    <string name="metric">Switch to Imperial Distances</string>
 </resources>
