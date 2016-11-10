@@ -13,7 +13,7 @@ import java.util.Locale;
 final class Constants {
     static final SimpleDateFormat DATE_FORMAT =
             new SimpleDateFormat("E, MMM dd, yyyy, hh:mm:ss a z", Locale.US);
-    //Value for use of Imperial system for distance and altitute measurements
+    //Value for use of Imperial system for distance and altitude measurements
     static final boolean IMPERIAL = true;
     //Value for use of Metric system for distance and altitude measurements
     static final boolean METRIC = false;
@@ -70,6 +70,10 @@ final class Constants {
     static final int REQUEST_LOCATION_PERMISSIONS = 1;
     //Label for member of array of ints used to report results of deletion operation
     static final int RUN_DELETIONS = 1;
+    //Values to pass back from DeleteRunsDialog so that correct Fragment will act on the result
+    static final int RUN_LIST_RECYCLER_FRAGMENT = 0;
+    static final int RUN_FRAGMENT = 1;
+    static final int RUN_MAP_FRAGMENT = 2;
     //Label for loader used in RunRecyclerListFragment
     static final int RUN_LIST_LOADER = 0;
     //Label for member of array of ints used to report results of update operations
@@ -95,10 +99,10 @@ final class Constants {
     //results of the operations to UI elements
     static final String ACTION_ATTEMPTED =
             "com.dknutsonlaw.android.runtracker.action.attempted";
-    static final String ACTION_CHECK_END_ADDRESS =
+    /*static final String ACTION_CHECK_END_ADDRESS =
             "com.dknutsonlaw.android.runtracker.action.check.end.address";
     static final String ACTION_CHECK_START_ADDRESS =
-            "com.dknutsonlaw.android.runtracker.action.check.start.address";
+            "com.dknutsonlaw.android.runtracker.action.check.start.address";*/
     static final String ACTION_DELETE_RUN =
             "com.dknutsonlaw.android.runtracker.action.delete.run";
     static final String ACTION_DELETE_RUNS =
@@ -154,9 +158,14 @@ final class Constants {
     //Label used to pass along the existing sort order from RunRecyclerListFragment to RunPagerActivity
     //and vice-versa
     static final String EXTRA_SORT_ORDER = "com.dknutsonlaw.android.runtracker2.sort_order";
+    //Label to identify type of fragment that called DeleteRunsDialog
+    static final String FRAGMENT = "com.dknutsonlaw.android.runtracker2.fragment";
     //Label for distance/altitude measurement system
     static final String MEASUREMENT_SYSTEM =
-            "com.dknutsonlaw.android.runtrakcer2.measurement_system";
+            "com.dknutsonlaw.android.runtracker2.measurement_system";
+    //Label for number of Runs to delete argument to pass to DeleteRunsDialog
+    static final String NUMBER_OF_RUNS =
+            "com.dknutsonlaw.android.runtracker2.number_of_runs";
     //Label used to communicate a location parameter in an Intent or a Bundle
     static final String PARAM_LOCATION =
             "com.dknutsonlaw.android.runtracker.param.location";

@@ -53,4 +53,15 @@
              android:layout_height="wrap_content"
              tools:text="Distance Goes Here."/>
     </LinearLayout>
+    <!--
+    <Button android:id="@+id/scroll_control"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|top"
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
+            android:textAlignment="gravity"
+            android:text="@string/map_scrolling_on"
+            android:padding="5sp"/>
+     -->
 </FrameLayout>

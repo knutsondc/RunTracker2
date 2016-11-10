@@ -36,6 +36,7 @@ import java.lang.ref.WeakReference;
 import java.text.DateFormat;
 import java.util.Date;
 
+@SuppressWarnings("Convert2Lambda")
 public class BackgroundLocationService extends Service implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener/*,
@@ -151,7 +152,7 @@ public class BackgroundLocationService extends Service implements
                         sLocationSettingsRequest
                 );
         //Please note that this anonymous ResultCallBack CANNOT be transformed into a lambda! Do not
-        //listen when Android Lint tells you it can!
+        //listen when Android Lint tells you it can! You'll get an NPE!
         result.setResultCallback(new ResultCallback<LocationSettingsResult> () {
             public void onResult(@NonNull LocationSettingsResult locationSettingsResult) {
                 Log.i(TAG, "Reached onResult() for LocationSettingsRequest");
@@ -218,6 +219,8 @@ public class BackgroundLocationService extends Service implements
                             sClient,
                             sLocationRequest,
                             sPi);
+                //This anonymous ResultCallback CANNOT be converted to a lambda - Android Lint lies when
+                //it says otherwise! A lambda will result in an NPE.
                 result.setResultCallback(new ResultCallback<Status>() {
                     @Override
                     public void onResult(@NonNull Status status) {
@@ -249,6 +252,8 @@ public class BackgroundLocationService extends Service implements
     private static void stopLocationUpdates(){
         if (sServicesAvailable && sClient != null && sClient.isConnected()){
             PendingResult<Status> result = LocationServices.FusedLocationApi.removeLocationUpdates(sClient, sPi);
+            //This anonymous ResultCallback CANNOT be converted to a lambda - Android Lint lies when
+            //it says otherwise! A lambda will result in an NPE.
             result.setResultCallback(new ResultCallback<Status>() {
                 @Override
                 public void onResult(@NonNull Status status) {

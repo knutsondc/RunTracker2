@@ -34,7 +34,6 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -51,7 +50,7 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 
 public class RunRecyclerListFragment extends Fragment
-        implements LoaderManager.LoaderCallbacks<Cursor>{
+        implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final String TAG = "RunRecyclerListFragment";
 
@@ -68,6 +67,8 @@ public class RunRecyclerListFragment extends Fragment
     private Button mEmptyViewButton;
     private Messenger mLocationService;
     private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
+    private List<Integer> mDeleteList;
+    private ActionMode mActionMode;
     //Are we bound to the BackgroundLocationService?
     private boolean mIsBound = false;
     //Are we newly opening this fragment or are we coming back from RunPagerActivity?
@@ -110,94 +111,97 @@ public class RunRecyclerListFragment extends Fragment
             getActivity().getMenuInflater().inflate(R.menu.run_list_item_context, menu);
             return true;
         }
-
+        //The action mode simply gathers the Runs selected for deletion into a List<Integer> member
+        //variable. If the confirmation dialog confirms deletion, deleteRuns is called, deletes one-by-one
+        //the Runs selected using the member variable List, and then clears the multiselector and
+        //finishes the ActionMode. If the deletion is cancelled, the NegativeClick callback simply
+        //clears the multiselector and finishes the ActionMode.
         @Override
-        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-
-            if (item.getItemId() == R.id.menu_item_delete_run){
-                //Fetch a List of the Runs by Adapter position that have been selected for deletion.
-                List<Integer> deleteList = mMultiSelector.getSelectedPositions();
-                Log.i(TAG, "Runs to be deleted: " + deleteList);
-                //If a Run to be deleted is being tracked, stop tracking - otherwise location updates will
-                //continue with updates not associated with any Run and really with no way to
-                //turn updates off. First, check to see if we're tracking any run.
-                if (mRunManager.isTrackingRun()){
-                    //We know a Run's being tracked; check the Runs selected for deletion to see if
-                    //it's included
-                    for (int i = deleteList.size()-1; i >= 0; i--) {
-                        if (mRunManager.isTrackingRun(mRunManager.getRun(mAdapter.getItemId(deleteList.get(i))))) {
-                            Log.i(TAG, "Run #" + mAdapter.getItemId(deleteList.get(i)) + " and in RecyclerView" +
-                                    "position #" + deleteList.get(i) + " being tracked. Now trying to stop tracking.");
-                            //If we're bound to the BackgroundLocationService, tell it to stop location updates
-                            if (mIsBound & mLocationService != null) {
-
-                                try {
-                                    mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
-                                } catch (RemoteException e) {
-                                    Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
-                                }
-                                //Have RunManager do the other housekeeping associated with stopping a Run.
-                                mRunManager.stopRun();
-                            }
-                        }
-                        Log.i(TAG, "Did we successfully stop Location Updates? " + mRunManager.isTrackingRun());
-                    }
-                }
-                //Keep track of number of Runs deleted
-                long runsDeleted = 0;
-                //Keep track of number of Locations deleted
-                long locationsDeleted = 0;
-                //Iterate over all the items in the List selected for deletion
-                for (int i = deleteList.size() - 1; i >= 0; i--) {
-
-                    Log.i(TAG, "Now dealing with Run in RecyclerView position #" + deleteList.get(i) + " with RunId #" +
-                            mAdapter.getItemId(deleteList.get(i)));
-                    Log.i(TAG, "Now in RecyclerPosition one greater than that is Run#" + mAdapter.getItemId(deleteList.get(i) + 1));
-                    //Delete the Run from the database
-                    int results[] = mRunManager.mHelper.deleteRun(getActivity(), mAdapter.getItemId(deleteList.get(i)));
-                    Log.i(TAG, "Deleted Run #" + mAdapter.getItemId(deleteList.get(i)));
-                    runsDeleted += results[Constants.RUN_DELETIONS];
-                    locationsDeleted += results[Constants.LOCATION_DELETIONS];
-                    //mRunListRecyclerView.removeViewAt(deleteList.get(i));
-                    //Log.i(TAG, "Now removed View at position " + deleteList.get(i));
-                    //Notify the adapter that we're removing the item in the specified recyclerview position
-                    //Why does deleteList.get(i) crash with an Inconsistency/Index out of bounds error, but
-                    //deleteList.get(i) + 1 works fine?
-                    Log.i(TAG, "Notify adapter that item in position #" + (deleteList.get(i)) + " has been removed.");
-                    mAdapter.notifyItemRemoved(deleteList.get(i));
-                    if (mRunListRecyclerView.getChildAt(deleteList.get(i)) != null) {
-                        mRunListRecyclerView.removeViewAt(deleteList.get(i));
-                    }
-                    mAdapter.notifyItemRangeChanged(deleteList.get(i), mAdapter.getItemCount());
-                    Log.i(TAG, "Notified Adapter that Items in range " + deleteList.get(i) + " to " + mAdapter.getItemCount() + " changed.");
-                    //update the running total of Runs and Locations deleted
-
-
-                    Log.i(TAG, "Now in position " + deleteList.get(i) + " is Run# " + mAdapter.getItemId(deleteList.get(i)));
-                }
-                Resources r = getResources();
-                Toast.makeText(getActivity(), r.getQuantityString(R.plurals.runs_deletion_results,
-                        (int)runsDeleted,
-                        (int)runsDeleted,
-                        (int)locationsDeleted), Toast.LENGTH_LONG).show();
-                Log.i(TAG, "Finished deleting.");
-                //Clean up the MultiSelector, finish the ActionMode, and refresh the UI now that our
-                //dataset has changed
-                mMultiSelector.clearSelections();
-                Log.i(TAG, "Passed mMultiSelector.clearSelections");
-                mode.finish();
-                Log.i(TAG, "Passed mode.finish()");
-                refreshUI();
-                Log.i(TAG, "Passed refreshUI()");
-                return true;
-            }
-            //If we don't select Delete from the ActionMode menu, just clear the MultiSelector and
-            //the ActionMode without doing anything.
-            mMultiSelector.clearSelections();
-            mode.finish();
-            return false;
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item){
+            //Fetch a List of the Runs by Adapter position that have been selected for deletion.
+            mDeleteList = mMultiSelector.getSelectedPositions();
+            mActionMode = mode;
+            Log.i(TAG, "Runs to be deleted: " + mDeleteList);
+            //Now invoke the deletion confirmation dialog, telling where the request comes from and
+            //passing along the number of Runs to be deleted so the dialog's message will be accurate.
+            Bundle args = new Bundle();
+            args.putInt(Constants.FRAGMENT, Constants.RUN_LIST_RECYCLER_FRAGMENT);
+            args.putInt(Constants.NUMBER_OF_RUNS, mDeleteList.size());
+            DeleteRunsDialog dialog = new DeleteRunsDialog();
+            dialog.setArguments(args);
+            dialog.show(getActivity().getSupportFragmentManager(), "DeleteDialog");
+            return true;
         }
     };
+
+    private void deleteRuns(){
+        //If a Run to be deleted is being tracked, stop tracking - otherwise location updates will
+        //continue with updates not associated with any Run and really with no way to
+        //turn updates off. First, check to see if we're tracking any run.
+        if (mRunManager.isTrackingRun()){
+            //We know a Run's being tracked; check the Runs selected for deletion to see if
+            //it's included
+            for (int i = mDeleteList.size()-1; i >= 0; i--) {
+                if (mRunManager.isTrackingRun(mRunManager.getRun(mAdapter.getItemId(mDeleteList.get(i))))) {
+                    Log.i(TAG, "Run #" + mAdapter.getItemId(mDeleteList.get(i)) + " and in RecyclerView" +
+                            "position #" + mDeleteList.get(i) + " being tracked. Now trying to stop tracking.");
+                    //If we're bound to the BackgroundLocationService, tell it to stop location updates
+                    if (mIsBound & mLocationService != null) {
+
+                        try {
+                            mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
+                        } catch (RemoteException e) {
+                            Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
+                        }
+                        //Have RunManager do the other housekeeping associated with stopping a Run.
+                        mRunManager.stopRun();
+                    }
+                }
+                Log.i(TAG, "Did we successfully stop Location Updates? " + mRunManager.isTrackingRun());
+            }
+        }
+        //Keep track of number of Runs deleted
+        long runsDeleted = 0;
+        //Keep track of number of Locations deleted
+        long locationsDeleted = 0;
+        //Iterate over all the items in the List selected for deletion
+        for (int i = mDeleteList.size() - 1; i >= 0; i--) {
+
+            Log.i(TAG, "Now dealing with Run in RecyclerView position #" + mDeleteList.get(i) + " with RunId #" +
+                    mAdapter.getItemId(mDeleteList.get(i)));
+            //Delete the Run from the database and update the numbers of Runs and locations deleted.
+            int results[] = mRunManager.mHelper.deleteRun(getActivity(), mAdapter.getItemId(mDeleteList.get(i)));
+            Log.i(TAG, "Deleted Run #" + mAdapter.getItemId(mDeleteList.get(i)));
+            runsDeleted += results[Constants.RUN_DELETIONS];
+            locationsDeleted += results[Constants.LOCATION_DELETIONS];
+            //Notify the adapter that we're removing the item in the specified recyclerview position
+            Log.i(TAG, "Notify adapter that item in position #" + (mDeleteList.get(i)) + " has been removed.");
+            mAdapter.notifyItemRemoved(mDeleteList.get(i));
+            //If the Run's RunHolder has been instantiated, the View for the deleted Run also has to
+            //be removed from the RecyclerView.
+            if (mRunListRecyclerView.getChildAt(mDeleteList.get(i)) != null) {
+                mRunListRecyclerView.removeViewAt(mDeleteList.get(i));
+            }
+            //Finally, notify the adapter that the items from the deleted item to the adapter's end
+            //have been modified.
+            mAdapter.notifyItemRangeChanged(mDeleteList.get(i), mAdapter.getItemCount());
+            Log.i(TAG, "Notified Adapter that Items in range " + mDeleteList.get(i) + " to " + mAdapter.getItemCount() + " changed.");
+        }
+        Resources r = getResources();
+        Toast.makeText(getActivity(), r.getQuantityString(R.plurals.runs_deletion_results,
+                (int)runsDeleted,
+                (int)runsDeleted,
+                (int)locationsDeleted), Toast.LENGTH_LONG).show();
+        Log.i(TAG, "Finished deleting.");
+        //Clean up the MultiSelector, finish the ActionMode, and refresh the UI now that our
+        //dataset has changed
+        mMultiSelector.clearSelections();
+        Log.i(TAG, "Passed mMultiSelector.clearSelections");
+        mActionMode.finish();
+        Log.i(TAG, "Passed mode.finish()");
+        refreshUI();
+        Log.i(TAG, "Passed refreshUI()");
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -369,6 +373,8 @@ public class RunRecyclerListFragment extends Fragment
 
     @Override
     public void onPrepareOptionsMenu(Menu menu){
+        //Set title of menuItem to change distance measurement units according
+        //to the units currently used
         MenuItem item = mOptionsMenu.findItem(R.id.recycler_menu_item_units);
         if (mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)){
             item.setTitle(R.string.imperial);
@@ -386,6 +392,7 @@ public class RunRecyclerListFragment extends Fragment
                 mRunManager.mPrefs.edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
                         !mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
                 mAdapter.notifyDataSetChanged();
+                getActivity().invalidateOptionsMenu();
                 return true;
             case R.id.menu_item_new_run:
                 //Now that we're using an auto-updating loader for the list of runs, we don't need
@@ -503,6 +510,18 @@ public class RunRecyclerListFragment extends Fragment
             fragment.getActivity().getApplicationContext().unbindService(fragment.mLocationServiceConnection);
             fragment.mIsBound = false;
         }
+    }
+
+    public void onDeleteRunsDialogPositiveClick(){
+            deleteRuns();
+    }
+
+    public void onDeleteRunsDialogNegativeClick(){
+            //If we don't select Delete from the ActionMode menu, just clear the MultiSelector and
+            //the ActionMode without doing anything.
+            mMultiSelector.clearSelections();
+            mActionMode.finish();
+            refreshUI();
     }
 
     @Override

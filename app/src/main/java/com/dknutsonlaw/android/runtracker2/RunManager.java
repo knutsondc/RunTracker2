@@ -27,7 +27,6 @@ import java.util.Locale;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,7 +48,7 @@ public class RunManager {
     //Handle for the recurring task of updating Ending Addresses; needed so task can be cancelled
     //when we're not tracking runs
     private ScheduledFuture<?> mScheduledFuture;
-    private ScheduledThreadPoolExecutor mStpe;
+    private ScheduledThreadPoolExecutor mStpe  = null;
     //mHelper is public so that TrackingLocationIntentService can access it
     final RunDatabaseHelper mHelper;
     final SharedPreferences mPrefs;
@@ -100,6 +99,14 @@ public class RunManager {
             return;
         try {
             //mStpe = new ScheduledThreadPoolExecutor(3, /* mCrp */ new ThreadPoolExecutor.CallerRunsPolicy());
+            //Sometimes this method gets called multiple times on a single press of the Start Button,
+            //so we need to check if the ScheduledThreadPoolExecutor already exists so we don't
+            //create more than one - only one gets stopped in stopRun(), so updateEndAddressTask()
+            //would go on indefinitely even though the Run is no longer being tracked.
+            if (mStpe != null){
+                Log.i(TAG, "Already created ScheduledThreadPoolExecutor - won't create another!");
+                return;
+            }
             mStpe = new ScheduledThreadPoolExecutor(3);
             Log.i(TAG, "Created new ScheduledThreadPoolExecutor" + mStpe + " for Run " + mCurrentRunId);
             mScheduledFuture = mStpe.scheduleAtFixedRate(new updateEndAddressTask(context, getRun(mCurrentRunId)), 20, 10, TimeUnit.SECONDS);
@@ -354,7 +361,7 @@ public class RunManager {
         return run != null && run.getId() == mCurrentRunId;
     }
 
-    protected String formatDistance(double meters){
+    String formatDistance(double meters){
         boolean system = mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL);
         String result;
         if (system == Constants.METRIC){
@@ -374,7 +381,7 @@ public class RunManager {
         return result;
     }
 
-    protected String formatAltitude(double meters){
+    String formatAltitude(double meters){
         boolean system = mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL);
         String result;
         if (system == Constants.METRIC){

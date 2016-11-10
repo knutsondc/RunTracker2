@@ -13,8 +13,6 @@ import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 
-import java.util.ArrayList;
-
 /** Created by dck on 2/11/2015
  * An {@link IntentService} subclass for handling database task requests asynchronously in
  * a service on a separate handler thread.
@@ -54,7 +52,7 @@ public class TrackingLocationIntentService extends IntentService{
      * Starts this service to delete the Runs with the RunIds contained in the runIds
      * parameter. If the service is already performing a task this action will be queued.
      */
-    public static void startActionDeleteRuns(Context context,
+    /*public static void startActionDeleteRuns(Context context,
                                              RunRecyclerListFragment.RunRecyclerListAdapter adapter,
                                              ArrayList<Integer> deleteList) {
 
@@ -62,7 +60,7 @@ public class TrackingLocationIntentService extends IntentService{
         intent.setAction(Constants.ACTION_DELETE_RUNS);
         intent.putExtra(Constants.PARAM_RUN_IDS, deleteList);
         context.startService(intent);
-    }
+    }*/
 
     /*
      *Starts this service to delete a single run. If the  service is already performing a
@@ -167,14 +165,14 @@ public class TrackingLocationIntentService extends IntentService{
             if (Constants.ACTION_INSERT_RUN.equals(action)) {
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 handleActionInsertRun(run);
-            } else if (Constants.ACTION_DELETE_RUNS.equals(action)) {
+            /*} else if (Constants.ACTION_DELETE_RUNS.equals(action)) {
                 //Unfortunately, although there are methods to put an ArrayList<> of several
                 //other primitive types as an Extra into an Intent, there is none for
                 //ArrayList<Long>, so we have to fall back on serialization. ArrayList<> is
                 //serializable.
                 @SuppressWarnings("unchecked") final ArrayList<Long> runIds =
                         (ArrayList<Long>) intent.getSerializableExtra(Constants.PARAM_RUN_IDS);
-                handleActionDeleteRuns(runIds);
+                handleActionDeleteRuns(runIds);*/
             } else if (Constants.ACTION_DELETE_RUN.equals(action)){
                 long runId = intent.getLongExtra(Constants.PARAM_RUN_IDS, -1);
                 handleActionDeleteRun(runId);
@@ -189,18 +187,18 @@ public class TrackingLocationIntentService extends IntentService{
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
                 handleActionUpdateStartAddress(run, location);
-            } else if (Constants.ACTION_CHECK_START_ADDRESS.equals(action)){
+            /*} else if (Constants.ACTION_CHECK_START_ADDRESS.equals(action)){
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
-                handleActionCheckStartAddress(run, location);
+                handleActionCheckStartAddress(run, location);*/
             } else if (Constants.ACTION_UPDATE_END_ADDRESS.equals(action)) {
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
                 handleActionUpdateEndAddress(run, location);
-            } else if (Constants.ACTION_CHECK_END_ADDRESS.equals(action)){
+            /*} else if (Constants.ACTION_CHECK_END_ADDRESS.equals(action)){
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
-                handleActionCheckEndAddress(run, location);
+                handleActionCheckEndAddress(run, location);*/
             } else {
                 Log.d(TAG, "How'd you get here!?! Unknown Action type!");
             }
@@ -326,7 +324,7 @@ public class TrackingLocationIntentService extends IntentService{
      * Handle action checkStartAddress in the background thread for the run and location provided
      * in the parameters.
      */
-    private void handleActionCheckStartAddress(Run run, Location location){
+    /*private void handleActionCheckStartAddress(Run run, Location location){
         //Get the Starting Address recorded in the database
         String recordedStartAddress = run.getStartAddress();
         //Get the address the geocoder returns for the starting location provided in the location
@@ -339,7 +337,7 @@ public class TrackingLocationIntentService extends IntentService{
                 handleActionUpdateStartAddress(run, location);
             }
         }
-    }
+    }*/
 
     /*
      * Handle action UpdateEndAddress in the background thread for the Run parameter using the
@@ -380,7 +378,7 @@ public class TrackingLocationIntentService extends IntentService{
      * using the provided location parameter/
      */
 
-    private void handleActionCheckEndAddress(Run run, Location location){
+    /*private void handleActionCheckEndAddress(Run run, Location location){
         //Get the End Address recorded in the database
         String recordedEndAddress = run.getEndAddress();
         //Get the address the geocoder returns for the end location supplied in the location parameter
@@ -392,13 +390,13 @@ public class TrackingLocationIntentService extends IntentService{
                 handleActionUpdateEndAddress(run, location);
             }
         }
-    }
+    }*/
 
     /**
      * Handle action DeleteRuns in the provided background thread with the provided
      * parameter - ArrayList of runIds identifying the Runs to delete.
      */
-    private void handleActionDeleteRuns(ArrayList<Long>runIds) {
+    /*private void handleActionDeleteRuns(ArrayList<Long>runIds) {
         //Delete the Runs identified in runIds
         //int results[] = mRunManager.mHelper.deleteRuns(mRunManager.mAppContext, runIds);
         int results[] = mRunManager.mHelper.deleteRuns(this, runIds);
@@ -416,7 +414,7 @@ public class TrackingLocationIntentService extends IntentService{
         boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
         if (!receiver)
             Log.i(TAG, "No receiver for Delete Runs responseIntent!");
-    }
+    }*/
 
     /*
      * Handle action DeleteRun in the provided background thread with the provided

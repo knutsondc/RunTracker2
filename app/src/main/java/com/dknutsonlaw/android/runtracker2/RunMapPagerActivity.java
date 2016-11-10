@@ -37,12 +37,14 @@ import java.lang.ref.WeakReference;
  * This Activity hosts a ViewPager within which RunMapFragments are displayed.
  */
 
-public class RunMapPagerActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
-
+public class RunMapPagerActivity extends AppCompatActivity
+        implements LoaderManager.LoaderCallbacks<Cursor>,
+        DeleteRunsDialog.DeleteRunsDialogListener{
     private static final String TAG = "runmappageractivity";
 
     private RunManager mRunManager;
     private ViewPager mViewPager;
+    private Menu mOptionsMenu;
     private final Messenger mMessenger = new Messenger(new RunMapPagerActivity.IncomingMessenger(this));
     private Messenger mLocationService = null;
     private ResultsReceiver mResultsReceiver;
@@ -267,15 +269,18 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
         super.onCreateOptionsMenu(menu);
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.run_map_pager_options, menu);
+        //The menu has to be assigned to a member variable so we can alter the menu in onPrepareOptionsMenu()
+        mOptionsMenu = menu;
         return true;
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu){
+        //Set title of menuItem to change distance display units according to current setting
         if (mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)){
-            menu.findItem(R.id.run_map_pager_menu_item_units).setTitle(R.string.imperial);
+            menu.findItem(R.id.run_map_pager_activity_units).setTitle(R.string.imperial);
         } else {
-            menu.findItem(R.id.run_map_pager_menu_item_units).setTitle(R.string.metric);
+            menu.findItem(R.id.run_map_pager_activity_units).setTitle(R.string.metric);
         }
         //If we have fewer than two Runs, there's nothing to sort, so disable sort menu
         if (mAdapter.getCount() < 2){
@@ -286,6 +291,23 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
         //If we're tracking a Run, don't allow creation of a new Run - trying to track more than one
         //Run will crash the app!
         menu.findItem(R.id.run_map_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun());
+        //Change title of menuItem for map scrolling depending upon current map scrolling setting for
+        //the RunMapFragment that's currently displayed.
+        RunMapFragment fragment = (RunMapFragment) mAdapter.getRegisteredFragment(mViewPager.getCurrentItem());
+        //Have to check if the fragment is null -- it will be when we get here immediately after deleting
+        //the currently displayed RunMapFragment!
+        if (fragment != null) {
+            //Need to check whether the RunMapFragment's GoogleMap is null because when this Activity is
+            //first instantiated, the currently displayed RunMapFragment's GoogleMap will not yet have
+            //been created.
+            if (fragment.mGoogleMap != null) {
+                if (fragment.mGoogleMap.getUiSettings().isScrollGesturesEnabled()) {
+                    mOptionsMenu.findItem(R.id.run_map_pager_activity_scroll).setTitle(R.string.map_scrolling_off);
+                } else {
+                    mOptionsMenu.findItem(R.id.run_map_pager_activity_scroll).setTitle(R.string.map_scrolling_on);
+                }
+            }
+        }
         return true;
     }
 
@@ -297,14 +319,32 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
         //subtitle to match
         switch(item.getItemId()){
 
-            case R.id.run_map_pager_menu_item_units:
+            case R.id.run_map_pager_activity_units:
+                //Swap the measurement system value stored in shared prefs
                 mRunManager.mPrefs.edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
                         !mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
                 Intent refreshIntent = new Intent(Constants.ACTION_REFRESH_MAPS);
+                //Tell all the RunMapFragments to update so their textviews will display the newly-chosen
+                //distance units
                 boolean receiver = LocalBroadcastManager.getInstance(this).sendBroadcast(refreshIntent);
                 if(!receiver){
                     Log.i(TAG, "No receiver for RunFragment REFRESH broadcast!");
                 }
+                //We want to change the menuItem title in onPrepareOptionsMenu, so we need to invalidate
+                //the menu and recreated it.
+                invalidateOptionsMenu();
+                return true;
+
+            case R.id.run_map_pager_activity_scroll:
+                //This setting gets made in a RunMapFragment's MapView, but we want to put this together
+                //with the measurement units menu item here in the Activity's OptionsMenu, so we first
+                //have to retrieve the RunMapFragment that's currently displayed
+                RunMapFragment fragment = (RunMapFragment) mAdapter.getRegisteredFragment(mViewPager.getCurrentItem());
+                fragment.mGoogleMap.getUiSettings()
+                        .setScrollGesturesEnabled(!fragment.mGoogleMap.getUiSettings().isScrollGesturesEnabled());
+                //We want to change the menuItem title in onPrepareOptionsMenu, so we need to invalidate
+                //the menu and recreated it.
+                invalidateOptionsMenu();
                 return true;
 
             case R.id.run_map_pager_menu_item_new_run:
@@ -315,25 +355,17 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
                 //the database hasn't changed.
                 TrackingLocationIntentService.startActionInsertRun(this, new Run());
                 return true;
+
             case R.id.menu_item_map_pager_delete_run:
-                Log.i(TAG, "In Delete Run Menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
-                //First, stop location updates if the Run we're deleting is currently being tracked
-                if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))){
-                    try {
-                        mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
-                    } catch (RemoteException e){
-                        Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
-                    }
-                    mRunManager.stopRun();
-                }
-                Log.i(TAG, "Runs in Adapter before Run deletion: " + mAdapter.getCount());
-                //Now order the Run to be deleted. The Adapter, Subtitle and Loader will get reset
-                //when the results of the Run deletion get reported to the ResultsReceiver
-                Log.i(TAG, "Trying to delete Run " + mRunId);
-                int locations = mRunManager.queryLocationsForRun(mRunId).getCount();
-                Log.i(TAG, "There are " + locations + " locations to be deleted for Run " + mRunId);
-                mAdapter.startUpdate(mViewPager);
-                TrackingLocationIntentService.startActionDeleteRun(this, mRunId);
+                //Bring up a dialog asking for confirmation of deletion of this Run, passing along
+                //identity of this Activity and that there's only one Run to be deleted so that
+                //the dialog's message will be correct.
+                Bundle bundle = new Bundle();
+                bundle.putInt(Constants.FRAGMENT, Constants.RUN_MAP_FRAGMENT);
+                bundle.putInt(Constants.NUMBER_OF_RUNS, 1);
+                DeleteRunsDialog dialog = new DeleteRunsDialog();
+                dialog.setArguments(bundle);
+                dialog.show(getSupportFragmentManager(), "DeleteDialog");
                 return true;
             //To change the sort order, set mSortOrder, store it to SharedPrefs, reinitialize the
             //adapter and subtitle and restart the RunListLoader
@@ -364,6 +396,40 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
         args = setupAdapterAndLoader();
         getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
         return true;
+    }
+
+    private void deleteRun(){
+        Log.i(TAG, "In Delete Run Menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
+        //First, stop location updates if the Run we're deleting is currently being tracked
+        if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))){
+            try {
+                mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
+            } catch (RemoteException e){
+                Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
+            }
+            mRunManager.stopRun();
+        }
+        Log.i(TAG, "Runs in Adapter before Run deletion: " + mAdapter.getCount());
+        //Now order the Run to be deleted. The Adapter, Subtitle and Loader will get reset
+        //when the results of the Run deletion get reported to the ResultsReceiver
+        Log.i(TAG, "Trying to delete Run " + mRunId);
+        int locations = mRunManager.queryLocationsForRun(mRunId).getCount();
+        Log.i(TAG, "There are " + locations + " locations to be deleted for Run " + mRunId);
+        mAdapter.startUpdate(mViewPager);
+        TrackingLocationIntentService.startActionDeleteRun(this, mRunId);
+    }
+
+    @Override
+    public void onDeleteRunsDialogPositiveClick(int which){
+        //Callback from dialog confirming deletion of the currently displayed Run
+        if (which == Constants.RUN_MAP_FRAGMENT) {
+            deleteRun();
+        }
+    }
+
+    @Override
+    public void onDeleteRunsDialogNegativeClick(int which){
+        //We need do nothing here, but the interface requires it to be implemented.
     }
 
     @Override
@@ -489,8 +555,8 @@ public class RunMapPagerActivity extends AppCompatActivity implements LoaderMana
                     if (actionAttempted.equals(Constants.ACTION_INSERT_RUN)) {
                         Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
                         if (run.getId() != -1) {
-                            //Now that the new Run has been added to the database, we need to reset
-                            //the Adapter, Subtitle and Loader.
+                            //Now that the new Run has been added to the database, we need to open
+                            //its RunFragment in the RunPagerActivity
                             mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, run.getId()).apply();
                             Log.i(TAG, "Got Run " + run.getId() + " in ResultsReceiver.");
                             Intent runPagerIntent = RunPagerActivity.newIntent(getApplicationContext(), Constants.KEEP_EXISTING_SORT, run.getId());

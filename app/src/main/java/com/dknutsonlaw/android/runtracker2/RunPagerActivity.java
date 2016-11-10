@@ -37,7 +37,9 @@ import java.lang.ref.WeakReference;
  * RunFragment in each of its pages.
  */
 @SuppressWarnings("ConstantConditions")
-public class RunPagerActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
+public class RunPagerActivity extends AppCompatActivity
+        implements LoaderManager.LoaderCallbacks<Cursor>,
+        DeleteRunsDialog.DeleteRunsDialogListener{
     private static final String TAG = "run_pager_activity";
 
     private RunManager mRunManager;
@@ -278,20 +280,21 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
         super.onCreateOptionsMenu(menu);
-        //mMenu = menu;
+        mMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.run_pager_options, menu);
-        //If we have fewer than two Runs, there's nothing to sort, so disable sort menu
         return true;
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu){
+        //Set menuItem to select distance measurement units according to its current setting
         if (mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)){
             menu.findItem(R.id.run_pager_menu_item_units).setTitle(R.string.imperial);
         } else {
             menu.findItem(R.id.run_pager_menu_item_units).setTitle(R.string.metric);
         }
+        //If we have fewer than two Runs, there's nothing to sort, so disable sort menu
         if (mAdapter.getCount() < 2){
             menu.findItem(R.id.run_pager_menu_item_sort_runs).setEnabled(false);
         } else {
@@ -307,17 +310,19 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
     public boolean onOptionsItemSelected(MenuItem item){
         Log.i(TAG, "In onOptionsItemSelected(), mRunId is " + mRunId);
         Bundle args;
-        //Create a new blank Run or change the sort order of the recorded Runs and the Activity's
-        //subtitle to match
         switch(item.getItemId()){
             case R.id.run_pager_menu_item_units:
+                //Swap distance measurement unit between imperial and metric
                 mRunManager.mPrefs.edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
                         !mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
+                //Send a broadcast to all open RunFragments will update their displays to show the
+                ///newly-selected distance measurement units.
                 Intent refreshIntent = new Intent(Constants.ACTION_REFRESH);
                 boolean receiver = LocalBroadcastManager.getInstance(this).sendBroadcast(refreshIntent);
                 if(!receiver){
                     Log.i(TAG, "No receiver for RunFragment REFRESH broadcast!");
                 }
+                invalidateOptionsMenu();
                 return true;
             case R.id.run_pager_menu_item_new_run:
                 Log.i(TAG, "In New Run menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
@@ -331,68 +336,80 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                 //action get reported to the ResultsReceiver
                 return true;
             case R.id.menu_item_pager_delete_run:
-                Log.i(TAG, "In Delete Run Menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
-                //First, stop location updates if the Run we're deleting is currently being tracked
-                if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))){
-                    try {
-                        mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
-                    } catch (RemoteException e){
-                        Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
-                    }
-                    mRunManager.stopRun();
-                    //We've stopped tracking any Run, so enable the "New Run" menu item.
-                    mMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(true);
-                }
-                Log.i(TAG, "Runs in Adapter before Run deletion: " + mAdapter.getCount());
-                //Now order the Run to be deleted. The Adapter, Subtitle and Loader will get reset
-                //when the results of the Run deletion get reported to the ResultsReceiver
-                Log.i(TAG, "Trying to delete Run " + mRunId);
-                int locations = mRunManager.queryLocationsForRun(mRunId).getCount();
-                Log.i(TAG, "There are " + locations + " locations to be deleted for Run " + mRunId);
-                mAdapter.startUpdate(mViewPager);
-                TrackingLocationIntentService.startActionDeleteRun(this, mRunId);
+                //Bring up a confirmation dialog to allow the user to change his mind about deletion.
+                //We pass along this Activity's identity and that only a single Run is to be deleted
+                //so the dialog message will be accurate.
+                Bundle bundle = new Bundle();
+                bundle.putInt(Constants.FRAGMENT, Constants.RUN_FRAGMENT);
+                bundle.putInt(Constants.NUMBER_OF_RUNS, 1);
+                DeleteRunsDialog dialog = new DeleteRunsDialog();
+                dialog.setArguments(bundle);
+                dialog.show(getSupportFragmentManager(), "DeleteDialog");
                 return true;
             //To change the sort order, set mSortOrder, store it to SharedPrefs, reinitialize the
             //adapter and subtitle and restart the RunListLoader
             case R.id.run_pager_menu_item_sort_by_date_asc:
                 mSortOrder = Constants.SORT_BY_DATE_ASC;
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_pager_menu_item_sort_by_date_desc:
                 mSortOrder = Constants.SORT_BY_DATE_DESC;
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_pager_menu_item_sort_by_distance_asc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_ASC;
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_pager_menu_item_sort_by_distance_desc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_DESC;
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_pager_menu_item_sort_by_duration_asc:
                 mSortOrder = Constants.SORT_BY_DURATION_ASC;
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_pager_menu_item_sort_by_duration_desc:
                 mSortOrder = Constants.SORT_BY_DURATION_DESC;
-                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
+        mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
+        args = setupAdapterAndLoader();
+        getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
+        return true;
+    }
+    //method that's called by onDeleteRunDialogPositiveClick callback confirming deletion.
+    private void deleteRun(){
+        Log.i(TAG, "In Delete Run Menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
+        //First, stop location updates if the Run we're deleting is currently being tracked
+        if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))){
+            try {
+                mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
+            } catch (RemoteException e){
+                Log.i(TAG, "Caught RemoteException while trying to send MESSAGE_STOP_LOCATION_UPDATES");
+            }
+            mRunManager.stopRun();
+            //We've stopped tracking any Run, so enable the "New Run" menu item.
+            mMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(true);
+        }
+        Log.i(TAG, "Runs in Adapter before Run deletion: " + mAdapter.getCount());
+        //Now order the Run to be deleted. The Adapter, Subtitle and Loader will get reset
+        //when the results of the Run deletion get reported to the ResultsReceiver
+        Log.i(TAG, "Trying to delete Run " + mRunId);
+        int locations = mRunManager.queryLocationsForRun(mRunId).getCount();
+        Log.i(TAG, "There are " + locations + " locations to be deleted for Run " + mRunId);
+        mAdapter.startUpdate(mViewPager);
+        TrackingLocationIntentService.startActionDeleteRun(this, mRunId);
+    }
+
+    @Override
+    public void onDeleteRunsDialogPositiveClick(int which){
+        //Check to see if this call from the dialog is for us; if so, delete the Run
+        if (which == Constants.RUN_FRAGMENT){
+            deleteRun();
+        }
+    }
+
+    @Override
+    public void onDeleteRunsDialogNegativeClick(int which){
+        //we don't need to do anything to cancel the deletion, but the interface requires that
+        //this method be implemented.
     }
 
     @Override
@@ -543,6 +560,8 @@ public class RunPagerActivity extends AppCompatActivity implements LoaderManager
                                     Toast.LENGTH_LONG).show();
                         }
                         Log.i(TAG, "in ResultsReceiver on Insert Run, Runs in adapter: " + mViewPager.getAdapter().getCount());
+                        //Now that the new Run has been entered into the database and the adapter
+                        //the ViewPager can finish the update its View
                         mAdapter.finishUpdate(mViewPager);
                         setViewPager((RunDatabaseHelper.RunCursor)mAdapter.getCursor(), mRunId);
                     } //ViewPager isn't interested in any other ACTION_ATTEMPTED, so no "else" clauses

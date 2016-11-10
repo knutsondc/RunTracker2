@@ -49,7 +49,6 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Locale;
 
 /**
  * Created by dck on 9/6/15.
@@ -57,6 +56,7 @@ import java.util.Locale;
  * A simple {@link android.app.Fragment} subclass to manage the tracking of a particular Run and display
  * statistics relating to the Run. This Fragment is used for both pre-recorded and on-going Runs.
  */
+@SuppressWarnings("Convert2Lambda")
 public class RunFragment extends Fragment {
     private static final String TAG = "RunFragment";
 
@@ -494,13 +494,9 @@ public class RunFragment extends Fragment {
                 }
                 Log.i(TAG, "In updateUI() section dealing with mLastLocation, mRunId is " + mRunId + " and mLastLocation is " + mLastLocation.toString());
                 mDurationTextView.setText(Run.formatDuration((int) (mRun.getDuration() / 1000)));
-                //Convert distance travelled from meters to miles and display to two decimal places
-                //double miles = mRun.getDistance() * Constants.METERS_TO_MILES;
-                //mDistanceCoveredTextView.setText(getString(R.string.miles_travelled_format, String.format(Locale.US, "%.2f", miles)));
                 mDistanceCoveredTextView.setText(mRunManager.formatDistance(mRun.getDistance()));
                 mEndingLatitudeTextView.setText(Location.convert(mLastLocation.getLatitude(), Location.FORMAT_SECONDS));
                 mEndingLongitudeTextView.setText(Location.convert(mLastLocation.getLongitude(), Location.FORMAT_SECONDS));
-                //mEndingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", (mLastLocation.getAltitude() * Constants.METERS_TO_FEET))));
                 mEndingAltitudeTextView.setText(mRunManager.formatAltitude(mLastLocation.getAltitude()));
                 mEndedTextView.setText(Constants.DATE_FORMAT.format(mLastLocation.getTime()));
                 mEndingAddressTextView.setText(mRun.getEndAddress());
@@ -515,6 +511,7 @@ public class RunFragment extends Fragment {
                 } else {
                     mBounds.including(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                 }
+                //Add this point to the collection of points for updating the polyline
                 mPoints.add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
             }
 

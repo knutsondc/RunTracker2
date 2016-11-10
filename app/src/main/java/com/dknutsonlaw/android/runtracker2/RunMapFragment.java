@@ -68,7 +68,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     private final RunManager mRunManager = RunManager.get(getActivity());
     private long mRunId;
     private Run mRun;
-    private GoogleMap mGoogleMap;
+    GoogleMap mGoogleMap;
     private MapView mMapView;
     private LoaderManager mLoaderManager;
     private Messenger mLocationService;
@@ -86,7 +86,6 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     private TextView mDistanceTextView;
     private TextView mDurationTextView;
     private Location mStartLocation, mLastLocation = null;
-    private double mDistanceTraveled = 0.0;
     private long mDurationMillis = 0;
     private boolean mPrepared = false;
     private boolean mIsBound = false;
@@ -273,11 +272,6 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
             Log.i(TAG, "Set End Date for Run #" + mRunId + " in setupWidgets as " + Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime()));
         //}
         mDistanceTextView = (TextView) rootView.findViewById(R.id.distanceTextView);
-        //mDistanceTraveled = mRunManager.getRun(mRunId).getDistance();
-        //mDistanceTextView.setText(getString(R.string.distance_traveled_format,
-        //        String.format(Locale.US, "%.2f", mDistanceTraveled * Constants.METERS_TO_MILES)));
-        //mDistanceTextView.setText(getString(R.string.distance_traveled_format,
-        //        String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES)));
         mDistanceTextView.setText(getString(R.string.distance_traveled_format, mRunManager.formatDistance(mRun.getDistance())));
         Log.i(TAG, "Set Distance Traveled for Run #" + mRunId + " in setupWidgets as " + String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES));
         mDurationTextView = (TextView) rootView.findViewById(R.id.durationTextView);
@@ -425,21 +419,21 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //Now that we've got a cursor holding all the location data for this run, we can process it.
         if (!mPrepared) {
             Log.i(TAG, "mPrepared is false for Run #" + mRunId + " - preparing map.");
-            //If mNeedToPrepare is true, the map graphic elements are being newly-
+            //If mPrepared is false, the map graphic elements are being newly-
             //created after the user presses the "Map" button, the MapFragment resumes after
             //the user comes back to the map, or the Activity has been destroyed in a configuration
             //change. Invoke the prepareMap() method to display adornments on the map
             //reflecting location data that's been previously recorded.
             prepareMap();
         } else {
+            //If mPrepared is true, we've already prepared the map, so we just need to update
+            //the Polyline, EndMarker, and mBounds based upon the latest location update. First,
+            //move to the last location update.
             updateMap();
         }
     }
-    public void updateMap(){
+    private void updateMap(){
         Log.i(TAG, "mPrepared is true for Run #" + mRunId + ".");
-        //If mNeedToPrepare is false, we've already prepared the map, so we just need to update
-        //the Polyline, EndMarker, and mBounds based upon the latest location update. First,
-        //move to the last location update.
         mLocationCursor.moveToLast();
         mLastLocation = mLocationCursor.getLocation();
         Log.i(TAG, "In onLoadFinished() for Run #" + mRunId +", is mLastLocation null? " + (mLastLocation == null));
@@ -480,8 +474,9 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         }
     }
 
-    public void updateTextViews(){
-        //Now update the TextViews
+    private void updateTextViews(){
+        //This is in a separate method so that we need call only this when changing between imperial
+        //and metric measures instead of the whole updateMap() method.
         String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
         mEndDateTextView.setText(getString(R.string.ended, endDate));
         mDistanceTextView.setText(getString(R.string.distance_traveled_format,
@@ -700,16 +695,6 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         }
     }
 
-    /* Instantiate the TextViews displaying the Start Date, End Date, Distance, and Duration that
-   * were defined in the *Activity's* xml layout file so they can "float" atop the View of the
-   * MapFragment itself. The java code for them is here because their content is derived from
-   * information developed in the MapFragment. The startDateTextview can be a local variable
-   * because its content will never change; the other TextViews need to be member variables because
-   * their content will get updated in the loader's onLoadFinished() method as each new location
-   * comes in during live update. Also set up an overlay on the map for this run's prerecorded
-   * locations.
-   */
-
     private CameraUpdate updateCamera(int mode, LatLng latLng) {
         //This method will be called after every location update and move the Camera location
         //according to the map updating mode selected by the user and the current location of
@@ -808,6 +793,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         public void onReceive(Context context, Intent intent){
 
             String action = intent.getAction();
+            //If mViewMode is changed for any RunMapFragment, a broadcast is sent to all RunMapFragments
+            //running will also change to the same view mode
             if (action.equals(Constants.ACTION_REFRESH_MAPS)){
                 long senderId = intent.getLongExtra(Constants.ARG_RUN_ID, -1);
                 if (senderId == mRunId){
@@ -816,6 +803,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                     mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.KEEP_EXISTING_SORT);
                     setTrackingMode();
                 }
+            //If the measurement system has changed, the textviews should be updated to display the newly chosen units.
             updateTextViews();
             } else {
                 Log.i(TAG, "Action isn't ACTION_REFRESH! How'd you get here!?!");

@@ -1,25 +1,21 @@
-<menu xmlns:tools="http://schemas.android.com/tools"
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
       xmlns:android="http://schemas.android.com/apk/res/android" >
     <item android:id="@+id/run_pager_menu_item_units"
-          android:icon="@android:drawable/ic_menu_preferences"
+          android:icon="@android:drawable/ic_menu_edit"
           android:title="@string/imperial"
-          android:showAsAction="ifRoom"
-          tools:ignore="AppCompatResource"/>
+          app:showAsAction="ifRoom"/>
     <item android:id="@+id/run_pager_menu_item_new_run"
           android:icon="@android:drawable/ic_menu_add"
           android:title="@string/new_run"
-          android:showAsAction="ifRoom|withText"
-          tools:ignore="AppCompatResource" />
+          app:showAsAction="ifRoom"/>
     <item android:id="@+id/menu_item_pager_delete_run"
           android:icon="@android:drawable/ic_menu_delete"
           android:title="@string/run_pager_delete_run"
-          android:showAsAction="ifRoom|withText"
-          tools:ignore="AppCompatResource"/>
+          app:showAsAction="ifRoom"/>
     <item android:id="@+id/run_pager_menu_item_sort_runs"
           android:icon="@android:drawable/ic_menu_sort_by_size"
           android:title="@string/sort"
-          android:showAsAction="ifRoom|withText"
-          tools:ignore="AppCompatResource">
+          app:showAsAction="ifRoom">
         <menu>
             <item
                 android:title="@string/by_date_asc"

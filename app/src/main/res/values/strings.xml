@@ -19,12 +19,12 @@
     <string name="list_duration_text">Duration: %1$s</string>
     <string name="new_run">New Run</string>
     <string name="sort">Sort Runs</string>
-    <string name="by_date_asc">By Date, Ascending</string>
-    <string name="by_date_desc">By Date, Descending</string>
-    <string name="by_distance_asc">By Distance, Ascending</string>
-    <string name="by_distance_desc">By Distance, Descending</string>
-    <string name="by_duration_asc">By Duration, Ascending</string>
-    <string name="by_duration_desc">By Duration, Descending</string>
+    <string name="by_date_asc">Ascending Date</string>
+    <string name="by_date_desc">Descending Date</string>
+    <string name="by_distance_asc">Ascending Distance</string>
+    <string name="by_distance_desc">Descending Distance</string>
+    <string name="by_duration_asc">Ascending Duration</string>
+    <string name="by_duration_desc">Descending Duration</string>
     <string name="no_runs_recorded">No Runs Recorded</string>
     <plurals name="viewpager_subtitle_date_asc">
         <item quantity="one">One Run</item>
@@ -32,47 +32,51 @@
     </plurals>
     <plurals name="recycler_subtitle_date_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs, Ascending by Date</item>
+        <item quantity="other">%1$d Runs, Asc. Date</item>
     </plurals>
     <plurals name="viewpager_subtitle_date_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Descending by Date</item>
+        <item quantity="other">Run %1$d of %2$d, Desc. Date</item>
     </plurals>
     <plurals name="recycler_subtitle_date_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs, Descending by Date</item>
+        <item quantity="other">%1$d Runs, Desc. Date</item>
     </plurals>
     <plurals name="viewpager_subtitle_distance_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Ascending by Distance</item>
+        <item quantity="other">Run %1$d of %2$d, Asc. Dist.</item>
     </plurals>
     <plurals name="recycler_subtitle_distance_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs, Ascending by Distance</item>
+        <item quantity="other">%1$d Runs, Asc. Dist.</item>
     </plurals>
     <plurals name="viewpager_subtitle_distance_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Descending by Distance</item>
+        <item quantity="other">Run %1$d of %2$d, Desc. Dist.</item>
     </plurals>
     <plurals name="recycler_subtitle_distance_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs, Descending by Distance</item>
+        <item quantity="other">%1$d Runs, Desc. Dist.</item>
     </plurals>
     <plurals name="viewpager_subtitle_duration_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Ascending by Duration</item>
+        <item quantity="other">Run %1$d of %2$d, Asc. Dur.</item>
     </plurals>
     <plurals name="recycler_subtitle_duration_asc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs, Ascending by Duration</item>
+        <item quantity="other">%1$d Runs, Asc. Dur.</item>
     </plurals>
     <plurals name="viewpager_subtitle_duration_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">Run %1$d of %2$d, Descending by Duration</item>
+        <item quantity="other">Run %1$d of %2$d, Desc. Dur.</item>
     </plurals>
     <plurals name="recycler_subtitle_duration_desc">
         <item quantity="one">One Run</item>
-        <item quantity="other">%1$d Runs, Descending by Duration</item>
+        <item quantity="other">%1$d Runs, Desc. Dur.</item>
+    </plurals>
+    <plurals name="deletion_dialog_message">
+        <item quantity="one">Delete this Run?</item>
+        <item quantity="other">Delete the %1$d selected Runs?</item>
     </plurals>
     <string name="goof_up">You must have goofed up somewhere!</string>
     <string name="no_runs">No runs are recorded. Get out and get moving! Press the button below or
@@ -87,8 +91,6 @@
     <string name="delete_run">Delete Run</string>
     <string name="run_pager_delete_run">Delete Run</string>
     <string name="distance_covered">Distance covered:</string>
-    <string name="miles_travelled_format">%s miles</string>
-    <string name="altitude_format">%s feet</string>
     <string name="current_location_too_distant">You are more than 100 meters from where this run
                     originally ended; you can\'t \"continue\" it from here. Cancelling further
                     tracking of this run.</string>
@@ -127,11 +129,12 @@
     <string name="empty_view_button_text">Press here to start recording a run!</string>
     <string name="connection_suspended_service_disconnected">GoogleApiClient connection suspended - Remote service disconnected! Trying to fix…</string>
     <string name="connection_suspended_network_lost">GoogleApiClient suspended - network connection lost! Trying to fix …</string>
-    <string name="alert_dialog_title">This app needs location access</string>
-    <string name="alert_dialog_message">Please grant location access so this app can track your runs!</string>
     <string name="functionality_limited">Functionality limited</string>
     <string name="no_tracking">Because location access has not been granted, this app will not be able to track new runs.</string>
     <string name="run_list_run_number">Run #%1$d, RunID #%2$d</string>
-    <string name="imperial">Switch to Metric Distances</string>
-    <string name="metric">Switch to Imperial Distances</string>
+    <string name="imperial">Switch to Metric</string>
+    <string name="metric">Switch to Imperial</string>
+    <string name="map_scrolling_on">Turn Scrolling On</string>
+    <string name="map_scrolling_off">Turn Scrolling Off</string>
+    <string name="settings_menu">Settings</string>
 </resources>
