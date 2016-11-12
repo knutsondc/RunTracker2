@@ -139,17 +139,6 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         if (args != null) {
             mRunId = args.getLong(Constants.ARG_RUN_ID, -1);
             mRun = mRunManager.getRun(mRunId);
-            try {
-                mPoints = new ArrayList<>(mRunManager.retrievePoints(mRunId));
-                Log.i(TAG, "For Run #" + mRunId + " mPoints retrieved.");
-            } catch (NullPointerException e){
-                mPoints = new ArrayList<>();
-                Log.i(TAG, "For Run #" + mRunId + " created new ArrayList<LatLng> for mPoints.");
-            }
-
-            mBounds = mRunManager.retrieveBounds(mRunId);
-
-            Log.i(TAG, "In onCreate for Run #" + mRunId +" is mBounds null? " + (mBounds == null));
         }
         mIntentFilter = new IntentFilter(Constants.ACTION_REFRESH_MAPS);
         mResultsReceiver = new ResultsReceiver();
@@ -359,6 +348,17 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         Log.i(TAG, "onResume() called for Run #" + mRunId + ".");
         mMapView.onResume();
         mBroadcastManager.registerReceiver(mResultsReceiver, mIntentFilter);
+        try {
+            mPoints = new ArrayList<>(mRunManager.retrievePoints(mRunId));
+            Log.i(TAG, "For Run #" + mRunId + " mPoints retrieved.");
+        } catch (NullPointerException e){
+            mPoints = new ArrayList<>();
+            Log.i(TAG, "For Run #" + mRunId + " created new ArrayList<LatLng> for mPoints.");
+        }
+
+        mBounds = mRunManager.retrieveBounds(mRunId);
+
+        Log.i(TAG, "In onCreate for Run #" + mRunId +" is mBounds null? " + (mBounds == null));
         mPrepared = false;
     }
 
@@ -800,7 +800,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                 if (senderId == mRunId){
                     Log.i(TAG, "This is a message this fragment sent - we've already switched tracking mode.");
                 } else {
-                    mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.KEEP_EXISTING_SORT);
+                    mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.SHOW_ENTIRE_ROUTE);
                     setTrackingMode();
                 }
             //If the measurement system has changed, the textviews should be updated to display the newly chosen units.

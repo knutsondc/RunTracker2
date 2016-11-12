@@ -28,7 +28,7 @@ public class TrackingLocationIntentService extends IntentService{
     private static final String TAG = "IntentService";
 
     //Fetch the singleton RunManager so we can use our one RunDatabaseHelper, which is a member
-    //variable of the singleton RunManager, and its mAppContext member variable
+    //variable of the singleton RunManager, and RunManager's mAppContext member variable
     private final RunManager mRunManager = RunManager.get(this);
     //We use local broadcasts to transmit results of the IntentService's actions back
     //to the UI fragments.
@@ -220,12 +220,13 @@ public class TrackingLocationIntentService extends IntentService{
         //created from the the RunRecyclerListFragment, the intent will return the Run to the
         //RunRecyclerListFragment, which will start the RunPagerActivity with the new Run's
         //RunId as an argument to set the current item for the ViewPager. If the new Run is created
-        //from the RunPagerActivity, the intent will be returned there and the RunId will again be
-        //used to set the current item for the ViewPager. The ViewPager will load the RunFragment
-        //for the new Run where the user can hit the Start button to begin tracking the Run, which
-        //will start the loaders for the run and set a Notification. The cursor loaders for the
-        //RunPagerActivity and the RunRecyclerListFragment automatically update when the new Run is
-        //added to the Run table in the database.
+        //from the RunPagerActivity or the RunMapPPagerActivity, the intent will be returned to the
+        //RunPagerActivity and the RunId will again be used to set the current item for the
+        //ViewPager. The ViewPager will load the RunFragment for the new Run where the user can hit
+        //the Start button to begin tracking the Run, which will start the loaders for the run and
+        //set a Notification. The cursor loaders for the RunPagerActivity and the
+        //RunRecyclerListFragment automatically update when the new Run is added to the Run table in
+        //the database.
         Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
                 .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_INSERT_RUN)
                 .putExtra(Constants.EXTENDED_RESULTS_DATA, run);
@@ -248,13 +249,13 @@ public class TrackingLocationIntentService extends IntentService{
         if (result[Constants.CONTINUATION_LIMIT_RESULT] == -1 ||
             result[Constants.RUN_UPDATE_RESULT] == -1 ||
             result[Constants.LOCATION_INSERTION_RESULT] == -1) {
-            //Create an Intent with Extras to report the results of the operation to the RunFragment
-            //UI and advise the user if there was an error. The RunFragment, RunRecyclerListFragment
+            //Create an Intent with Extras to report the results of the operation to the CombinedRunFragment
+            //UI and advise the user if there was an error. The CombinedRunFragment, RunRecyclerListFragment
             //and RunMapFragment UIs get the new data fed to them automatically by loaders.
             Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
                     .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_INSERT_LOCATION)
                     .putExtra(Constants.EXTENDED_RESULTS_DATA, result);
-            //Broadcast the Intent so that the RunFragment UI can receive the result
+            //Broadcast the Intent so that the CombinedRunFragment UI can receive the result
             boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
             if (!receiver)
                 Log.i(TAG, "No receiver for Insert Location responseIntent!");
@@ -273,7 +274,7 @@ public class TrackingLocationIntentService extends IntentService{
         //This operation should always update only one row of the Run table, so if result is anything
         //other than 1, report the result to the UI fragments.
         if (result != 1) {
-            //Create an Intent with Extras to report the results of the operation to the RunFragment
+            //Create an Intent with Extras to report the results of the operation to the CombinedRunFragment
             //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
             //loader to get this data.
             Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
@@ -305,7 +306,7 @@ public class TrackingLocationIntentService extends IntentService{
         //This operation should only affect one row of the Run table, so report any result other
         //than 1 back to the UI fragments.
         if (result != 1) {
-            //Create an Intent with Extras to report the results of the operation to the RunFragment
+            //Create an Intent with Extras to report the results of the operation to the CombinedRunFragment
             //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
             //loader to get this data.
             Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
@@ -357,7 +358,7 @@ public class TrackingLocationIntentService extends IntentService{
         //This operation should always affect only one row of the Run table, so report any result
         //other than 1 back to the UI fragments.
         if (result != 1) {
-            //Create an Intent with Extras to report the results of the operation to the RunFragment
+            //Create an Intent with Extras to report the results of the operation to the CombinedRunFragment
             //UI where the relevant loaders can be restarted. RunRecyclerListFragment relies on its cursor
             //loader to get this data.
             Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
@@ -405,7 +406,7 @@ public class TrackingLocationIntentService extends IntentService{
         //Create an Intent with Extras to report the results of the operation
         //This Intent is aimed at a different Activity/Fragment, the RunRecyclerListFragment,
         //so it has a different Action specified. All the others are directed at
-        //the RunFragment. The RunRecyclerListFragment needs to get this broadcast so it can
+        //the CombinedRunFragment. The RunRecyclerListFragment needs to get this broadcast so it can
         //display the results of the delete operation in a Toast; its RecyclerView will
         //update automatically by operation of its cursor loader.
         Intent responseIntent = new Intent(Constants.ACTION_DELETE_RUNS)
@@ -427,7 +428,7 @@ public class TrackingLocationIntentService extends IntentService{
         //            " locations deleted.");
         Intent responseIntent = new Intent(Constants.ACTION_DELETE_RUN)
                 .putExtra(Constants.EXTENDED_RESULTS_DATA, results)
-                //Put the runId here so the RunFragment of the Run being deleted can know to call
+                //Put the runId here so the CombinedRunFragment of the Run being deleted can know to call
                 //finish()
                 .putExtra(Constants.PARAM_RUN, runId);
         boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);

@@ -34,7 +34,7 @@ import java.lang.ref.WeakReference;
 
 /**
  * Created by dck on 9/7/15. Display all the Runs we've recorded in a ViewPager that displays a
- * RunFragment in each of its pages.
+ * CombinedRunFragment in each of its pages.
  */
 @SuppressWarnings("ConstantConditions")
 public class RunPagerActivity extends AppCompatActivity
@@ -49,12 +49,12 @@ public class RunPagerActivity extends AppCompatActivity
     private final Messenger mMessenger = new Messenger(new IncomingMessenger(this));
     private Messenger mLocationService = null;
     private Menu mMenu;
-    //Custom Adapter to feed RunFragments to the ViewPager
+    //Custom Adapter to feed CombinedRunFragments to the ViewPager
     private RunCursorFragmentStatePagerAdapter mAdapter;
     private long mRunId = -1;
     //Set a default sort order
     private int mSortOrder = Constants.SORT_BY_DATE_DESC;
-    //Static method to invoke this Activity and cause it to make the designated RunFragment the
+    //Static method to invoke this Activity and cause it to make the designated CombinedRunFragment the
     //current view in the ViewPager
     public static Intent newIntent(Context packageContext, int sortOrder, long runId){
         Intent intent = new Intent(packageContext, RunPagerActivity.class);
@@ -88,7 +88,7 @@ public class RunPagerActivity extends AppCompatActivity
         public void onPageSelected(int position) {
             //Make sure that mRunId is always equal to the run id of the currently viewed
             //RunFragment as we page through them.
-            RunFragment fragment = (RunFragment)mAdapter.getItem(position);
+            CombinedRunFragment fragment = (CombinedRunFragment)mAdapter.getItem(position);
             mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID, -1);
             mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
             //Keep the currently displayed Run's position in the ViewPager and Adapter so the
@@ -115,7 +115,7 @@ public class RunPagerActivity extends AppCompatActivity
 
 
         mRunManager = RunManager.get(this);
-        //The sort order and the Id of the RunFragment to make the current view in the ViewPager are
+        //The sort order and the Id of the CombinedRunFragment to make the current view in the ViewPager are
         //the critical initialization variable, so either retrieve them from the Intent that started
         //this Activity or retrieve them from the savedInstanceState Bundle.
         if (savedInstanceState != null) {
@@ -177,7 +177,7 @@ public class RunPagerActivity extends AppCompatActivity
         }
         mAdapter = new RunCursorFragmentStatePagerAdapter(this, getSupportFragmentManager(), cursor);
         mViewPager.setAdapter(mAdapter);
-        //Make sure the ViewPager makes the designated Run's RunFragment the current view
+        //Make sure the ViewPager makes the designated Run's CombinedRunFragment the current view
         setViewPager((RunDatabaseHelper.RunCursor) mAdapter.getCursor(), mRunId);
         setSubtitle();
         //If there aren't any Runs left to display, close this Activity and go back to the RunRecyclerList
@@ -315,12 +315,12 @@ public class RunPagerActivity extends AppCompatActivity
                 //Swap distance measurement unit between imperial and metric
                 mRunManager.mPrefs.edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
                         !mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
-                //Send a broadcast to all open RunFragments will update their displays to show the
+                //Send a broadcast to all open CombinedRunFragments will update their displays to show the
                 ///newly-selected distance measurement units.
-                Intent refreshIntent = new Intent(Constants.ACTION_REFRESH);
+                Intent refreshIntent = new Intent(Constants.ACTION_REFRESH_UNITS);
                 boolean receiver = LocalBroadcastManager.getInstance(this).sendBroadcast(refreshIntent);
                 if(!receiver){
-                    Log.i(TAG, "No receiver for RunFragment REFRESH broadcast!");
+                    Log.i(TAG, "No receiver for CombinedRunFragment REFRESH broadcast!");
                 }
                 invalidateOptionsMenu();
                 return true;
@@ -468,15 +468,15 @@ public class RunPagerActivity extends AppCompatActivity
         }
     }
 
-    //setResolutionForResult() gets called from the currently displayed RunFragment, but the result
+    //setResolutionForResult() gets called from the currently displayed CombinedRunFragment, but the result
     //of that call is delivered to the Activity in this callback. This method uses the SparseArray
-    //associating RunIds with the RunFragments in the Adapter to get a reference to the currently
-    //displayed RunFragment and then forwards the results it received to the onActivityResult()
-    //method of that RunFragment
+    //associating RunIds with the CombinedRunFragments in the Adapter to get a reference to the currently
+    //displayed CombinedRunFragment and then forwards the results it received to the onActivityResult()
+    //method of that CombinedRunFragment
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data){
 
-        RunFragment fragment = (RunFragment)mAdapter.getRegisteredFragment(mViewPager.getCurrentItem());
+        CombinedRunFragment fragment = (CombinedRunFragment)mAdapter.getRegisteredFragment(mViewPager.getCurrentItem());
         fragment.onActivityResult(requestCode, resultCode, data);
     }
 
@@ -484,19 +484,19 @@ public class RunPagerActivity extends AppCompatActivity
         return mAdapter;
     }
 
-    //Custom adapter to feed RunFragments to the ViewPager
+    //Custom adapter to feed CombinedRunFragments to the ViewPager
     protected class RunCursorFragmentStatePagerAdapter extends CursorFragmentStatePagerAdapter{
 
         RunCursorFragmentStatePagerAdapter(Context context, FragmentManager fm, Cursor cursor){
             super(context, fm, cursor);
         }
-        //Pull a Run from the supplied cursor and retrieve a RunFragment for it using its RunId
+        //Pull a Run from the supplied cursor and retrieve a CombinedRunFragment for it using its RunId
         @Override
         public Fragment getItem(Context context, Cursor cursor){
             RunDatabaseHelper.RunCursor runCursor = (RunDatabaseHelper.RunCursor)cursor;
             long runId = runCursor.getRun().getId();
             if (runId != -1){
-                return RunFragment.newInstance(runId);
+                return CombinedRunFragment.newInstance(runId);
             } else {
                 //We should never get here - Runs are assigned a RunId as soon as they get created and
                 //before they get added to the ViewPager, but we have return something in an "else"
@@ -622,13 +622,13 @@ public class RunPagerActivity extends AppCompatActivity
                             if (currentPosition < mViewPager.getChildCount() - 1) {
                                 int index = currentPosition + 1;
                                 mViewPager.setCurrentItem(index);
-                                RunFragment fragment = (RunFragment) mAdapter.getItem(index);
+                                CombinedRunFragment fragment = (CombinedRunFragment) mAdapter.getItem(index);
                                 mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID);
                                 Log.i(TAG, "After Run deletion, we moved UP one position and RunId is " + mRunId);
                             } else {
                                 int index = currentPosition - 1;
                                 mViewPager.setCurrentItem(index);
-                                RunFragment fragment = (RunFragment)mAdapter.getItem(index);
+                                CombinedRunFragment fragment = (CombinedRunFragment)mAdapter.getItem(index);
                                 mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID);
                                 Log.i(TAG, "After Run deletion, we moved DOWN one position and RunId is " + mRunId);
                             }

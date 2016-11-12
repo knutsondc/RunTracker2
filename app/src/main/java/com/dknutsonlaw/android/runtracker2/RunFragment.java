@@ -65,7 +65,6 @@ public class RunFragment extends Fragment {
     private Run mRun;
     private long mRunId;
     private Location mStartLocation, mLastLocation = null;
-    //private TestButton mStartButton;
     private Button mStartButton, mStopButton, mMapButton;
     private TextView mStartedTextView, mStartingLatitudeTextView,
             mStartingLongitudeTextView, mStartingAltitudeTextView, mStartingAddressTextView,
@@ -1038,7 +1037,7 @@ public class RunFragment extends Fragment {
                     case Constants.MESSAGE_LOCATION_UPDATES_STOPPED:
                         Log.i(TAG, "Received MESSAGE_LOCATION_UPDATES_STOPPED");
                         fragment.updateOnStoppingLocationUpdates();
-                        //fragment.updateOnStoppingLocationUpdates();
+                        //fragment.updatepingLocationUpdates();
                         break;
                     default:
                         break;

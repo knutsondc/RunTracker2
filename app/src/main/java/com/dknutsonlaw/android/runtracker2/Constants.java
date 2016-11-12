@@ -64,6 +64,7 @@ final class Constants {
     static final int MESSENGER_RUNMAPFRAGMENT = 2;
     static final int MESSENGER_RUNPAGERACTIVITY = 3;
     static final int MESSENGER_RUNMAPPAGERACTIVITY = 4;
+    static final int MESSENGER_COMBINEDRUNFRAGMENT = 5;
     //MapView Menu selection item in RunMapFragment
     static final int NO_UPDATES = 3;
     //Label for BackgroundLocationService to tell the UI Fragment that Location Permissions needed
@@ -112,11 +113,13 @@ final class Constants {
     static final String ACTION_INSERT_RUN =
             "com.dknutsonlaw.android.runtracker.action.insert.run";
     static final String ACTION_LOCATION =
-            "com.dknutsonlaw.android.runtracker2.ACTION_LOCATION";
+            "com.dknutsonlaw.android.runtracker2.action.location";
     static final String ACTION_REFRESH =
-            "com.dknutsonlaw.android.runtracker2.ACTION_REFRESH";
+            "com.dknutsonlaw.android.runtracker2.action.refresh";
     static final String ACTION_REFRESH_MAPS =
             "com.dknutsonlaw.android.runtracker2.action.refresh.maps";
+    static final String ACTION_REFRESH_UNITS =
+            "com.dknutsonlaw.android.runtracker2.action.refresh.units";
     static final String ACTION_UPDATE_END_ADDRESS =
             "com.dknutsonlaw.android.runtracker.action.update.end.address";
     static final String ACTION_UPDATE_START_ADDRESS =

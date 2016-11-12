@@ -28,6 +28,7 @@ public class TrackingLocationReceiver extends LocationReceiver {
 
     @Override
     protected void onLocationReceived(Context c, Location loc) {
+       Log.i(TAG, "Received a location object");
        if (loc.getAccuracy() == 0.0) {
             Log.i(TAG, "Location rejected - no accuracy value");
        } else if(loc.getAltitude() == 0.0){
