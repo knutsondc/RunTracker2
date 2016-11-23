@@ -87,16 +87,19 @@ public class RunManager {
         //Give the user a notice that a run is being tracked that will be available even
         //if the UI isn't visible.
         createNotification(context);
+        startUpdatingEndAddress(context);
     }
 
     //Set up a scheduled thread pool executor and a task to schedule on it for updating Ending
     //Addresses every 5 seconds. Initial call comes in 15 seconds to make sure a new run gets
     //properly initialized in time so the first call won't fail and suppress ALL subsequent
     //calls for the scheduled task.
-    void startUpdatingEndAddress(Context context){
+    private void startUpdatingEndAddress(Context context){
         Log.i(TAG, "Reached startUpdatingEndAddress() for Run " + mCurrentRunId);
-        if (!isTrackingRun(getRun(mCurrentRunId)))
+        if (!isTrackingRun(getRun(mCurrentRunId))) {
+            Log.i(TAG, "In startUpdatingEndAddress, returned because not tracking current run");
             return;
+        }
         try {
             //mStpe = new ScheduledThreadPoolExecutor(3, /* mCrp */ new ThreadPoolExecutor.CallerRunsPolicy());
             //Sometimes this method gets called multiple times on a single press of the Start Button,

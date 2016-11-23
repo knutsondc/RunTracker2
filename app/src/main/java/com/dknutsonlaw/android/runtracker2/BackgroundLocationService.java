@@ -52,9 +52,11 @@ public class BackgroundLocationService extends Service implements
     }*/
 
     private final Messenger mMessenger = new Messenger(new IncomingHandler(this));
-    private static Messenger sCombinedRunFragmentMessenger = null;
     private static Messenger sRecyclerFragmentMessenger = null;
     private static Messenger sRunPagerActivityMessenger = null;
+    private static Messenger sCombinedFragmentMessenger = null;
+    //private static Messenger sRunFragmentMessenger = null;
+    //private static Messenger sRunMapFragmentMessenger = null;
     //private final IBinder mBinder = new LocalBinder();
     //private final RunManager mRunManager = RunManager.get(this);
     private final GoogleApiAvailability mGoogleApiAvailability = GoogleApiAvailability.getInstance();
@@ -129,7 +131,7 @@ public class BackgroundLocationService extends Service implements
         sLocationRequest = LocationRequest.create();
         //Use high accuracy
         sLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        sLocationRequest.setInterval(2000);
+        sLocationRequest.setInterval(1000);
     }
 
     private void buildLocationSettingsRequest(){
@@ -165,17 +167,23 @@ public class BackgroundLocationService extends Service implements
                         Log.i(TAG, "Location settings are not satisfied. Show the user a dialog to " +
                                 "update location settings.");
                         try {
-                            sCombinedRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED, locationSettingsResult));
+                            sCombinedFragmentMessenger.send(Message.obtain(null,
+                                    Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED,
+                                    locationSettingsResult));
                         } catch (RemoteException e) {
-                            Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED to RunFragment.");
+                            Log.i(TAG, "RemoteException thrown while trying to send " +
+                                    "MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED to RunFragment.");
                         }
                         break;
                     case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                        Log.i(TAG, "Location settings are inadequate and cannot be fixed here. Dialog not created.");
+                        Log.i(TAG, "Location settings are inadequate and cannot be fixed here. " +
+                                "Dialog not created.");
                         try {
-                            sCombinedRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE));
+                            sCombinedFragmentMessenger.send(Message.obtain(null,
+                                    Constants.MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE));
                         } catch (RemoteException e) {
-                            Log.i(TAG, "RemoteException thrown while trying to send MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE to RunFragment.");
+                            Log.i(TAG, "RemoteException thrown while trying to send " +
+                                    "MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE to RunFragment.");
                         }
                         break;
                 }
@@ -227,10 +235,10 @@ public class BackgroundLocationService extends Service implements
                         Log.i(TAG, "Reached OnResultCallback<Status> for location updates");
                         if (status.isSuccess()) {
                             Log.i(TAG, "ResultCallback<Status> status is Success.");
-                            if (sRunPagerActivityMessenger != null && sCombinedRunFragmentMessenger != null) {
+                            if (sRunPagerActivityMessenger != null && sCombinedFragmentMessenger != null) {
                                 try {
                                     sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
-                                    sCombinedRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
+                                    sCombinedFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STARTED));
                                 } catch (RemoteException e) {
                                     Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STARTED.");
                                 }
@@ -265,7 +273,7 @@ public class BackgroundLocationService extends Service implements
                         }
                         try {
                             sRunPagerActivityMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
-                            sCombinedRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
+                            sCombinedFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_LOCATION_UPDATES_STOPPED));
                         } catch (RemoteException e){
                             Log.i(TAG, "Caught RemoteException trying to send MESSAGE_LOCATION_UPDATES_STOPPED");
                         }
@@ -301,30 +309,36 @@ public class BackgroundLocationService extends Service implements
         //Display connection status and report the cause to the UI Fragments
         if (cause == CAUSE_NETWORK_LOST){
             try {
-                if (sCombinedRunFragmentMessenger != null) {
-                    sCombinedRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_NETWORK_LOST, 0));
+                if (sCombinedFragmentMessenger != null) {
+                    sCombinedFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_NETWORK_LOST, 0));
+                }
+                if (sCombinedFragmentMessenger != null){
+                    sCombinedFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_NETWORK_LOST, 0));
                 }
                 if (sRecyclerFragmentMessenger != null) {
                     sRecyclerFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_NETWORK_LOST, 0));
                 }
             } catch (RemoteException e){
                 Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_NETWORK_LOST" +
-                        "to CombinedRunFragment and RunRecyclerListFragment");
+                        "to CombinedFragment and RunRecyclerListFragment");
             }
             Log.i(TAG, "GoogleApiClient connection suspended - network connection lost!");
         }
         if (cause == CAUSE_SERVICE_DISCONNECTED){
             Log.i(TAG, "GoogleApiClient connection suspended - remote service killed!");
             try {
-                if (sCombinedRunFragmentMessenger != null) {
-                    sCombinedRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_SERVICE_DISCONNECTED, 0));
+                if (sCombinedFragmentMessenger != null) {
+                    sCombinedFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_SERVICE_DISCONNECTED, 0));
+                }
+                if (sCombinedFragmentMessenger != null){
+                    sCombinedFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_SERVICE_DISCONNECTED, 0));
                 }
                 if (sRecyclerFragmentMessenger != null) {
                     sRecyclerFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_SERVICE_DISCONNECTED, 0));
                 }
             } catch (RemoteException e){
                 Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED, CAUSE_SERVICE_DISCONNECTED" +
-                        "to CombinedRunFragment and RunRecyclerListFragment");
+                        "to CombinedFragment and RunRecyclerListFragment");
             }
         }
     }
@@ -339,15 +353,15 @@ public class BackgroundLocationService extends Service implements
          * start an Activity that in turn will start a Google Play
          * services activity that can resolve the error.*/
             try {
-                sCombinedRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_FAILED, connectionResult));
+                sCombinedFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_FAILED, connectionResult));
                 sRecyclerFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_FAILED, connectionResult));
             } catch (RemoteException e) {
                 Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_GOOGLEAPICLIENT_CONNECTION_FAILED" +
-                        "to CombinedRunFragment and RunRecyclerListFragment");
+                        "to CombinedFragment and RunRecyclerListFragment");
             }
         } else {
             try {
-                sCombinedRunFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_PLAY_SERVICES_ERROR_DIALOG_REQUEST, connectionResult.getErrorCode(), 0));
+                sCombinedFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_PLAY_SERVICES_ERROR_DIALOG_REQUEST, connectionResult.getErrorCode(), 0));
                 sRecyclerFragmentMessenger.send(Message.obtain(null, Constants.MESSAGE_PLAY_SERVICES_ERROR_DIALOG_REQUEST, connectionResult.getErrorCode(), 0));
             } catch (RemoteException e){
                 Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_PLAY_SERVICES_ERROR_DIALOG_REQUEST" +
@@ -378,27 +392,21 @@ public class BackgroundLocationService extends Service implements
                 switch (msg.what) {
                     case Constants.MESSAGE_REGISTER_CLIENT:
                         switch (msg.arg1) {
-                            case Constants.MESSENGER_COMBINEDRUNFRAGMENT:
-                                sCombinedRunFragmentMessenger = msg.replyTo;
-                                Log.i(TAG, "CombinedRunFragment bound");
-                                if (!sClient.isConnected()) {
-                                    sClient.connect();
-                                }
+                            case Constants.MESSENGER_COMBINEDFRAGMENT:
+                                sCombinedFragmentMessenger = msg.replyTo;
+                                Log.i(TAG, "CombinedFragment bound");
                                 break;
                             case Constants.MESSENGER_RECYCLERFRAGMENT:
                                 sRecyclerFragmentMessenger = msg.replyTo;
                                 Log.i(TAG, "RunRecyclerFragment bound.");
-                                if (!sClient.isConnected()) {
-                                    sClient.connect();
-                                }
                                 break;
                             case Constants.MESSENGER_RUNPAGERACTIVITY:
                                 sRunPagerActivityMessenger = msg.replyTo;
                                 Log.i(TAG, "RunPagerActivity bound");
-                                if (!sClient.isConnected()) {
-                                    sClient.connect();
-                                }
                                 break;
+                        }
+                        if (sClient != null && !sClient.isConnected()) {
+                            sClient.connect();
                         }
                         break;
                     case Constants.MESSAGE_START_LOCATION_UPDATES:

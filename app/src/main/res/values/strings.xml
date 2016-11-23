@@ -4,12 +4,15 @@
     <string name="app_name">RunTracker2</string>
     <string name="run_fragment_started">Started:</string>
     <string name="started">Started: %1$s</string>
+    <string name="position">%1$s Lat., %2$s Long.</string>
+    <string name="starting_position">Starting Lat/Long:</string>
     <string name="starting_latitude">Starting Latitude:</string>
     <string name="starting_longitude">Starting Longitude:</string>
     <string name="starting_altitude">Starting Altitude:</string>
     <string name="elapsed_time">Elapsed Time:</string>
     <string name="run_fragment_ended">Ended:</string>
     <string name="ended">Ended: %1$s</string>
+    <string name="ending_position">Ending Lat/Long:</string>
     <string name="ending_latitude">Ending Latitude:</string>
     <string name="ending_longitude">Ending Longitude:</string>
     <string name="ending_altitude">Ending Altitude:</string>

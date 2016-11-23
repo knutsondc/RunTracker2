@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.IntentSender;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Handler;
@@ -24,14 +25,10 @@ import android.content.IntentFilter;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.NavUtils;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -65,13 +62,13 @@ public class RunFragment extends Fragment {
     private Run mRun;
     private long mRunId;
     private Location mStartLocation, mLastLocation = null;
-    private Button mStartButton, mStopButton, mMapButton;
-    private TextView mStartedTextView, mStartingLatitudeTextView,
-            mStartingLongitudeTextView, mStartingAltitudeTextView, mStartingAddressTextView,
-            mEndedTextView, mEndingLatitudeTextView, mEndingLongitudeTextView,
+    private Button mStartButton, mStopButton;
+    private TextView mStartedTextView, mStartingPointTextView,
+            mStartingAltitudeTextView, mStartingAddressTextView,
+            mEndedTextView, mEndingPointTextView,
             mEndingAltitudeTextView, mEndingAddressTextView, mDurationTextView,
-            mDistanceCoveredTextView, mRunIdTextView;
-    private Menu mOptionsMenu;
+            mDistanceCoveredTextView;
+    //private Menu mOptionsMenu;
     private LoaderManager mLoaderManager;
     //We load two data objects in this Fragment, the Run and its last location, so we set up a
     //loader for a cursor of each of them so that the loading takes place on a different thread.
@@ -90,9 +87,14 @@ public class RunFragment extends Fragment {
     private LatLngBounds mBounds = null;
     private final LatLngBounds.Builder mBuilder = new LatLngBounds.Builder();
     private boolean mStarted = false;
+    private boolean mMapReady = false;
+    private ReadyForMap mReadyForMap;
     private boolean mIsTrackingThisRun =false;
     private boolean mIsBound = false;
-    private boolean mEndAddressUpdating = false;
+
+    public interface ReadyForMap{
+        void onReadyForMap(long runId);
+    }
 
     private final ServiceConnection mLocationServiceConnection = new ServiceConnection() {
         @Override
@@ -148,7 +150,7 @@ public class RunFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
+        //setHasOptionsMenu(true);
         //It's easier to keep the connection to the BackgroundLocationService by retaining the fragment
         //instance than any other method I've found
         setRetainInstance(true);
@@ -193,7 +195,7 @@ public class RunFragment extends Fragment {
         //Set up Broadcast Receiver to get reports of results from TrackingLocationIntentService
         //First set up the IntentFilter for the Receiver so it will receive the Intents intended for it
         mResultsFilter = new IntentFilter(Constants.SEND_RESULT_ACTION);
-        mResultsFilter.addAction(Constants.ACTION_REFRESH);
+        mResultsFilter.addAction(Constants.ACTION_REFRESH_UNITS);
         //Now instantiate the Broadcast Receiver
         mResultsReceiver = new ResultsReceiver();
     }
@@ -227,24 +229,34 @@ public class RunFragment extends Fragment {
     }
 
     @Override
+    public void onAttach(Context context){
+        super.onAttach(context);
+        // This makes sure that the container activity has implemented
+        // the callback interface. If not, it throws an exception
+        try {
+            mReadyForMap = (ReadyForMap)context;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(context.toString()
+                    + " must implement ReadyForMap");
+        }
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Resources r = getResources();
         Log.i(TAG, "Called onCreateView() for Run " + mRunId);
         View v = inflater.inflate(R.layout.fragment_run, container, false);
-
         mStartedTextView = (TextView) v.findViewById(R.id.run_startedTextView);
-        mStartingLatitudeTextView = (TextView) v.findViewById(R.id.run_starting_latitudeTextView);
-        mStartingLongitudeTextView = (TextView) v.findViewById(R.id.run_starting_longitudeTextView);
+        mStartingPointTextView = (TextView) v.findViewById(R.id.run_starting_pointTextView);
         mStartingAltitudeTextView = (TextView) v.findViewById(R.id.run__starting_altitudeTextView);
         mStartingAddressTextView = (TextView) v.findViewById(R.id.run_starting_addressTextView);
 
         mEndedTextView = (TextView) v.findViewById(R.id.run_endedTextView);
-        mEndingLatitudeTextView = (TextView) v.findViewById(R.id.run_ending_latitudeTextView);
-        mEndingLongitudeTextView = (TextView) v.findViewById(R.id.run_ending_longitudeTextView);
+        mEndingPointTextView = (TextView) v.findViewById(R.id.ending_pointTextView);
         mEndingAltitudeTextView = (TextView) v.findViewById(R.id.run__ending_altitudeTextView);
         mEndingAddressTextView = (TextView) v.findViewById(R.id.run_ending_address_TextView);
         mDurationTextView = (TextView) v.findViewById(R.id.run_durationTextView);
         mDistanceCoveredTextView = (TextView) v.findViewById(R.id.distance_coveredTextView);
-        mRunIdTextView = (TextView) v.findViewById(R.id.runIdTextView);
 
         mStartButton = (Button) v.findViewById(R.id.run_startButton);
         mStartButton.setOnClickListener(new View.OnClickListener() {
@@ -268,7 +280,6 @@ public class RunFragment extends Fragment {
             public void onClick(View view) {
                 Log.i(TAG, "Stop Button Pressed. Run is " + mRunId);
                 //Do housekeeping for stopping tracking a run.
-                mEndAddressUpdating = false;
                 mRunManager.stopRun();
                 //Tell the BackgroundLocationService to stop location updates
                 try {
@@ -285,20 +296,6 @@ public class RunFragment extends Fragment {
             }
         });
 
-
-        mMapButton = (Button) v.findViewById(R.id.run_mapButton);
-        mMapButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //Create new instance of RunMapPagerActivity and pass it a reference to this run and the
-                //desired sort order.
-                //Intent i = new Intent(getActivity(), RunMapPagerActivity.class);
-                //i.putExtra(Constants.EXTRA_RUN_ID, mRun.getId());
-                Intent i = RunMapPagerActivity.newIntent(getActivity(), Constants.KEEP_EXISTING_SORT, mRunId);
-                Log.i(TAG, "Started RunMapPagerActivity for Run " + mRunId);
-                startActivity(i);
-            }
-        });
         //If this isn't a new run, we should immediately populate the textviews.
         //Start with information concerning the starting point.
         //Log.i(TAG, "In onCreateView() for Run " + mRunId + ", mStartLocation null?" + (mRunManager.getStartLocationForRun(mRunId) == null));
@@ -306,8 +303,8 @@ public class RunFragment extends Fragment {
             //Log.i(TAG, "In onCreateView(), mRunId is " + mRunId + " and mStartLocation is " + mStartLocation.toString());
             mStartedTextView.setText(Constants.DATE_FORMAT.format(mRun.getStartDate()));
             //Report latitude and longitude in degrees, minutes and seconds
-            mStartingLatitudeTextView.setText(Location.convert(mStartLocation.getLatitude(), Location.FORMAT_SECONDS));
-            mStartingLongitudeTextView.setText(Location.convert(mStartLocation.getLongitude(), Location.FORMAT_SECONDS));
+            mStartingPointTextView.setText(r.getString(R.string.position, (Location.convert(mStartLocation.getLatitude(), Location.FORMAT_SECONDS)),
+                    (Location.convert(mStartLocation.getLongitude(), Location.FORMAT_SECONDS))));
             //Report altitude values in feet
             //mStartingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", mStartLocation.getAltitude() * Constants.METERS_TO_FEET)));
             mStartingAltitudeTextView.setText(mRunManager.formatAltitude(mStartLocation.getAltitude()));
@@ -329,8 +326,9 @@ public class RunFragment extends Fragment {
         //If we have a last location, display the data we have concerning it.
         if (mLastLocation != null && mLastLocation != mStartLocation) {
             mEndedTextView.setText(Constants.DATE_FORMAT.format(mLastLocation.getTime()));
-            mEndingLatitudeTextView.setText(Location.convert(mLastLocation.getLatitude(), Location.FORMAT_SECONDS));
-            mEndingLongitudeTextView.setText(Location.convert(mLastLocation.getLongitude(), Location.FORMAT_SECONDS));
+            mEndingPointTextView.setText(r.getString(R.string.position, (Location.convert(mLastLocation.getLatitude(), Location.FORMAT_SECONDS)),
+                    (Location.convert(mLastLocation.getLongitude(), Location.FORMAT_SECONDS))));
+
             //mEndingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", mLastLocation.getAltitude() * Constants.METERS_TO_FEET)));
             mEndingAltitudeTextView.setText(mRunManager.formatAltitude(mLastLocation.getAltitude()));
             mEndingAddressTextView.setText(mRun.getEndAddress());
@@ -344,9 +342,6 @@ public class RunFragment extends Fragment {
             mDistanceCoveredTextView.setText(mRunManager.formatDistance(mRun.getDistance()));
             //mDistanceCoveredTextView.setText(getString(R.string.miles_travelled_format, String.format(Locale.US, "%.2f", miles)));
         }
-        //If we have at least one location in addition to the mStartLocation, we can make a map, so
-        //enable the map button
-        mMapButton.setEnabled(mLastLocation != null && mLastLocation != mStartLocation);
         //Enable Start button only if we're not tracking ANY run at this time
         mStartButton.setEnabled(!mStarted);
         //Enable Stop button only if we're tracking and tracking THIS run
@@ -355,7 +350,7 @@ public class RunFragment extends Fragment {
         //updateUI();
         return v;
     }
-
+/*
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater){
         //Assign the options menu to a member variable so we can enable or disable the "New Run" item
@@ -390,43 +385,29 @@ public class RunFragment extends Fragment {
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
+    }*/
 
     private void updateUI() {
-        //Are we tracking ANY run? We call the RunManager method because the PendingIntent that
-        //the BackgroundLocationService uses to request and remove location updates is supplied by
-        //RunManager's getLocationPendingIntent(boolean) method.
-        //mStarted = mRunManager.isTrackingRun(mAppContext);
-        mStarted = mRunManager.isTrackingRun();
-        //Are we tracking THIS run?
-        mIsTrackingThisRun = mRunManager.isTrackingRun(mRun);
         //It's possible for the Fragment to try to update its state when not attached to the under-
         //lying Activity - result then is crash!
         if (isAdded()) {
-            if (mRun == null) {
+            if (mRun == null  )
+            {
                 return;
             }
-            //If we have at least one location in addition to the mStartLocation, we can make a map, so
-            //enable the map button
-            mMapButton.setEnabled(mLastLocation != null && mLastLocation != mStartLocation);
+            Resources r = getResources();
+            //Are we tracking ANY run? We call the RunManager method because the PendingIntent that
+            //the BackgroundLocationService uses to request and remove location updates is supplied by
+            //RunManager's getLocationPendingIntent(boolean) method.
+            mStarted = mRunManager.isTrackingRun();
+            //Are we tracking THIS run?
+            mIsTrackingThisRun = mRunManager.isTrackingRun(mRun);
+
+
             //Enable Start button only if we're not tracking ANY run at this time
             mStartButton.setEnabled(!mStarted);
             //Enable Stop button only if we're tracking and tracking THIS run
             mStopButton.setEnabled(mStarted && mIsTrackingThisRun);
-            //Fill in value for RunId TextView
-            mRunIdTextView.setText(String.valueOf(mRunId));
-            //The OptionsMenu Item needs to be checked here so that the New Run menu item will be
-            //re-enabled after the user presses Stop.
-            if (mOptionsMenu != null) {
-                //Disable the New Run menu item if we're tracking another Run - program will crash if
-                //a new Run is started when another is being tracked.
-                if (mStarted) {
-                    mOptionsMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(false);
-                } else {
-                    mOptionsMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(true);
-                }
-            }
-
             //If we haven't yet gotten a starting location for this run, try to get one. Once we've
             //gotten a starting location, no need to ask for it again.
             if (mRun != null && mStartLocation == null) {
@@ -440,8 +421,8 @@ public class RunFragment extends Fragment {
                     TrackingLocationIntentService.startActionUpdateStartDate(mAppContext, mRun);
                     //Finally, display the new start date
                     mStartedTextView.setText(Constants.DATE_FORMAT.format(mRun.getStartDate()));
-                    mStartingLatitudeTextView.setText(Location.convert(mStartLocation.getLatitude(), Location.FORMAT_SECONDS));
-                    mStartingLongitudeTextView.setText(Location.convert(mStartLocation.getLongitude(), Location.FORMAT_SECONDS));
+                    mStartingPointTextView.setText(r.getString(R.string.position, (Location.convert(mStartLocation.getLatitude(), Location.FORMAT_SECONDS)),
+                            (Location.convert(mStartLocation.getLongitude(), Location.FORMAT_SECONDS))));
                     mStartingAltitudeTextView.setText(mRunManager.formatAltitude(mStartLocation.getAltitude()));
                     //mStartingAltitudeTextView.setText(getString(R.string.altitude_format, String.format(Locale.US, "%.2f", (mStartLocation.getAltitude() * Constants.METERS_TO_FEET))));
                     //We won't have a Starting Address yet, so ask for one and record it.
@@ -486,16 +467,11 @@ public class RunFragment extends Fragment {
             if (mRun != null && mLastLocation != null && mLastLocation != mStartLocation) {
                 //If we're tracking this Run and haven't started updating the ending address, start
                 //doing so
-                if (!mEndAddressUpdating && mRunManager.isTrackingRun(mRun)) {
-                    mRunManager.startUpdatingEndAddress(getActivity());
-                    mEndAddressUpdating = true;
-                    Log.i(TAG, "Called mRunManager.startUpdatingEndAddress(getActivity()) for Run " + mRunId);
-                }
                 Log.i(TAG, "In updateUI() section dealing with mLastLocation, mRunId is " + mRunId + " and mLastLocation is " + mLastLocation.toString());
                 mDurationTextView.setText(Run.formatDuration((int) (mRun.getDuration() / 1000)));
                 mDistanceCoveredTextView.setText(mRunManager.formatDistance(mRun.getDistance()));
-                mEndingLatitudeTextView.setText(Location.convert(mLastLocation.getLatitude(), Location.FORMAT_SECONDS));
-                mEndingLongitudeTextView.setText(Location.convert(mLastLocation.getLongitude(), Location.FORMAT_SECONDS));
+                mEndingPointTextView.setText(r.getString(R.string.position, (Location.convert(mLastLocation.getLatitude(), Location.FORMAT_SECONDS)),
+                        (Location.convert(mLastLocation.getLongitude(), Location.FORMAT_SECONDS))));
                 mEndingAltitudeTextView.setText(mRunManager.formatAltitude(mLastLocation.getAltitude()));
                 mEndedTextView.setText(Constants.DATE_FORMAT.format(mLastLocation.getTime()));
                 mEndingAddressTextView.setText(mRun.getEndAddress());
@@ -512,6 +488,11 @@ public class RunFragment extends Fragment {
                 }
                 //Add this point to the collection of points for updating the polyline
                 mPoints.add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                //Now that we've got at least two locations,we can draw a map
+                if (!mMapReady){
+                    mMapReady = true;
+                    mReadyForMap.onReadyForMap(mRunId);
+                }
             }
 
         }
@@ -567,6 +548,7 @@ public class RunFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        mMapReady = false;
         //We need to register our broadcast receiver here; it gets unregistered when the Fragment pauses.
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(
                 mResultsReceiver,
@@ -656,22 +638,26 @@ public class RunFragment extends Fragment {
                 //Cast the superclass Cursor returned to us to the LocationCursor it really is so we
                 ///can extract the Location from it
                 RunDatabaseHelper.LocationCursor newCursor = (RunDatabaseHelper.LocationCursor) cursor;
-                if (newCursor.moveToFirst()) {
-                    if (!newCursor.isAfterLast()) {
-                        mLastLocation = newCursor.getLocation();
-                        if (mLastLocation != null) {
-                            updateUI();
+                if (!newCursor.isClosed()) {
+                    if (newCursor.moveToFirst()) {
+                        if (!newCursor.isAfterLast()) {
+                            mLastLocation = newCursor.getLocation();
+                            if (mLastLocation != null) {
+                                updateUI();
+                            } else {
+                                Log.i(TAG, "LastLocationCursorLoader for Run " +mRunId + " returned a null Location");
+                            }
                         } else {
-                            Log.i(TAG, "LastLocationCursorLoader returned a null Location");
+                            Log.i(TAG, "In LastLocationCursorLoader for Run " + mRunId + ", cursor went past last position");
                         }
                     } else {
-                        Log.i(TAG, "In LastLocationCursorLoader, cursor went past last position");
+                        Log.i(TAG, "In LastLocationCursorLoader for Run " + mRunId + ", couldn't move to first position of cursor.");
                     }
                 } else {
-                    Log.i(TAG, "In LastLocationCursorLoader, couldn't move to first position of cursor.");
+                    Log.i(TAG, "In LastLocationCursorLoader for Run " + mRunId + " the cursor was closed.");
                 }
             } else {
-                Log.i(TAG, "LastLocationCursorLoader returned a null cursor");
+                Log.i(TAG, "LastLocationCursorLoader for Run " + mRunId + " returned a null cursor");
             }
         }
 
@@ -780,9 +766,10 @@ public class RunFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
 
             String action = intent.getAction();
-            if (action.equals(Constants.ACTION_REFRESH)) {
+            if (action.equals(Constants.ACTION_REFRESH_UNITS)) {
                 Log.i(TAG, "Received refresh broadcast - calling updateUI().");
                 updateUI();
+                return;
             }
             if (!mIsTrackingThisRun){
                 Log.i(TAG, "Not tracking Run " + mRunId + " - ignoring broadcast");
@@ -886,9 +873,10 @@ public class RunFragment extends Fragment {
                         //user why.
                         if (result[Constants.CONTINUATION_LIMIT_RESULT] == -1) {
                             mRunManager.stopRun();
-                            mEndAddressUpdating = false;
                             //getActivity().stopService(new Intent(getActivity(), BackgroundLocationService.class));
                             try {
+                                Log.i(TAG, "For Run " + mRunId + ", sending MESSAGE_STOP_LOCATION_UPDATES after negative" +
+                                        " CONTINUATION_LIMIT_RESULT");
                                 mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
                             } catch (RemoteException e){
                                 Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_STOP_LOCATION_UPDATES");
@@ -1037,7 +1025,6 @@ public class RunFragment extends Fragment {
                     case Constants.MESSAGE_LOCATION_UPDATES_STOPPED:
                         Log.i(TAG, "Received MESSAGE_LOCATION_UPDATES_STOPPED");
                         fragment.updateOnStoppingLocationUpdates();
-                        //fragment.updatepingLocationUpdates();
                         break;
                     default:
                         break;

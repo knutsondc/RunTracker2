@@ -1,5 +1,6 @@
 package com.dknutsonlaw.android.runtracker2;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -37,6 +38,7 @@ import java.lang.ref.WeakReference;
  * This Activity hosts a ViewPager within which RunMapFragments are displayed.
  */
 
+@SuppressLint("Registered")
 public class RunMapPagerActivity extends AppCompatActivity
         implements LoaderManager.LoaderCallbacks<Cursor>,
         DeleteRunsDialog.DeleteRunsDialogListener{
@@ -44,7 +46,6 @@ public class RunMapPagerActivity extends AppCompatActivity
 
     private RunManager mRunManager;
     private ViewPager mViewPager;
-    private Menu mOptionsMenu;
     private final Messenger mMessenger = new Messenger(new RunMapPagerActivity.IncomingMessenger(this));
     private Messenger mLocationService = null;
     private ResultsReceiver mResultsReceiver;
@@ -269,8 +270,6 @@ public class RunMapPagerActivity extends AppCompatActivity
         super.onCreateOptionsMenu(menu);
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.run_map_pager_options, menu);
-        //The menu has to be assigned to a member variable so we can alter the menu in onPrepareOptionsMenu()
-        mOptionsMenu = menu;
         return true;
     }
 
@@ -296,7 +295,7 @@ public class RunMapPagerActivity extends AppCompatActivity
         RunMapFragment fragment = (RunMapFragment) mAdapter.getRegisteredFragment(mViewPager.getCurrentItem());
         //Have to check if the fragment is null -- it will be when we get here immediately after deleting
         //the currently displayed RunMapFragment!
-        if (fragment != null) {
+        /*if (fragment != null) {
             //Need to check whether the RunMapFragment's GoogleMap is null because when this Activity is
             //first instantiated, the currently displayed RunMapFragment's GoogleMap will not yet have
             //been created.
@@ -305,6 +304,35 @@ public class RunMapPagerActivity extends AppCompatActivity
                     mOptionsMenu.findItem(R.id.run_map_pager_activity_scroll).setTitle(R.string.map_scrolling_off);
                 } else {
                     mOptionsMenu.findItem(R.id.run_map_pager_activity_scroll).setTitle(R.string.map_scrolling_on);
+                }
+            }
+        }*/
+        Log.i(TAG, "Entered onPrepareOptionsMenu() section concerning scroll menu for Run " + mRunId);
+        if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))){
+            Log.i(TAG, "We are tracking Run " + mRunId);
+
+            if(!mRunManager.mPrefs.getBoolean(Constants.SCROLLABLE, false)) {
+                Log.i(TAG, "Tracking Run " + mRunId + " in ViewMode inconsistent with scrolling." +
+                        "Turning scrolling off.");
+                menu.findItem(R.id.run_map_pager_activity_scroll)
+                        .setEnabled(false)
+                        .setTitle(R.string.map_scrolling_on);
+                Log.i(TAG, "After attempting to turn off scrolling, is it off? " + !menu.findItem(R.id.run_map_pager_activity_scroll).isEnabled());
+            } else {
+                Log.i(TAG, "No need to disable scroll menu for Run " + mRunId + ", so enable it.");
+                if (fragment.mGoogleMap != null) {
+                    //Toggle scrolling menu title
+                    if (fragment.mGoogleMap.getUiSettings().isScrollGesturesEnabled()) {
+                        Log.i(TAG, "Scrolling is enabled for Run " + mRunId + " so display Scrolling Off in menu.");
+                        menu.findItem(R.id.run_map_pager_activity_scroll)
+                                .setEnabled(true)
+                                .setTitle(R.string.map_scrolling_off);
+                    } else {
+                        Log.i(TAG, "Scrolling not enabled for Run " + mRunId + "so display Scrolling On in menu.");
+                        menu.findItem(R.id.run_map_pager_activity_scroll)
+                                .setEnabled(true)
+                                .setTitle(R.string.map_scrolling_on);
+                    }
                 }
             }
         }

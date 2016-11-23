@@ -2,6 +2,8 @@
   <dictionary name="dck">
     <words>
       <w>abtf</w>
+      <w>combinedfragment</w>
+      <w>combinedrunfragment</w>
       <w>dataset</w>
       <w>errordialog</w>
       <w>fgyp</w>
@@ -9,6 +11,7 @@
       <w>googleapiclient</w>
       <w>lastlocation</w>
       <w>latlng</w>
+      <w>mapview</w>
       <w>multiselect</w>
       <w>multiselector</w>
       <w>pice</w>

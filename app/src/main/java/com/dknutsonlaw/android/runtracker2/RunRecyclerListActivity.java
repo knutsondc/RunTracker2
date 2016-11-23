@@ -10,15 +10,11 @@ import android.util.Log;
 public class RunRecyclerListActivity extends SingleFragmentActivity implements DeleteRunsDialog.DeleteRunsDialogListener {
 
     private static final String TAG = "RunRecyclerListActivity";
-    //We need a reference to the RunRecyclerListFragment we create so we can forward Run deletion
-    //confirmation callbacks to it.
-    private RunRecyclerListFragment mFragment;
 
     @Override
     protected Fragment createFragment(){
         Log.i(TAG, "Inside RunRecyclerListActivity createFragment");
-        mFragment = new RunRecyclerListFragment();
-        return mFragment;
+        return new RunRecyclerListFragment();
     }
 
     @Override
@@ -27,7 +23,9 @@ public class RunRecyclerListActivity extends SingleFragmentActivity implements D
         //onDeleteRunsDialogPositiveClick method
         Log.i(TAG, "Reached RunRecyclerListActivity PositiveClick callback");
         if (which == Constants.RUN_LIST_RECYCLER_FRAGMENT){
-            mFragment.onDeleteRunsDialogPositiveClick();
+            RunRecyclerListFragment fragment = (RunRecyclerListFragment)getSupportFragmentManager()
+                    .findFragmentById(R.id.fragmentContainer);
+            fragment.onDeleteRunsDialogPositiveClick();
         }
     }
 
@@ -37,7 +35,9 @@ public class RunRecyclerListActivity extends SingleFragmentActivity implements D
         //onDeleteRunsDialogNegativeClick method
         Log.i(TAG, "Reached RunRecyclerListActivity NegativeClick callback");
         if (which == Constants.RUN_LIST_RECYCLER_FRAGMENT){
-            mFragment.onDeleteRunsDialogNegativeClick();
+            RunRecyclerListFragment fragment = (RunRecyclerListFragment)getSupportFragmentManager()
+                    .findFragmentById(R.id.fragmentContainer);
+            fragment.onDeleteRunsDialogNegativeClick();
         }
 
     }

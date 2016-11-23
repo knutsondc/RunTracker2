@@ -22,8 +22,9 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
     protected boolean mDataValid;
     protected Cursor mCursor;
     protected Context mContext;
-    protected SparseArray<Fragment> mRegisteredFragments;
+    protected SparseArray mRegisteredFragments;
     protected SparseIntArray mItemPositions;
+    protected SparseArray mRunIdToFragment;
     protected HashMap<Object, Integer> mObjectMap;
     protected int mRowIDColumn;
 
@@ -37,6 +38,7 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
         //noinspection Convert2Diamond
         mObjectMap = new HashMap<>();
         mRegisteredFragments = new SparseArray<>();
+        mRunIdToFragment = new SparseArray<>();
         boolean cursorPresent = c != null;
         mCursor = c;
         mDataValid = cursorPresent;
@@ -85,8 +87,10 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
 
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
+        int rowId = mObjectMap.get(object);
         mObjectMap.remove(object);
         mRegisteredFragments.remove(position);
+        mRunIdToFragment.remove(rowId);
         super.destroyItem(container, position, object);
     }
 
@@ -103,14 +107,19 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
         Object obj = super.instantiateItem(container, position);
         //instantiate mappings of object to ID number and object (fragment) to adapter position
         mObjectMap.put(obj, rowId);
-        Fragment fragment = (Fragment)obj;
-        mRegisteredFragments.put(position, fragment);
+        mRegisteredFragments.put(position, obj);
+        mRunIdToFragment.put(rowId, obj);
+
 
         return obj;
     }
     //Get fragment instance from specified position in adapter
-    public Fragment getRegisteredFragment(int position){
+    public Object getRegisteredFragment(int position){
         return mRegisteredFragments.get(position);
+    }
+    //Get fragment instance associated with RunId
+    public Object getFragmentFromRunId(long runId){
+        return mRunIdToFragment.get((int)runId);
     }
 
     public abstract Fragment getItem(@SuppressWarnings("UnusedParameters") Context context, Cursor cursor);

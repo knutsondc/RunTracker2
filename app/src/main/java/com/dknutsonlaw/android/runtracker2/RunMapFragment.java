@@ -28,7 +28,6 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -60,14 +59,12 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Locale;
 
 public class RunMapFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
     private static final String TAG = "RunMapFragment";
 
     private final RunManager mRunManager = RunManager.get(getActivity());
     private long mRunId;
-    private Run mRun;
     GoogleMap mGoogleMap;
     private MapView mMapView;
     private LoaderManager mLoaderManager;
@@ -82,13 +79,12 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     private IntentFilter mIntentFilter;
     private ResultsReceiver mResultsReceiver;
     private Marker mEndMarker;
-    private TextView mEndDateTextView;
-    private TextView mDistanceTextView;
-    private TextView mDurationTextView;
     private Location mStartLocation, mLastLocation = null;
-    private long mDurationMillis = 0;
     private boolean mPrepared = false;
     private boolean mIsBound = false;
+    private boolean mScroll_On;
+
+
     //Set default map tracking mode
     private int mViewMode = Constants.SHOW_ENTIRE_ROUTE;
 
@@ -138,7 +134,6 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         Bundle args = getArguments();
         if (args != null) {
             mRunId = args.getLong(Constants.ARG_RUN_ID, -1);
-            mRun = mRunManager.getRun(mRunId);
         }
         mIntentFilter = new IntentFilter(Constants.ACTION_REFRESH_MAPS);
         mResultsReceiver = new ResultsReceiver();
@@ -157,8 +152,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState){
-        View rootView = inflater.inflate(R.layout.map_activity_fragment, container, false);
-        mMapView = (MapView) rootView.findViewById(R.id.mapViewContainer);
+        View v = inflater.inflate(R.layout.map_activity_fragment, container, false);
+        mMapView = (MapView) v.findViewById(R.id.mapViewContainer);
         mMapView.onCreate(savedInstanceState);
         mMapView.onResume(); //needed to get map to display immediately
 
@@ -178,7 +173,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                 mGoogleMap.getUiSettings().setZoomControlsEnabled(true);
                 mGoogleMap.getUiSettings().setZoomGesturesEnabled(true);
                 //Disable map scrolling so we can easily swipe from one map to another.
-                mGoogleMap.getUiSettings().setScrollGesturesEnabled(false);
+                mGoogleMap.getUiSettings().setScrollGesturesEnabled(mRunManager.mPrefs.getBoolean(Constants.SCROLL_ON, false));
                 //Set up an overlay on the map for this run's prerecorded locations. We need a custom
                 //InfoWindowAdapter to allow multiline text snippets in markers.
                 mGoogleMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
@@ -236,39 +231,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                     return false;
                 });
             }
-            //Turn off the DisplayHomeAsUp - we might not return to the correct instance of RunFragment
-            //noinspection ConstantConditions
-            if (((AppCompatActivity)getActivity()).getSupportActionBar() != null){
-                //noinspection ConstantConditions
-                ((AppCompatActivity)getActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(false);
-            }
-
         });
-        Resources r = getActivity().getResources();
-        TextView runIdTextView = (TextView) rootView.findViewById(R.id.runIdTextView);
-        runIdTextView.setText(r.getString(R.string.specified_run_number, mRunId));
-        TextView startDateTextView = (TextView) rootView.findViewById(R.id.startDateTextView);
-        ///startDateTextView.setText(getString(R.string.started, mStartDate));
-        startDateTextView.setText(getString(R.string.started,
-                Constants.DATE_FORMAT.format(mRunManager.getRun(mRunId).getStartDate())));
-        Log.i(TAG, "Set Start Date for Run #" + mRunId + " in setupWidgets as " + mRunManager.getRun(mRunId).getStartDate());
-        mEndDateTextView = (TextView) rootView.findViewById(R.id.endDateTextView);
-        //if (mLastLocation != null) {
-            //mEndDateTextView.setText(getString(R.string.ended,
-            //        Constants.DATE_FORMAT.format(mLastLocation.getTime())));
-            mEndDateTextView.setText(getString(R.string.ended,
-                    Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime())));
-            Log.i(TAG, "Set End Date for Run #" + mRunId + " in setupWidgets as " + Constants.DATE_FORMAT.format(mRunManager.getLastLocationForRun(mRunId).getTime()));
-        //}
-        mDistanceTextView = (TextView) rootView.findViewById(R.id.distanceTextView);
-        mDistanceTextView.setText(getString(R.string.distance_traveled_format, mRunManager.formatDistance(mRun.getDistance())));
-        Log.i(TAG, "Set Distance Traveled for Run #" + mRunId + " in setupWidgets as " + String.format(Locale.US, "%.2f", mRunManager.getRun(mRunId).getDistance() * Constants.METERS_TO_MILES));
-        mDurationTextView = (TextView) rootView.findViewById(R.id.durationTextView);
-        mDurationMillis = mRunManager.getRun(mRunId).getDuration();
-        int durationSeconds = (int)mDurationMillis / 1000;
-        mDurationTextView.setText(getString(R.string.run_duration_format, Run.formatDuration(durationSeconds)));
-        Log.i(TAG, "Set Duration for Run #" + mRunId + " in setupWidgets as " + Run.formatDuration(durationSeconds));
-        return rootView;
+        return v;
     }
 
     /*@Override
@@ -289,11 +253,46 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
             fragment.mIsBound = false;
         }
     }
-
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater){
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.run_map_list_options, menu);
+    public void onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        //Set menuItem to select distance measurement units according to its current setting
+
+        if (mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)) {
+            menu.findItem(R.id.run_map_pager_activity_units).setTitle(R.string.imperial);
+        } else {
+            menu.findItem(R.id.run_map_pager_activity_units).setTitle(R.string.metric);
+        }
+        if (mGoogleMap != null && mGoogleMap.getUiSettings() != null) {
+
+            //if (mGoogleMap.getUiSettings().isScrollGesturesEnabled()) {
+            if (mRunManager.mPrefs.getBoolean(Constants.SCROLL_ON, false)){
+                Log.i(TAG, "Scrolling is enabled for Run " + mRunId + " so display Scrolling Off in menu.");
+
+                menu.findItem(R.id.run_map_pager_activity_scroll).setTitle(R.string.map_scrolling_off);
+
+            } else {
+                Log.i(TAG, "Scrolling not enabled for Run " + mRunId + "so display Scrolling On in menu.");
+
+                menu.findItem(R.id.run_map_pager_activity_scroll).setTitle(R.string.map_scrolling_on);
+
+            }
+        }
+        //If the Run's being tracked and the ViewMode is SHOW_ENTIRE_ROUTE or FOLLOW_END_POINT,
+        //scrolling won't work because the map gets a new CameraUpdate with every location update
+        if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId)) &&
+                !mRunManager.mPrefs.getBoolean(Constants.SCROLLABLE, false)){
+            Log.i(TAG, "Tracking Run " + mRunId + " in ViewMode inconsistent with scrolling." +
+                    "Turning scrolling off.");
+
+            menu.findItem(R.id.run_map_pager_activity_scroll)
+                    .setEnabled(false)
+                    .setTitle(R.string.map_scrolling_on);
+
+            Log.i(TAG, "After attempting to turn off scrolling, is it off? " + !menu.findItem(R.id.run_map_pager_activity_scroll).isEnabled());
+        }
+
+
     }
 
 
@@ -305,22 +304,59 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
         Log.i(TAG, "Entered onOptionsItemSelected for Run #" + mRunId + ".");
-        //Select desired map updating mode, then call setTrackingMode() to act on it. We use a
-        //separate function for setTrackingMode() so that it can be invoked when the fragment
-        //restarts with the last previous tracking mode still in effect, rather than going with the
-        //default of SHOW_ENTIRE_ROUTE
         switch (item.getItemId()){
+            case R.id.run_map_pager_activity_units:
+                //Swap distance measurement unit between imperial and metric
+                mRunManager.mPrefs.edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
+                        !mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
+                //Send a broadcast to all open RunFragments will update their displays to show the
+                ///newly-selected distance measurement units.
+                Intent refreshIntent = new Intent(Constants.ACTION_REFRESH_UNITS);
+                refreshIntent.putExtra(Constants.ARG_RUN_ID, mRunId);
+                boolean receiver = LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(refreshIntent);
+                if(!receiver){
+                    Log.i(TAG, "No receiver for CombinedRunFragment REFRESH broadcast!");
+                }
+
+                getActivity().invalidateOptionsMenu();
+                return true;
+            case R.id.run_map_pager_activity_scroll:
+
+                //This setting gets made in a RunMapFragment's MapView, but we want to put this together
+                //with the measurement units menu item here in the Activity's OptionsMenu, so we first
+                //have to retrieve the RunMapFragment that's currently displayed
+
+                if (mGoogleMap != null) {
+                    Log.i(TAG, "Entered scroll menu. Is scrolling enabled? " + mGoogleMap.getUiSettings().isScrollGesturesEnabled());
+                    mGoogleMap.getUiSettings()
+                            .setScrollGesturesEnabled(!mGoogleMap.getUiSettings().isScrollGesturesEnabled());
+                    mRunManager.mPrefs.edit().putBoolean(Constants.SCROLL_ON, !mRunManager.mPrefs.getBoolean(Constants.SCROLL_ON, false)).apply();
+                }
+                Log.i(TAG, "After change to scrolling, is scrolling enabled? " + mGoogleMap.getUiSettings().isScrollGesturesEnabled());
+
+                //We want to change the menuItem title in onPrepareOptionsMenu, so we need to invalidate
+                //the menu and recreated it.
+                getActivity().invalidateOptionsMenu();
+                return true;
+            //Select desired map updating mode, then call setTrackingMode() to act on it. We use a
+            //separate function for setTrackingMode() so that it can be invoked when the fragment
+            //restarts with the last previous tracking mode still in effect, rather than going with the
+            //default of SHOW_ENTIRE_ROUTE
             case R.id.show_entire_route_menu_item:
                 mViewMode = Constants.SHOW_ENTIRE_ROUTE;
+                mRunManager.mPrefs.edit().putBoolean(Constants.SCROLLABLE, false).apply();
                 break;
             case R.id.track_end_point_menu_item:
                 mViewMode = Constants.FOLLOW_END_POINT;
+                mRunManager.mPrefs.edit().putBoolean(Constants.SCROLLABLE, false).apply();
                 break;
             case R.id.track_start_point_menu_item:
                 mViewMode = Constants.FOLLOW_STARTING_POINT;
+                mRunManager.mPrefs.edit().putBoolean(Constants.SCROLLABLE, true).apply();
                 break;
             case R.id.tracking_off_menu_item:
                 mViewMode = Constants.NO_UPDATES;
+                mRunManager.mPrefs.edit().putBoolean(Constants.SCROLLABLE, true).apply();
                 break;
             default:
                 return super.onOptionsItemSelected(item);
@@ -333,6 +369,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         if (!receiver){
             Log.i(TAG, "No receiver for trackingModeIntent!");
         }
+        getActivity().invalidateOptionsMenu();
         return true;
     }
 
@@ -357,7 +394,6 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         }
 
         mBounds = mRunManager.retrieveBounds(mRunId);
-
         Log.i(TAG, "In onCreate for Run #" + mRunId +" is mBounds null? " + (mBounds == null));
         mPrepared = false;
     }
@@ -450,7 +486,6 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                 mPoints.add(latLng);
             }
             //Update mPolyline with the updated set of points.
-            Log.i(TAG, "In onLoadFinished() for Run #" + mRunId + " mPolyline is null, so we're creating it here.");
             mPolyline.setPoints(mPoints);
             //Update the position of mEndMarker. To avoid the overhead of looking up an address
             //for every location update we don't update the snippet until the user clicks on it.
@@ -470,23 +505,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
             if (movement != null)
                 //Animate the camera for the cool effect...
                 mGoogleMap.animateCamera(movement);
-            updateTextViews();
         }
     }
-
-    private void updateTextViews(){
-        //This is in a separate method so that we need call only this when changing between imperial
-        //and metric measures instead of the whole updateMap() method.
-        String endDate = Constants.DATE_FORMAT.format(mLastLocation.getTime());
-        mEndDateTextView.setText(getString(R.string.ended, endDate));
-        mDistanceTextView.setText(getString(R.string.distance_traveled_format,
-                mRunManager.formatDistance(mRunManager.getRun(mRunId).getDistance())));
-        mDurationMillis = RunManager.get(getActivity()).getRun(mRunId).getDuration();
-        int durationSeconds = (int) mDurationMillis / 1000;
-        mDurationTextView.setText(getString(R.string.run_duration_format,
-                Run.formatDuration(durationSeconds)));
-    }
-
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
@@ -737,6 +757,14 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         return cameraUpdate;
     }
 
+    protected int getTrackingMode(){
+        return mViewMode;
+    }
+
+    protected long getRunId(){
+        return mRunId;
+    }
+
     private static void showErrorDialog(RunMapFragment fragment, int errorCode){
         RunFragment.ErrorDialogFragment dialogFragment = new RunFragment.ErrorDialogFragment();
         Bundle args = new Bundle();
@@ -793,21 +821,16 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         public void onReceive(Context context, Intent intent){
 
             String action = intent.getAction();
-            //If mViewMode is changed for any RunMapFragment, a broadcast is sent to all RunMapFragments
-            //running will also change to the same view mode
-            if (action.equals(Constants.ACTION_REFRESH_MAPS)){
-                long senderId = intent.getLongExtra(Constants.ARG_RUN_ID, -1);
-                if (senderId == mRunId){
-                    Log.i(TAG, "This is a message this fragment sent - we've already switched tracking mode.");
-                } else {
+            switch(action) {
+                //If mViewMode is changed for any RunMapFragment, a broadcast is sent to all RunMapFragments
+                //running will also change to the same view mode
+                case Constants.ACTION_REFRESH_MAPS:
                     mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.SHOW_ENTIRE_ROUTE);
                     setTrackingMode();
-                }
-            //If the measurement system has changed, the textviews should be updated to display the newly chosen units.
-            updateTextViews();
-            } else {
-                Log.i(TAG, "Action isn't ACTION_REFRESH! How'd you get here!?!");
+                default:
+                    Log.i(TAG, "How'd you get here!?! Not ACTION_REFRESH_MAPS!");
             }
+
         }
     }
 }
