@@ -64,7 +64,7 @@ final class Constants {
     static final int MESSENGER_RUNMAPFRAGMENT = 2;
     static final int MESSENGER_RUNPAGERACTIVITY = 3;
     static final int MESSENGER_RUNMAPPAGERACTIVITY = 4;
-    static final int MESSENGER_COMBINEDRUNFRAGMENT = 5;
+    static final int MESSENGER_COMBINEDFRAGMENT = 5;
     //MapView Menu selection item in RunMapFragment
     static final int NO_UPDATES = 3;
     //Label for BackgroundLocationService to tell the UI Fragment that Location Permissions needed
@@ -113,7 +113,7 @@ final class Constants {
     static final String ACTION_INSERT_RUN =
             "com.dknutsonlaw.android.runtracker.action.insert.run";
     static final String ACTION_LOCATION =
-            "com.dknutsonlaw.android.runtracker2.action.location";
+            "com.dknutsonlaw.android.runtracker2.ACTION_LOCATION";
     static final String ACTION_REFRESH =
             "com.dknutsonlaw.android.runtracker2.action.refresh";
     static final String ACTION_REFRESH_MAPS =
@@ -182,7 +182,10 @@ final class Constants {
     //Label used to identify file used in SystemPreferences operations
     static final String PREFS_FILE = "runs";
     //Label used to identify run id retrieved from SystemPreferences
-    static final String SAVED_RUN_ID = "com.dknutsonlaw.com.android.runtracker2.saved_run_id";
+    static final String SAVED_RUN_ID = "com.dknutsonlaw.android.runtracker2.saved_run_id";
+    //Label to store boolean in shared preferences for whether a mapview should be scrollable
+    static final String SCROLLABLE = "com.dknutsonlaw.android.runtracker2.scrollable";
+    static final String SCROLL_ON = "com.dknutsonlaw.android.runtracker2.scroll_on";
     //Label used to communicate results of TrackingLocationIntentService operations in response Intents
     static final String SEND_RESULT_ACTION =
             "com.dknutsonlaw.android.runtracker.send.result.action";

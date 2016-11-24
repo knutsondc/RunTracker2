@@ -40,6 +40,7 @@ import java.lang.ref.WeakReference;
 public class RunPagerActivity extends AppCompatActivity
         implements LoaderManager.LoaderCallbacks<Cursor>,
         DeleteRunsDialog.DeleteRunsDialogListener{
+
     private static final String TAG = "run_pager_activity";
 
     private RunManager mRunManager;
@@ -51,6 +52,7 @@ public class RunPagerActivity extends AppCompatActivity
     private Menu mMenu;
     //Custom Adapter to feed CombinedRunFragments to the ViewPager
     private RunCursorFragmentStatePagerAdapter mAdapter;
+    //private RunMapFragment mRunMapFragment;
     private long mRunId = -1;
     //Set a default sort order
     private int mSortOrder = Constants.SORT_BY_DATE_DESC;
@@ -86,18 +88,38 @@ public class RunPagerActivity extends AppCompatActivity
 
         @Override
         public void onPageSelected(int position) {
-            //Make sure that mRunId is always equal to the run id of the currently viewed
-            //RunFragment as we page through them.
-            CombinedRunFragment fragment = (CombinedRunFragment)mAdapter.getItem(position);
-            mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID, -1);
-            mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
             //Keep the currently displayed Run's position in the ViewPager and Adapter so the
             //RecyclerView can scroll that Run to the top of its display when we go back there
             mRunManager.mPrefs.edit().putInt(Constants.ADAPTER_POSITION, position).apply();
+            //Update the subtitle to show position of this Run in the current sort of Runs and the
+            //total number of Runs.
             setSubtitle();
+            //Make sure that mRunId is always equal to the run id of the currently viewed
+            //CombinedFragment as we page through them.
+            CombinedFragment fragment = (CombinedFragment)mAdapter.getItem(position);
+            Log.i(TAG, "In onPageSelected(), is the CombinedFragment null? " + (fragment == null));
+            mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID, -1);
+            mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
+            Log.i(TAG, "In ViewPager onPageSelected(), mRunId set to " + mRunId);
+            invalidateFragmentMenus(position);
         }
 
     };
+    //Disable menu items added by CombinedFragments for CombinedFragments that aren't currently
+    //displayed to avoid duplication of those menu items - mViewPager initializes up to three
+    //CombinedFragments at one time.
+    private void invalidateFragmentMenus(int position){
+        for (int i = 0; i < mAdapter.getCount(); i++){
+           CombinedFragment fragment = (CombinedFragment) mAdapter.getItem(i);
+            if (fragment != null) {
+                fragment.setHasOptionsMenu(i == position);
+                Log.i(TAG, "setHasOptionsMenu() for fragment in position " + i + " set to " + (i == position));
+            } else {
+                Log.i(TAG, "In invalidateFragmentMenus(), mapFragment is null!");
+            }
+        }
+        invalidateOptionsMenu();
+    }
 
     private final ViewPager.OnAdapterChangeListener mAdapterChangeListener = new ViewPager.OnAdapterChangeListener() {
         @Override
@@ -105,6 +127,7 @@ public class RunPagerActivity extends AppCompatActivity
             //A new Adapter means a new SortOrder, so we need to update the Run's position in the
             //Adapter and ViewPager so that the RecyclerView can scroll to it when we go back there
             mRunManager.mPrefs.edit().putInt(Constants.ADAPTER_POSITION, mViewPager.getCurrentItem()).apply();
+            invalidateFragmentMenus(mViewPager.getCurrentItem());
         }
     };
 
@@ -280,29 +303,28 @@ public class RunPagerActivity extends AppCompatActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu){
         super.onCreateOptionsMenu(menu);
-        mMenu = menu;
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.run_pager_options, menu);
+        inflater.inflate(R.menu.run_map_pager_options, menu);
+        mMenu = menu;
         return true;
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu){
-        //Set menuItem to select distance measurement units according to its current setting
-        if (mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)){
-            menu.findItem(R.id.run_pager_menu_item_units).setTitle(R.string.imperial);
-        } else {
-            menu.findItem(R.id.run_pager_menu_item_units).setTitle(R.string.metric);
-        }
+        Log.i(TAG, "Entered onPrepareOptionsMenu()");
+
+        super.onPrepareOptionsMenu(menu);
+
         //If we have fewer than two Runs, there's nothing to sort, so disable sort menu
-        if (mAdapter.getCount() < 2){
-            menu.findItem(R.id.run_pager_menu_item_sort_runs).setEnabled(false);
+        if (mAdapter.getCount() < 2) {
+            menu.findItem(R.id.run_map_pager_menu_item_sort_runs).setEnabled(false);
         } else {
-            menu.findItem(R.id.run_pager_menu_item_sort_runs).setEnabled(true);
+            menu.findItem(R.id.run_map_pager_menu_item_sort_runs).setEnabled(true);
         }
         //If we're tracking a Run, don't allow creation of a new Run - trying to track more than one
         //Run will crash the app!
-        menu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun());
+        menu.findItem(R.id.run_map_pager_menu_item_new_run).setEnabled(!mRunManager.isTrackingRun());
+
         return true;
     }
 
@@ -311,20 +333,7 @@ public class RunPagerActivity extends AppCompatActivity
         Log.i(TAG, "In onOptionsItemSelected(), mRunId is " + mRunId);
         Bundle args;
         switch(item.getItemId()){
-            case R.id.run_pager_menu_item_units:
-                //Swap distance measurement unit between imperial and metric
-                mRunManager.mPrefs.edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
-                        !mRunManager.mPrefs.getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
-                //Send a broadcast to all open CombinedRunFragments will update their displays to show the
-                ///newly-selected distance measurement units.
-                Intent refreshIntent = new Intent(Constants.ACTION_REFRESH_UNITS);
-                boolean receiver = LocalBroadcastManager.getInstance(this).sendBroadcast(refreshIntent);
-                if(!receiver){
-                    Log.i(TAG, "No receiver for CombinedRunFragment REFRESH broadcast!");
-                }
-                invalidateOptionsMenu();
-                return true;
-            case R.id.run_pager_menu_item_new_run:
+            case R.id.run_map_pager_menu_item_new_run:
                 Log.i(TAG, "In New Run menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
                 //Don't need to tell the Adapter its getting an update because we're recreating the
                 //Adapter shortly.
@@ -335,7 +344,7 @@ public class RunPagerActivity extends AppCompatActivity
                 //The Adapter, Subtitle and Loader get reset when the results of the Insert Run
                 //action get reported to the ResultsReceiver
                 return true;
-            case R.id.menu_item_pager_delete_run:
+            case R.id.menu_item_map_pager_delete_run:
                 //Bring up a confirmation dialog to allow the user to change his mind about deletion.
                 //We pass along this Activity's identity and that only a single Run is to be deleted
                 //so the dialog message will be accurate.
@@ -348,31 +357,68 @@ public class RunPagerActivity extends AppCompatActivity
                 return true;
             //To change the sort order, set mSortOrder, store it to SharedPrefs, reinitialize the
             //adapter and subtitle and restart the RunListLoader
-            case R.id.run_pager_menu_item_sort_by_date_asc:
+            case R.id.run_map_pager_menu_item_sort_by_date_asc:
                 mSortOrder = Constants.SORT_BY_DATE_ASC;
-                break;
-            case R.id.run_pager_menu_item_sort_by_date_desc:
+                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
+                args = setupAdapterAndLoader();
+                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
+                return true;
+            case R.id.run_map_pager_menu_item_sort_by_date_desc:
                 mSortOrder = Constants.SORT_BY_DATE_DESC;
-                break;
-            case R.id.run_pager_menu_item_sort_by_distance_asc:
+                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
+                args = setupAdapterAndLoader();
+                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
+                return true;
+            case R.id.run_map_pager_menu_item_sort_by_distance_asc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_ASC;
-                break;
-            case R.id.run_pager_menu_item_sort_by_distance_desc:
+                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
+                args = setupAdapterAndLoader();
+                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
+                return true;
+            case R.id.run_map_pager_menu_item_sort_by_distance_desc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_DESC;
-                break;
-            case R.id.run_pager_menu_item_sort_by_duration_asc:
+                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
+                args = setupAdapterAndLoader();
+                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
+                return true;
+            case R.id.run_map_pager_menu_item_sort_by_duration_asc:
                 mSortOrder = Constants.SORT_BY_DURATION_ASC;
-                break;
-            case R.id.run_pager_menu_item_sort_by_duration_desc:
+                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
+                args = setupAdapterAndLoader();
+                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
+                return true;
+            case R.id.run_map_pager_menu_item_sort_by_duration_desc:
                 mSortOrder = Constants.SORT_BY_DURATION_DESC;
-                break;
+                mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
+                args = setupAdapterAndLoader();
+                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
+                return true;
+            case R.id.show_entire_route_menu_item:
+                Log.i(TAG, "In RunPagerActivity, entered oonOptionsItemSelected case:show_entire_route_menu_item");
+                //This is implemented in the CombinedFragment
+                return false;
+            case R.id.track_end_point_menu_item:
+                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:track_end_point_menu_item");
+                //This is implemented in the CombinedFragment
+                return false;
+            case R.id.track_start_point_menu_item:
+                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:track_start_point_menu_item");
+                //This is implemented in the CombinedFragment
+                return false;
+            case R.id.tracking_off_menu_item:
+                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:tracking_off_menu_item");
+                return false;
+            case R.id.run_map_pager_activity_units:
+                //This is implemented in the CombinedFragment
+                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:run_map_pager_activity_units");
+                return false;
+            case R.id.run_map_pager_activity_scroll:
+                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:run_pager_activity_scroll");
+                //This is implemented in the CombinedFragment
+                return false;
             default:
                 return super.onOptionsItemSelected(item);
         }
-        mRunManager.mPrefs.edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-        args = setupAdapterAndLoader();
-        getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-        return true;
     }
     //method that's called by onDeleteRunDialogPositiveClick callback confirming deletion.
     private void deleteRun(){
@@ -386,7 +432,7 @@ public class RunPagerActivity extends AppCompatActivity
             }
             mRunManager.stopRun();
             //We've stopped tracking any Run, so enable the "New Run" menu item.
-            mMenu.findItem(R.id.run_pager_menu_item_new_run).setEnabled(true);
+            mMenu.findItem(R.id.run_map_pager_menu_item_new_run).setEnabled(true);
         }
         Log.i(TAG, "Runs in Adapter before Run deletion: " + mAdapter.getCount());
         //Now order the Run to be deleted. The Adapter, Subtitle and Loader will get reset
@@ -476,7 +522,7 @@ public class RunPagerActivity extends AppCompatActivity
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data){
 
-        CombinedRunFragment fragment = (CombinedRunFragment)mAdapter.getRegisteredFragment(mViewPager.getCurrentItem());
+        CombinedFragment fragment = (CombinedFragment)mAdapter.getRegisteredFragment(mViewPager.getCurrentItem());
         fragment.onActivityResult(requestCode, resultCode, data);
     }
 
@@ -496,7 +542,7 @@ public class RunPagerActivity extends AppCompatActivity
             RunDatabaseHelper.RunCursor runCursor = (RunDatabaseHelper.RunCursor)cursor;
             long runId = runCursor.getRun().getId();
             if (runId != -1){
-                return CombinedRunFragment.newInstance(runId);
+                return CombinedFragment.newInstance(runId);
             } else {
                 //We should never get here - Runs are assigned a RunId as soon as they get created and
                 //before they get added to the ViewPager, but we have return something in an "else"
@@ -531,6 +577,7 @@ public class RunPagerActivity extends AppCompatActivity
                         activity.getAdapter().notifyDataSetChanged();
                         break;
                 }
+                activity.invalidateOptionsMenu();
             }
         }
     }
@@ -622,13 +669,13 @@ public class RunPagerActivity extends AppCompatActivity
                             if (currentPosition < mViewPager.getChildCount() - 1) {
                                 int index = currentPosition + 1;
                                 mViewPager.setCurrentItem(index);
-                                CombinedRunFragment fragment = (CombinedRunFragment) mAdapter.getItem(index);
+                                CombinedFragment fragment = (CombinedFragment) mAdapter.getItem(index);
                                 mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID);
                                 Log.i(TAG, "After Run deletion, we moved UP one position and RunId is " + mRunId);
                             } else {
                                 int index = currentPosition - 1;
                                 mViewPager.setCurrentItem(index);
-                                CombinedRunFragment fragment = (CombinedRunFragment)mAdapter.getItem(index);
+                                CombinedFragment fragment = (CombinedFragment)mAdapter.getItem(index);
                                 mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID);
                                 Log.i(TAG, "After Run deletion, we moved DOWN one position and RunId is " + mRunId);
                             }

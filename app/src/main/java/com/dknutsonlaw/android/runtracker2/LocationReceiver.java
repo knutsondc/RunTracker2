@@ -33,7 +33,6 @@ public class LocationReceiver extends BroadcastReceiver {
         // This method is called when the BroadcastReceiver is receiving
         // an Intent broadcast. Extract the results and use them.
         if (LocationResult.hasResult(intent)) {
-            Log.i(TAG, "Intent has a Location Result");
             LocationResult locationResult = LocationResult.extractResult(intent);
             List<Location> locationList = locationResult.getLocations();
             for (int i = 0; i < locationList.size(); i++) {
