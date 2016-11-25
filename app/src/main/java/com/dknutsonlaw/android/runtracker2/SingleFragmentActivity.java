@@ -38,19 +38,6 @@ import android.util.Log;
         super.onCreate(savedInstanceState);
         setContentView(getLayoutResId());
 
-        /*if (Build.VERSION.SDK_INT >= 23 && ActivityCompat.checkSelfPermission(this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-
-                final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle(R.string.alert_dialog_title);
-                builder.setMessage(R.string.alert_dialog_message);
-                builder.setPositiveButton(android.R.string.ok, null);
-                builder.setOnDismissListener(dialog -> requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        PERMISSION_REQUEST_FINE_LOCATION));
-                builder.show();
-
-        }*/
-
         FragmentManager fm = getSupportFragmentManager();
         Fragment fragment = fm.findFragmentById(R.id.fragmentContainer);
 
