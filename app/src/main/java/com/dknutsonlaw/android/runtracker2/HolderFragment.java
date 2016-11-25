@@ -11,14 +11,14 @@ import android.view.View;
 import android.view.ViewGroup;
 
 /**
- * Created by dck on 11/12/16.
+ * Created by dck on 11/12/16. A fragment whose only functions are to host two frame layouts in which
+ * the RunFragment and the RunMapFragment for a given Run are displayed and to receive the callback
+ * to instantiate the RunMapFragment when we've collected enough data to create the map.
  */
 
 public class HolderFragment extends Fragment {
     private static final String TAG = "HolderFragment";
 
-    //private RunFragment mRunFragment;
-    private RunMapFragment mRunMapFragment;
     private long mRunId;
 
     public HolderFragment(){
@@ -73,8 +73,8 @@ public class HolderFragment extends Fragment {
     public void onReadyForMap(){
         FragmentManager childFragmentManager = getChildFragmentManager();
         FragmentTransaction childFragmentTransaction = childFragmentManager.beginTransaction();
-        mRunMapFragment = RunMapFragment.newInstance(mRunId);
-        childFragmentTransaction.add(R.id.runmapfragment_holder, mRunMapFragment);
+        RunMapFragment mapFragment = RunMapFragment.newInstance(mRunId);
+        childFragmentTransaction.add(R.id.runmapfragment_holder, mapFragment);
         childFragmentTransaction.commit();
     }
 
