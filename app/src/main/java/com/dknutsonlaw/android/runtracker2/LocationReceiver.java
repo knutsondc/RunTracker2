@@ -1,8 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
 /**
- * Created by dck on 9/6/15.
- * * added by dck 1/15/2015
+ * Created by dck on 9/6/15 for RunTracker2.
+ * added by dck 1/15/2015 to original RunTracker program.
  * A subclass of Broadcast Receiver to receive Location updates for use in updating the database,
  * with separate instantiations to provide "live" updates directly to the UIs in RunFragment and
  * RunMapFragment.

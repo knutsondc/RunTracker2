@@ -6,16 +6,15 @@ package com.dknutsonlaw.android.runtracker2;
  */
 import android.content.Context;
 import android.database.Cursor;
-import android.net.Uri;
 import android.util.Log;
 
-public class RunListCursorLoader extends MySQLiteCursorLoader {
+class RunListCursorLoader extends MySQLiteCursorLoader {
     private static final String TAG = ".runlistcursorloader";
 
     private final int mSortOrder;
 
-    public RunListCursorLoader(Context context, @SuppressWarnings("SameParameterValue") Uri uri, int sortOrder) {
-        super(context, uri);
+    RunListCursorLoader(Context context, int sortOrder) {
+        super(context, Constants.URI_TABLE_RUN);
         mSortOrder = sortOrder;
     }
 

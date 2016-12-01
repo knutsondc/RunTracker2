@@ -48,7 +48,8 @@ public class DeleteRunsDialog extends DialogFragment {
         try {
             mListener = (DeleteRunsDialogListener) context;
         } catch (ClassCastException e){
-            throw new ClassCastException(context.toString() + " must implement DeleteRunsDialogListener");
+            throw new ClassCastException(context.toString() +
+                    " must implement DeleteRunsDialogListener");
         }
     }
 

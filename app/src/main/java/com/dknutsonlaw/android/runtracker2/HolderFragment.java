@@ -11,7 +11,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 /**
- * Created by dck on 11/12/16.
+ * Created by dck on 11/12/16. A fragment designed to hold in two FrameLayouts the RunFragment and
+ * RunMapFragment for a given Run.
  */
 
 public class HolderFragment extends Fragment {

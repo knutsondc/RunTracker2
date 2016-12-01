@@ -28,9 +28,9 @@ public class TrackingLocationReceiver extends LocationReceiver {
 
     @Override
     protected void onLocationReceived(Context c, Location loc) {
-       if (loc.getAccuracy() == 0.0) {
+       if (!loc.hasAccuracy()) {
             Log.i(TAG, "Location rejected - no accuracy value");
-       } else if(loc.getAltitude() == 0.0){
+       } else if(!loc.hasAltitude()){
            //Reject all location updates that have no altitude value - this insures that only
            //GPS locations get accepted
            Log.i(TAG, "Location rejected - no altitude value");

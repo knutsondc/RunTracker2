@@ -298,7 +298,7 @@ public class TrackingLocationIntentService extends IntentService{
             return;
         }
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        String startAddress = mRunManager.getAddress(this, latLng);
+        String startAddress = RunManager.getAddress(this, latLng);
         run.setStartAddress(startAddress);
         //Perform the update on the database and get the result
         //int result = mRunManager.mHelper.updateStartAddress(mRunManager.mAppContext, run);
@@ -350,7 +350,7 @@ public class TrackingLocationIntentService extends IntentService{
             return;
         }
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        String endAddress = mRunManager.getAddress(this, latLng);
+        String endAddress = RunManager.getAddress(this, latLng);
         run.setEndAddress(endAddress);
         //Perform the update on the database and get the result
         //int result = mRunManager.mHelper.updateEndAddress(mRunManager.mAppContext, run);

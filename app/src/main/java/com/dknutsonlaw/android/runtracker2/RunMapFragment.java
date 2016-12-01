@@ -33,7 +33,6 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -220,7 +219,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                                     mRunManager.getLastLocationForRun(mRunId).getTime());
                         }
                         if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))) {
-                            snippetAddress = mRunManager.getAddress(getActivity(), marker.getPosition());
+                            snippetAddress = RunManager.getAddress(getActivity(), marker.getPosition());
                         } else {
                             snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
                         }
@@ -332,6 +331,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                             .setScrollGesturesEnabled(!mGoogleMap.getUiSettings().isScrollGesturesEnabled());
                     mRunManager.mPrefs.edit().putBoolean(Constants.SCROLL_ON, !mRunManager.mPrefs.getBoolean(Constants.SCROLL_ON, false)).apply();
                 }
+                assert mGoogleMap != null;
                 Log.i(TAG, "After change to scrolling, is scrolling enabled? " + mGoogleMap.getUiSettings().isScrollGesturesEnabled());
 
                 //We want to change the menuItem title in onPrepareOptionsMenu, so we need to invalidate
@@ -386,14 +386,15 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         mMapView.onResume();
         mBroadcastManager.registerReceiver(mResultsReceiver, mIntentFilter);
         try {
-            mPoints = new ArrayList<>(mRunManager.retrievePoints(mRunId));
+            //noinspection ConstantConditions
+            mPoints = new ArrayList<>(RunManager.retrievePoints(mRunId));
             Log.i(TAG, "For Run #" + mRunId + " mPoints retrieved.");
         } catch (NullPointerException e){
             mPoints = new ArrayList<>();
             Log.i(TAG, "For Run #" + mRunId + " created new ArrayList<LatLng> for mPoints.");
         }
 
-        mBounds = mRunManager.retrieveBounds(mRunId);
+        mBounds = RunManager.retrieveBounds(mRunId);
         Log.i(TAG, "In onCreate for Run #" + mRunId +" is mBounds null? " + (mBounds == null));
         mPrepared = false;
     }
@@ -436,8 +437,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
     public Loader<Cursor> onCreateLoader(int d, Bundle args){
         long runId = args.getLong(Constants.ARG_RUN_ID, -1);
         //Create a loader than returns a cursor holding all the location data for this Run.
-        return new MyLocationListCursorLoader(getActivity(),
-                Constants.URI_TABLE_LOCATION, runId);
+        return new MyLocationListCursorLoader(getActivity(), runId);
     }
 
     //All the "real work" to update this MapFragment in real time when the run is being tracked is
@@ -553,8 +553,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //is bad, get a new Starting Address from the geocoder. The geocoder needs a LatLng object,
         //so use the first element of the mPoints List.
         String snippetAddress = mRunManager.getRun(mRunId).getStartAddress();
-        if (mRunManager.addressBad(getActivity(), snippetAddress)) {
-            snippetAddress = mRunManager.getAddress(getActivity(), mPoints.get(0));
+        if (RunManager.addressBad(getActivity(), snippetAddress)) {
+            snippetAddress = RunManager.getAddress(getActivity(), mPoints.get(0));
         }
         //Now create a marker for the starting point and put it on the map. The starting marker
         //doesn't need to be updated, so we don't even need to keep the return value from the call
@@ -575,8 +575,8 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
         //end address from the geocoder. The geocoder needs a LatLng, so we feed it the last element
         //in mPoints.
         snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
-        if (mRunManager.addressBad(getActivity(), snippetAddress)) {
-            snippetAddress = mRunManager.getAddress(getActivity(), mPoints.get(mPoints.size() - 1));
+        if (RunManager.addressBad(getActivity(), snippetAddress)) {
+            snippetAddress = RunManager.getAddress(getActivity(), mPoints.get(mPoints.size() - 1));
         }
         //We use the default red icon for the EndMarker. We need to keep a reference to it because
         //it will be updated as the Run progresses.
@@ -605,7 +605,7 @@ public class RunMapFragment extends Fragment implements LoaderManager.LoaderCall
                 mBounds = mBounds.including(latLng);
                 if (mLocationCursor.isLast()){
                     endMarkerOptions.position(latLng);
-                    endMarkerOptions.snippet(mRunManager.getAddress(getActivity(), latLng));
+                    endMarkerOptions.snippet(RunManager.getAddress(getActivity(), latLng));
                 }
                 mLocationCursor.moveToNext();
             }

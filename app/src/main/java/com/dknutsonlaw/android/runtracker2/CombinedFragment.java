@@ -53,7 +53,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -66,7 +65,8 @@ import java.util.ArrayList;
 import java.util.Date;
 
 /**
- * Created by dck on 11/19/16.
+ * Created by dck on 11/19/16. All the elements of the earlier RunFragment and RunMapFragment for a
+ * given Run combined into a single Fragment
  */
 
 public class CombinedFragment extends Fragment {
@@ -184,9 +184,21 @@ public class CombinedFragment extends Fragment {
                 mRun = mRunManager.getRun(mRunId);
                 Log.i(TAG, "mRunId is " + mRunId + " in onCreate()");
             }
-            RunDatabaseHelper.LocationCursor locationCursor = mRunManager.queryLocationsForRun(mRunId);
             //If we've already stored values for mBounds and mPoints in the RunManager singletons,
             //retrieve them on a separate thread to speed initialization of the map
+            /*try {
+                mPoints = new ArrayList<>(RunManager.retrievePoints(mRunId));
+                Log.i(TAG, "For Run #" + mRunId + " mPoints retrieved.");
+            } catch (NullPointerException e){*/
+                mPoints = new ArrayList<>();
+                Log.i(TAG, "For Run #" + mRunId + " created new ArrayList<LatLng> for mPoints.");
+            //}
+            mBounds = RunManager.retrieveBounds(mRunId);
+            Log.i(TAG, "In onCreate for Run #" + mRunId +" is mBounds null? " + (mBounds == null));
+            //If this is not a newly-created Run, load all the location information available for
+            //Run into a LocationCursor a spawn a separate thread to fill mBounds and  mPoints  with
+            //it.
+            RunDatabaseHelper.LocationCursor locationCursor = mRunManager.queryLocationsForRun(mRunId);
             LoadPointsAndBounds initTask = new LoadPointsAndBounds(locationCursor);
             initTask.execute();
         }
@@ -302,7 +314,7 @@ public class CombinedFragment extends Fragment {
             mStartingAddressTextView.setText(mRun.getStartAddress());
             //If what we're showing for the Starting Address is bad, try to get a good address from the
             ///geocoder and record it to the database
-            if (mRunManager.addressBad(getActivity(), mStartingAddressTextView.getText().toString())) {
+            if (RunManager.addressBad(getActivity(), mStartingAddressTextView.getText().toString())) {
                 TrackingLocationIntentService.startActionUpdateStartAddress(getActivity(), mRun, mStartLocation);
             }
         }
@@ -320,7 +332,7 @@ public class CombinedFragment extends Fragment {
             mEndingAddressTextView.setText(mRun.getEndAddress());
             //If our Ending Address loaded from the database is bad, get a new value from the
             //geocoder and store it to the database,then display it
-            if (mRunManager.addressBad(getActivity(), mEndingAddressTextView.getText().toString())) {
+            if (RunManager.addressBad(getActivity(), mEndingAddressTextView.getText().toString())) {
                 TrackingLocationIntentService.startActionUpdateEndAddress(getActivity(), mRun, mLastLocation);
             }
             //Display duration of the Run in hours, minutes and seconds
@@ -403,7 +415,7 @@ public class CombinedFragment extends Fragment {
                                     mRunManager.getLastLocationForRun(mRunId).getTime());
                         }
                         if (mRunManager.isTrackingRun(mRunManager.getRun(mRunId))) {
-                            snippetAddress = mRunManager.getAddress(getActivity(), marker.getPosition());
+                            snippetAddress = RunManager.getAddress(getActivity(), marker.getPosition());
                         } else {
                             snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
                         }
@@ -552,8 +564,6 @@ public class CombinedFragment extends Fragment {
             case R.id.show_entire_route_menu_item:
                 Log.i(TAG, "For Run " + mRunId + " entered case R.id.show_entire_route_menu_item:");
                 mViewMode = Constants.SHOW_ENTIRE_ROUTE;
-                mRunManager.mPrefs.edit()
-                        .putInt(Constants.TRACKING_MODE, Constants.SHOW_ENTIRE_ROUTE).apply();
                 //Scrolling won't work with this tracking mode, so turn it off with the next update
                 //of the UI.
                 mRunManager.mPrefs.edit().putBoolean(Constants.SCROLLABLE, false).apply();
@@ -561,8 +571,6 @@ public class CombinedFragment extends Fragment {
             case R.id.track_end_point_menu_item:
                 Log.i(TAG, "For Run " + mRunId + " entered case R.id.track_end_point_menu_item:");
                 mViewMode = Constants.FOLLOW_END_POINT;
-                mRunManager.mPrefs.edit()
-                        .putInt(Constants.TRACKING_MODE, Constants.FOLLOW_END_POINT).apply();
                 //Scrolling won't work with this tracking mode, so turn it off with the next update
                 //of the UI.
                 mRunManager.mPrefs.edit().putBoolean(Constants.SCROLLABLE, false).apply();
@@ -570,8 +578,6 @@ public class CombinedFragment extends Fragment {
             case R.id.track_start_point_menu_item:
                 Log.i(TAG, "For Run " + mRunId + " entered case R.id.track_start_point_menu_item:");
                 mViewMode = Constants.FOLLOW_STARTING_POINT;
-                mRunManager.mPrefs.edit()
-                        .putInt(Constants.TRACKING_MODE, Constants.FOLLOW_STARTING_POINT).apply();
                 //Scrolling won't work with this tracking mode, so turn it off with the next update
                 //of the UI
                 mRunManager.mPrefs.edit().putBoolean(Constants.SCROLLABLE, false).apply();
@@ -579,8 +585,6 @@ public class CombinedFragment extends Fragment {
             case R.id.tracking_off_menu_item:
                 Log.i(TAG, "For Run " + mRunId + " entered case R.id.tracking_off_menu_item:");
                 mViewMode = Constants.NO_UPDATES;
-                mRunManager.mPrefs.edit()
-                        .putInt(Constants.TRACKING_MODE, Constants.NO_UPDATES).apply();
                 //Scrolling will work with this tracking mode, so make sure we enable the scrolling
                 //menuItem upon next update of UI.
                 mRunManager.mPrefs.edit().putBoolean(Constants.SCROLLABLE, true).apply();
@@ -625,8 +629,8 @@ public class CombinedFragment extends Fragment {
             //If we haven't yet gotten a starting location for this run, try to get one. Once we've
             //gotten a starting location, no need to ask for it again.
             if (mRun != null && mStartLocation == null) {
-                //Log.i(TAG, "For Run " + mRunId + "at beginning of updateUI() section re " +
-                //        "mStartLocation mStartLocation is null");
+                //This is a  brand new Run with no locations yet picked up - get the Starting
+                //Location, if it exists.
                 mStartLocation = mRunManager.getStartLocationForRun(mRunId);
                 if (mStartLocation != null) {
                     //Now that we've gotten a Starting Location, record and display information
@@ -670,9 +674,9 @@ public class CombinedFragment extends Fragment {
             //and with the new starting address. Once we have a starting address,no need to reload
             //any data concerning the Start Location - it won't change as the Run goes on.
             if (mRun != null && mStartLocation != null) {
-                mStartingAltitudeTextView
-                        .setText(mRunManager.formatAltitude(mStartLocation.getAltitude()));
-                if (mRunManager.addressBad(getActivity(),
+                /*mStartingAltitudeTextView
+                        .setText(mRunManager.formatAltitude(mStartLocation.getAltitude()));*/
+                if (RunManager.addressBad(getActivity(),
                         mStartingAddressTextView.getText().toString())) {
                     Log.i(TAG, "mRun.getStartAddress() for Run " + mRun.getId() + " is bad; " +
                             "calling updateRunStartAddress().");
@@ -712,15 +716,28 @@ public class CombinedFragment extends Fragment {
                 if (mBounds == null) {
                     mBuilder.include(latLng);
                     mBounds = mBuilder.build();
+                    //RunManager.saveBounds(mRunId, mBounds);
                 } else {
-                    mBounds = mBounds.including(latLng);
-                    mRunManager.saveBounds(mRunId, mBounds);
+                    if (!mBounds.contains(latLng)) {
+                        mBounds = mBounds.including(latLng);
+                        //RunManager.saveBounds(mRunId, mBounds);
+                    }
                 }
-                //Add this point to the collection of points for updating the polyline and save to
-                //RunManager's singleton for use in recreating this map more quickly upon a
-                //configuration change.
-                mPoints.add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                mRunManager.savePoints(mRunId, mPoints);
+                //Add this point to the collection of points for updating the polyline if this
+                //location is not the same as the last previous one and thereafter save the
+                //updated mPoints to RunManager's singleton for use in recreating this map more
+                //quickly upon a configuration change.
+                if (mPoints.size() >= 1) {
+                    if (mLastLocation.getLatitude() != mPoints.get(mPoints.size() - 1).latitude ||
+                            mLastLocation.getLongitude() != mPoints.get(mPoints.size() - 1).longitude) {
+
+                        mPoints.add(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                        //RunManager.savePoints(mRunId, mPoints);
+                    } else {
+                        Log.i(TAG, "In Run " + mRunId + ", mLastLocation LatLng was the same as " +
+                                "mPoints.get(mPoints.size() - 1");
+                    }
+                }
             }
 
         }
@@ -778,8 +795,8 @@ public class CombinedFragment extends Fragment {
             case Constants.FOLLOW_END_POINT: {
                 //To track the end point of the Run, move the camera to the new end point at the
                 //zoom level last used for this mode or FOLLOW_START_POINT mode.
-                Log.i(TAG, "FOLLOW_END_POINT zoom level: " + mGoogleMap.getCameraPosition().zoom);
                 cameraUpdate = CameraUpdateFactory.newLatLng(latLng);
+                Log.i(TAG, "FOLLOW_END_POINT zoom level: " + mGoogleMap.getCameraPosition().zoom);
                 break;
             }
             case Constants.FOLLOW_STARTING_POINT: {
@@ -808,15 +825,6 @@ public class CombinedFragment extends Fragment {
         restartLoaders();
         mMapView.onResume();
         mBroadcastManager.registerReceiver(mResultsReceiver, mResultsFilter);
-        try {
-            mPoints = new ArrayList<>(mRunManager.retrievePoints(mRunId));
-            Log.i(TAG, "For Run #" + mRunId + " mPoints retrieved.");
-        } catch (NullPointerException e){
-            mPoints = new ArrayList<>();
-            Log.i(TAG, "For Run #" + mRunId + " created new ArrayList<LatLng> for mPoints.");
-        }
-        mBounds = mRunManager.retrieveBounds(mRunId);
-        Log.i(TAG, "In onCreate for Run #" + mRunId +" is mBounds null? " + (mBounds == null));
         mPrepared = false;
     }
 
@@ -893,11 +901,13 @@ public class CombinedFragment extends Fragment {
         mLocationCursor.moveToFirst();
         mStartLocation = mLocationCursor.getLocation();
         if (mBounds == null){
+            Log.i(TAG, "In prepareMap() for Run " + mRunId + ", mBounds is null");
             mBuilder.include(new LatLng(mStartLocation.getLatitude(),
                                         mStartLocation.getLongitude()));
             mBounds = mBuilder.build();
         }
         if (mPoints.size() == 0){
+            Log.i(TAG, "In prepareMap() for Run " + mRunId + ", mPoints has a size of 0");
             mPoints.add(new LatLng(mStartLocation.getLatitude(), mStartLocation.getLongitude()));
         }
         String startDate = Constants.DATE_FORMAT.format(mStartLocation.getTime());
@@ -906,20 +916,10 @@ public class CombinedFragment extends Fragment {
         //Get the address where we started the Run from the database. If the database's StartAddress
         //is bad, get a new Starting Address from the geocoder. The geocoder needs a LatLng object,
         //so use the first element of the mPoints List.
-        String snippetAddress = mRunManager.getRun(mRunId).getStartAddress();
-        if (mRunManager.addressBad(getActivity(), snippetAddress)) {
-            snippetAddress = mRunManager.getAddress(getActivity(), mPoints.get(0));
-        }
-        //Now create a marker for the starting point and put it on the map. The starting marker
-        //doesn't need to be updated, so we don't even need to keep the return value from the call
-        //to mGoogleMap.addMarker().
-        MarkerOptions startMarkerOptions = new MarkerOptions()
-                .position(mPoints.get(0))
-                .title(r.getString(R.string.run_start))
-                .snippet(startDate + "\n" + snippetAddress)
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-                .flat(false);
-        mGoogleMap.addMarker(startMarkerOptions);
+        /*if (RunManager.addressBad(getActivity(), snippetAddress)) {
+            snippetAddress = RunManager.getAddress(getActivity(), mPoints.get(0));
+        }*/
+
         //Now set up the EndMarker
         mLocationCursor.moveToLast();
         mLastLocation = mLocationCursor.getLocation();
@@ -927,9 +927,9 @@ public class CombinedFragment extends Fragment {
         //Get the address where the run ended from the database. If that address is bad, get a new
         //end address from the geocoder. The geocoder needs a LatLng, so we feed it the last element
         //in mPoints.
-        snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
-        if (mRunManager.addressBad(getActivity(), snippetAddress)) {
-            snippetAddress = mRunManager.getAddress(getActivity(), mPoints.get(mPoints.size() - 1));
+        String snippetAddress = mRunManager.getRun(mRunId).getEndAddress();
+        if (RunManager.addressBad(getActivity(), snippetAddress)) {
+            snippetAddress = RunManager.getAddress(getActivity(), mPoints.get(mPoints.size() - 1));
         }
         //We use the default red icon for the EndMarker. We need to keep a reference to it because
         //it will be updated as the Run progresses.
@@ -957,25 +957,73 @@ public class CombinedFragment extends Fragment {
                 mBounds = mBounds.including(latLng);
                 if (mLocationCursor.isLast()){
                     endMarkerOptions.position(latLng);
-                    endMarkerOptions.snippet(mRunManager.getAddress(getActivity(), latLng));
+                    endMarkerOptions.snippet(RunManager.getAddress(getActivity(), latLng));
                 }
                 mLocationCursor.moveToNext();
             }
         } else {
             Log.i(TAG, "Cursor is equal in size to existing mPoints for Run #" + mRunId + ".");
         }
+
+        //Now create a marker for the starting point and put it on the map. The starting marker
+        //doesn't need to be updated, so we don't even need to keep the return value from the call
+        //to mGoogleMap.addMarker().
+        snippetAddress = mRunManager.getRun(mRunId).getStartAddress();
+        MarkerOptions startMarkerOptions = new MarkerOptions()
+                .position(mPoints.get(0))
+                .title(r.getString(R.string.run_start))
+                .snippet(startDate + "\n" + snippetAddress)
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+                .flat(false);
+        mGoogleMap.addMarker(startMarkerOptions);
         PolylineOptions line = new PolylineOptions();
         //mPoints is the List of LatLngs used to create mPolyline created earlier in this
         //CombinedFragment and stored by the RunManager singleton. mPoints represents all the
         //location data collected for this run.
+
+        //Now set up an initial CameraUpdate according to the tracking mode we're in.
+        mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.SHOW_ENTIRE_ROUTE);
+        float zoom = mRunManager.mPrefs.getFloat(Constants.ZOOM_LEVEL, 17.0f) >= 17.0f ?
+                mRunManager.mPrefs.getFloat(Constants.ZOOM_LEVEL, 17.0f): 17.0f;
+        Log.i(TAG, "Zoom level in prepareMap() for Run " + mRunId + " before animating map is " + zoom);
+        Log.i(TAG, "In Run " + mRunId + ", first location is " + mPoints.get(0) + ", second location is " + mPoints.get(1) + " and last location is " + mPoints.get(mPoints.size() - 1));
+        /*int i = 1;
+        while (mPoints.get(0).latitude == mPoints.get(mPoints.size() - 1).latitude &&
+            mPoints.get(0).longitude == mPoints.get(mPoints.size() - 1).longitude){
+            Log.i(TAG, "In loop " + i + " of Run " + mRunId + ", first location is equal to last location!");
+            mPoints.remove(0);
+            Log.i(TAG, "After removing bad first position, is mPoints still screwed up? " + (mPoints.get(0).latitude == mPoints.get(mPoints.size() - 1).latitude &&
+                    mPoints.get(0).longitude == mPoints.get(mPoints.size() - 1).longitude));
+            Log.i(TAG, "In Run " + mRunId + ", after removing bad location " + i + ", new first location is " + mPoints.get(0) + " and last location is " + mPoints.get(mPoints.size() - 1));
+            i++;
+        }*/
         line.addAll(mPoints);
         //Create mPolyline using the List of LatLngs stored for us in the singleton rather than
         //reading them in again from the database.
         mPolyline = mGoogleMap.addPolyline(line);
         //Now that we've fixed the position of mEndMarker, add it to the map.
         mEndMarker = mGoogleMap.addMarker(endMarkerOptions);
-        //Now set up an initial CameraUpdate according to the tracking mode we're in.
-        setTrackingMode();
+        switch (mViewMode){
+            case Constants.SHOW_ENTIRE_ROUTE:
+                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(mBounds, 110));
+                Log.i(TAG, "Zoom level in prepareMap() for Run " + mRunId + " after applying SHOW_ENTIRE_ROUTE is " +
+                        mGoogleMap.getCameraPosition().zoom);
+                Log.i(TAG, "In prepareMap(), first location is " + mPoints.get(0) + " and last location is " + mPoints.get(mPoints.size() - 1));
+                break;
+            case Constants.FOLLOW_STARTING_POINT:
+                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mPoints.get(0), zoom));
+                Log.i(TAG, "Zoom level in prepareMap() for Run " + mRunId + " after applying FOLLOW_STARTING_POINT is " +
+                                                mGoogleMap.getCameraPosition().zoom);
+                Log.i(TAG, "In prepareMap(), first location is " + mPoints.get(0) + " and last location is " + mPoints.get(mPoints.size() - 1));
+                break;
+            default:
+                mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mPoints.get(mPoints.size() - 1), zoom));
+                Log.i(TAG, "Zoom level in prepareMap() for Run " + mRunId + " after applying FOLLOW_END_POINT is " +
+                        mGoogleMap.getCameraPosition().zoom);
+                Log.i(TAG, "In prepareMap(), first location is " + mPoints.get(0) + " and last location is " + mPoints.get(mPoints.size() - 1));
+                break;
+        }
+        //setTrackingMode();
         //The graphic elements of the map display have now all been configured, so clear the
         //mNeedToPrepare flag so that succeeding calls to onLoadFinished will merely update them as
         //new location data comes in.
@@ -986,16 +1034,16 @@ public class CombinedFragment extends Fragment {
     * be set to another value when the map is recreated. This method is also used when the user
     * affirmatively selects a different View Mode in the OptionsMenu*/
     private void setTrackingMode(){
-        CameraUpdate movement;
         LatLng latLng;
         //Make sure that the zoom level for tracking the end or starting points is at least 17.0f
         //when you start tracking in one of those modes. Thereafter, zoom level is taken from
         //SharedPreferences.
-        Log.i(TAG, "In setTrackingMode(), SharedPrefs zoom level is " + mRunManager.mPrefs.getFloat(Constants.ZOOM_LEVEL, 17.0f));
+        Log.i(TAG, "In setTrackingMode(), SharedPrefs zoom level is "
+                + mRunManager.mPrefs.getFloat(Constants.ZOOM_LEVEL, 17.0f));
         float zoom = (mRunManager.mPrefs.getFloat(Constants.ZOOM_LEVEL, 17.0f) >= 17.0f) ?
                       mRunManager.mPrefs.getFloat(Constants.ZOOM_LEVEL, 17.0f) : 17.0f;
+        mRunManager.mPrefs.edit().putFloat(Constants.ZOOM_LEVEL, zoom).apply();
         Log.i(TAG, "In setTrackingMode(), zoom level after assignment is " + zoom);
-        CameraPosition cameraPosition;
         switch (mViewMode){
             case Constants.FOLLOW_END_POINT:
                 //Fix the camera on the last location in the run at the zoom level that was last used
@@ -1004,13 +1052,7 @@ public class CombinedFragment extends Fragment {
                 //Move the camera to the end point at the specified zoom level
                 latLng = mPoints.get(mPoints.size() - 1);
                 Log.i(TAG, "In setTrackingMode() FOLLOW_END_POINT, zoom is " + zoom);
-                cameraPosition = new CameraPosition.Builder()
-                        .target(latLng)
-                        .zoom(zoom)
-                        .build();
-                //movement = CameraUpdateFactory.newLatLngZoom(latLng, zoom);
-                //mGoogleMap.animateCamera(movement);
-                mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom), 5000, null);
                 Log.i(TAG, "In setTrackingMode FOLLOW_END_POINT after applying movement, zoom level" +
                         " is " + mGoogleMap.getCameraPosition().zoom);
                 //Update the position of the end marker
@@ -1021,31 +1063,20 @@ public class CombinedFragment extends Fragment {
                 //The start marker never moves, so there's never any need to update it.
                 latLng = mPoints.get(0);
                 Log.i(TAG, "In setTrackingMode() FOLLOW_STARTING_POINT, zoom is " + zoom);
-                //movement = CameraUpdateFactory.newLatLngZoom(latLng, zoom);
-                cameraPosition = new CameraPosition.Builder()
-                        .target(latLng)
-                        .zoom(zoom)
-                        .build();
+                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom), 5000, null);
                 Log.i(TAG, "In setTrackingMode FOLLOW_STARTING_POINT after applying movement, zoom" +
                         "level is " + mGoogleMap.getCameraPosition().zoom);
-                //mGoogleMap.animateCamera(movement);
-                mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
                 break;
             default:
                 /*This handles both SHOW_ENTIRE_ROUTE and NO_UPDATES.
-                 *On initial layout of the map done in prepareMap(), the border on the top of the map
-                 *apparently doesn't take into account the space taken by the ActionBar, so we have
-                 *to move the camera again using the same bounds and margin. This time, we don't have
-                 *to give display info because the map has already been rendered.
                  *Set the camera at the center of the area defined by mBounds, again leaving a 110
-                 *pixel buffer zone at the edges of the screen. The map is already created, so we
-                 *don't need to tell the CameraUpdate about the display size. The zoom level is
+                 *pixel buffer zone at the edges of the screen. The map has already been created, so
+                 *we don't need to tell the CameraUpdate about the  map's size. The zoom level is
                  *set according to the size of the area that needs to be displayed. We don't save
                  *the zoom level here, so that any switch to FOLLOW_END_POINT or FOLLOW_START_POINT
                  *mode will use the zoom level that was last used for one of those modes.*/
-                movement = CameraUpdateFactory.newLatLngBounds(mBounds, 110);
                 Log.i(TAG, "In setTrackingMode() default, zoom is " + zoom);
-                mGoogleMap.animateCamera(movement);
+                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(mBounds, 110), 5000, null);
                 Log.i(TAG, "In setTrackingMode default, after applying movement, zoom level is " +
                         mGoogleMap.getCameraPosition().zoom);
                 break;
@@ -1061,7 +1092,9 @@ public class CombinedFragment extends Fragment {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int grantResults[]){
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int grantResults[]){
         if (requestCode == Constants.REQUEST_LOCATION_PERMISSIONS){
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED &&
                     grantResults[1] == PackageManager.PERMISSION_GRANTED){
@@ -1069,7 +1102,8 @@ public class CombinedFragment extends Fragment {
                 try {
                     mLocationService.send(msg);
                 } catch (RemoteException e){
-                    Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_PERMISSION_REQUEST_SUCCEEDED");
+                    Log.i(TAG, "RemoteException thrown when trying to send " +
+                            "MESSAGE_PERMISSION_REQUEST_SUCCEEDED");
                 }
                 Toast.makeText(getActivity(), "Location permissions granted.",
                         Toast.LENGTH_LONG).show();
@@ -1085,12 +1119,14 @@ public class CombinedFragment extends Fragment {
                     try {
                         mLocationService.send(msg);
                     } catch (RemoteException e){
-                        Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_PERMISSION_REQUEST_CANCELED");
+                        Log.i(TAG, "RemoteException thrown when trying to send " +
+                                "MESSAGE_PERMISSION_REQUEST_CANCELED");
                     }
                 }
             }
         } else {
-            Log.i(TAG, "REQUEST_LOCATION_PERMISSIONS is the only requestCode used. How'd you get here!?!");
+            Log.i(TAG, "REQUEST_LOCATION_PERMISSIONS is the only requestCode used. How'd you get " +
+                    "here!?!");
         }
     }
 
@@ -1102,23 +1138,34 @@ public class CombinedFragment extends Fragment {
         if (requestCode == Constants.LOCATION_CHECK){
             switch (resultCode){
                 case Activity.RESULT_OK:
-                    Toast.makeText(getActivity(), "All Location Settings requirements now met.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(),
+                                    "All Location Settings requirements now met.",
+                                    Toast.LENGTH_LONG)
+                                    .show();
                     try {
-                        mLocationService.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_SUCCEEDED));
+                        mLocationService.send(Message.obtain(null,
+                                Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_SUCCEEDED));
                     } catch (RemoteException e){
-                        Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_LOCATION_SETTINGS_SUCCEEDED");
+                        Log.i(TAG, "RemoteException thrown when trying to send " +
+                                "MESSAGE_LOCATION_SETTINGS_SUCCEEDED");
                     }
                     break;
                 case Activity.RESULT_CANCELED:
                     Toast.makeText(getActivity(), "You declined to enable Location Services.\n" +
                             "Stopping tracking of this run.", Toast.LENGTH_LONG).show();
                     try {
-                        mLocationService.send(Message.obtain(null, Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED));
+                        mLocationService.send(Message.obtain(null,
+
+                                Constants.MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED));
                     } catch (RemoteException e){
-                        Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED");
+                        Log.i(TAG, "RemoteException thrown when trying to send " +
+                                "MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED");
                     }
                     if (mRun.getDuration() == 0){
-                        Toast.makeText(getActivity(), "Never got any locations for this Run. Deleting Run.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(),
+                                        "Never got any locations for this Run. Deleting Run.",
+                                        Toast.LENGTH_LONG)
+                                        .show();
                         //mRunManager.deleteRun(mRunId);
                         TrackingLocationIntentService.startActionDeleteRun(getActivity(), mRunId);
                     }
@@ -1129,13 +1176,17 @@ public class CombinedFragment extends Fragment {
             switch (resultCode){
                 case Activity.RESULT_OK:
                     try {
-                        mLocationService.send(Message.obtain(null, Constants.MESSAGE_TRY_GOOGLEAPICLIENT_RECONNECTION));
+                        mLocationService.send(Message.obtain(null,
+
+                                Constants.MESSAGE_TRY_GOOGLEAPICLIENT_RECONNECTION));
                     } catch (RemoteException e){
-                        Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_TRY_GOOGLEAPICLIENT_RECONNECTION");
+                        Log.i(TAG, "RemoteException thrown when trying to send " +
+                                "MESSAGE_TRY_GOOGLEAPICLIENT_RECONNECTION");
                     }
                     break;
                 case Activity.RESULT_CANCELED:
-                    Toast.makeText(getActivity(), "You canceled recovery of Google Play Services. Stopping Tracking.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), "You canceled recovery of Google Play Services. " +
+                            "       Stopping Tracking.", Toast.LENGTH_LONG).show();
                     doUnbindService(this);
                     break;
             }
@@ -1148,15 +1199,15 @@ public class CombinedFragment extends Fragment {
         public Loader<Cursor> onCreateLoader(int d, Bundle args){
             long runId  = args.getLong(Constants.ARG_RUN_ID);
             //Return a Loader pointing to a cursor containing a Run with specified RunId
-            return new RunCursorLoader(getActivity(), Constants.URI_TABLE_RUN, runId);
+            return new RunCursorLoader(getActivity(), runId);
         }
 
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor cursor){
 
             if (cursor != null) {
-                //Need to cast the superclass Cursor returned to us to the RunCursor it really is so we
-                //can extract the Run from it.
+                //Need to cast the superclass Cursor returned to us to the RunCursor it really is so
+                //we can extract the Run from it.
                 RunDatabaseHelper.RunCursor newCursor = (RunDatabaseHelper.RunCursor)cursor;
                 Run run = null;
                 if (newCursor.moveToFirst()){
@@ -1196,7 +1247,7 @@ public class CombinedFragment extends Fragment {
         @Override
         public Loader<Cursor> onCreateLoader(int d, Bundle args){
             long runId = args.getLong(Constants.ARG_RUN_ID);
-            return new MyLocationListCursorLoader(getActivity(), Constants.URI_TABLE_LOCATION, runId);
+            return new MyLocationListCursorLoader(getActivity(), runId);
         }
 
         @Override
@@ -1211,14 +1262,17 @@ public class CombinedFragment extends Fragment {
                         if (mLastLocation != null) {
                             updateUI();
                         } else {
-                            Log.i(TAG, "LastLocationCursorLoader for Run " +mRunId + " returned a null Location");
+                            Log.i(TAG, "LastLocationCursorLoader for Run " +mRunId +
+                                    " returned a null Location");
                         }
 
                 } else {
-                    Log.i(TAG, "In LastLocationCursorLoader for Run " + mRunId + ", couldn't move to first position of cursor.");
+                    Log.i(TAG, "In LastLocationCursorLoader for Run " + mRunId +
+                            ", couldn't move to first position of cursor.");
                 }
             } else {
-                Log.i(TAG, "LastLocationCursorLoader for Run " + mRunId + " returned a null cursor");
+                Log.i(TAG, "LastLocationCursorLoader for Run " + mRunId +
+                        " returned a null cursor");
             }
         }
 
@@ -1289,7 +1343,8 @@ public class CombinedFragment extends Fragment {
                     break;
                 case Constants.MESSAGE_PERMISSION_REQUEST_NEEDED:
                     Log.i(TAG, "Now asking user for permission to use location data.");
-                    fragment.requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    fragment.requestPermissions(
+                                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,
                                     android.Manifest.permission.ACCESS_COARSE_LOCATION},
                                     Constants.REQUEST_LOCATION_PERMISSIONS);
                     break;
@@ -1302,7 +1357,7 @@ public class CombinedFragment extends Fragment {
                                 fragment.mViewMode == Constants.FOLLOW_END_POINT ||
                                 fragment.mViewMode == Constants.FOLLOW_STARTING_POINT) &&
                                 fragment.mRunManager
-                                        .isTrackingRun(fragment.mRunManager.getRun(fragment.mRunId))){
+                                    .isTrackingRun(fragment.mRunManager.getRun(fragment.mRunId))){
                             fragment.mOptionsMenu.findItem(R.id.run_map_pager_activity_scroll)
                                     .setEnabled(false)
                                     .setTitle(R.string.map_scrolling_on);
@@ -1334,19 +1389,41 @@ public class CombinedFragment extends Fragment {
             mCursor = cursor;
         }
         @Override
-        protected Void doInBackground(Void... params){
+        protected Void doInBackground(Void... params) {
             Location location;
             LatLng latLng;
-            mCursor.moveToFirst();
-            while (!mCursor.isAfterLast()) {
-                location = mCursor.getLocation();
-                latLng = new LatLng(location.getLatitude(), location.getLongitude());
-                mPoints.add(latLng);
-                mBuilder.include(latLng);
-                mCursor.moveToNext();
-            }
-            if (mPoints.size() > 0){
-                mBounds = mBuilder.build();
+            //If mPoints and mBounds already have some locations loaded into them, just load the
+            //locations in the cursor that haven't yet been loaded into them.
+            if (mPoints.size() > 0 && mBounds != null) {
+                Log.i(TAG, "In LoadPointsAndBounds for Run " + mRunId + ", mPoints.size() is " +
+                mPoints.size() + "and mBounds was not null.");
+                mCursor.moveToPosition(mPoints.size());
+                while (!mCursor.isAfterLast()) {
+                    location = mCursor.getLocation();
+                    latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                    mPoints.add(latLng);
+                    mBounds = mBounds.including(latLng);
+                    mCursor.moveToNext();
+                }
+            } else {
+                //If mPoints has no members, mBounds should be null - start from the first location
+                //in the cursor and load all location data into mPoints and a Builder for mBounds.
+                Log.i(TAG, "In LoadPointsAndBounds for Run " + mRunId + ", mPoints.size() is 0 " +
+                        "and mBounds is null.");
+                mCursor.moveToFirst();
+                while (!mCursor.isAfterLast()) {
+                    location = mCursor.getLocation();
+                    latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                    mPoints.add(latLng);
+                    mBuilder.include(latLng);
+                    mCursor.moveToNext();
+                }
+                //If we got any locations from the cursor, we need to build mBounds.
+                //
+                if (mPoints.size() > 0) {
+                    mBounds = mBuilder.build();
+                }
+
             }
             return null;
         }
@@ -1372,7 +1449,7 @@ public class CombinedFragment extends Fragment {
 
             String action = intent.getAction();
             if (action.equals(Constants.ACTION_REFRESH_UNITS)) {
-                Log.i(TAG, "Received refresh broadcast - calling updateUI().");
+                Log.i(TAG, "Received refresh units broadcast - calling updateUI().");
                 updateUI();
                 return;
             }
@@ -1394,11 +1471,11 @@ public class CombinedFragment extends Fragment {
                             int result =
                                     intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
                             int toastTextRes;
-                            //The getWritableDatabase.update() method returns the number of rows affected; that
-                            //value is returned to the IntentService and passed on to here. If no rows were
-                            //affected or more than one row was affected, something went wrong! The
-                            //IntentService no longer reports successful updates, so no need to check for
-                            //those.
+                            //The getWritableDatabase.update() method returns the number of rows
+                            //affected; that value is returned to the IntentService and passed on to
+                            //here. If no rows were affected or more than one row was affected,
+                            //something went wrong! The IntentService no longer reports successful
+                            //updates, so no need to check for those.
                         /*if (result == 1) {
                             Log.i(TAG, "ResultsReceiver reports Starting Date successfully updated for Run " + mRunId);
                         } else */
@@ -1409,10 +1486,14 @@ public class CombinedFragment extends Fragment {
                             } else {
                                 toastTextRes = R.string.unknown_start_date_error;
                             }
-                            //If an error occurred, put up a Toast advising the user of how things went wrong.
+                            //If an error occurred, put up a Toast advising the user of how things
+                            //went wrong.
                             if (result != 1) {
                                 if (isAdded()) {
-                                    Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
+                                    Toast.makeText(getActivity(),
+                                                    toastTextRes,
+                                                    Toast.LENGTH_LONG)
+                                                    .show();
                                 }
                             }
                             break;
@@ -1420,10 +1501,11 @@ public class CombinedFragment extends Fragment {
                         case Constants.ACTION_UPDATE_START_ADDRESS: {
                             int result = intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
                             int toastTextRes;
-                            //The getWritableDatabase.update() method returns the number of rows affected; that
-                            //value is returned to the IntentService and passed on to here. If no rows were
-                            //affected or more than one row was affected, something went wrong! The IntentService
-                            //no longer reports successful updates, so no need to check for those.
+                            //The getWritableDatabase.update() method returns the number of rows
+                            //affected; that value is returned to the IntentService and passed on to
+                            //here. If no rows were affected or more than one row was affected,
+                            //something went wrong! The IntentService no longer reports successful
+                            //updates, so no need to check for those.
                         /*if (result == 1){
                             Log.i(TAG, "ResultsReceiver reports Starting Address successfully updated for Run " + mRunId);
                         } else */
@@ -1445,13 +1527,14 @@ public class CombinedFragment extends Fragment {
                             int result =
                                     intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
                             int toastTextRes;
-                            //The getWritableDatabase.update() method returns the number of rows affected; that
-                            //value is returned to the IntentService and passed on to here. If no rows were
-                            //affected or more than one row was affected, something went wrong! The
-                            //IntentService no longer reports successful updates, so no need to check
-                            //for those.
+                            //The getWritableDatabase.update() method returns the number of rows
+                            //affected; that value is returned to the IntentService and passed on to
+                            //here. If no rows were affected or more than one row was affected,
+                            //something went wrong! The IntentService no longer reports successful
+                            //updates, so no need to check for those.
                         /*if (result == 1) {
-                            Log.i(TAG, "ResultsReceiver reports Ending Address successfully updated for Run " + mRunId);
+                            Log.i(TAG, "ResultsReceiver reports Ending Address successfully " +
+                                    "updated for Run " + mRunId);
                         } else */
                             if (result == 0) {
                                 toastTextRes = R.string.update_end_address_failed;
@@ -1460,7 +1543,8 @@ public class CombinedFragment extends Fragment {
                             } else {
                                 toastTextRes = R.string.unknown_end_address_update_error;
                             }
-                            //If an error occurred, put up a Toast advising the user of how things went wrong.
+                            //If an error occurred, put up a Toast advising the user of how things
+                            //went wrong.
                             if (result != 1) {
                                 if (isAdded()) {
                                     Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
@@ -1472,27 +1556,37 @@ public class CombinedFragment extends Fragment {
                             long result[] =
                                     intent.getLongArrayExtra(Constants.EXTENDED_RESULTS_DATA);
                             int toastTextRes;
-                            //If insertion of new location entry failed because it was more than 100 meters from
-                            //the last previous location, stop tracking this run, update the UI, and tell the
-                            //user why.
+                            //If insertion of new location entry failed because it was more than
+                            //100 meters from the last previous location, stop tracking this run,
+                            //update the UI, and tell the user why.
                             if (result[Constants.CONTINUATION_LIMIT_RESULT] == -1) {
                                 mRunManager.stopRun();
-                                //getActivity().stopService(new Intent(getActivity(), BackgroundLocationService.class));
+                                //getActivity().stopService(new Intent(getActivity(),
+                                //                          BackgroundLocationService.class));
                                 try {
-                                    Log.i(TAG, "For Run " + mRunId + ", sending MESSAGE_STOP_LOCATION_UPDATES after negative" +
+                                    Log.i(TAG, "For Run " + mRunId + ", sending " +
+                                            "MESSAGE_STOP_LOCATION_UPDATES after negative" +
                                             " CONTINUATION_LIMIT_RESULT");
-                                    mLocationService.send(Message.obtain(null, Constants.MESSAGE_STOP_LOCATION_UPDATES));
+                                    mLocationService.send(Message.obtain(null,
+                                                        Constants.MESSAGE_STOP_LOCATION_UPDATES));
                                 } catch (RemoteException e){
-                                    Log.i(TAG, "RemoteException thrown when trying to send MESSAGE_STOP_LOCATION_UPDATES");
+                                    Log.i(TAG, "RemoteException thrown when trying to send " +
+                                            "MESSAGE_STOP_LOCATION_UPDATES");
                                 }
                                 if (mRun.getEndAddress() != null) {
-                                    TrackingLocationIntentService.startActionUpdateEndAddress(getActivity(),
-                                            mRun, mRunManager.getLastLocationForRun(mRunId));
+                                    TrackingLocationIntentService
+                                            .startActionUpdateEndAddress(getActivity(),
+                                            mRun,
+                                            mRunManager.getLastLocationForRun(mRunId));
                                 }
-                                //We've stopped tracking the Run, so refresh the menu to enable "New Run" item
+                                //We've stopped tracking the Run, so refresh the menu to enable
+                                //"New Run" item
                                 updateUI();
                                 toastTextRes = R.string.current_location_too_distant;
-                                Toast.makeText(CombinedFragment.this.getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
+                                Toast.makeText(CombinedFragment.this.getActivity(),
+                                                toastTextRes,
+                                                Toast.LENGTH_LONG)
+                                                .show();
                                 return;
                             }
 
@@ -1501,13 +1595,17 @@ public class CombinedFragment extends Fragment {
                             //here so it can be reported to the user. Reports of success are not sent
                             //by the IntentService.
                         /*if (result[Constants.LOCATION_INSERTION_RESULT] != -1) {
-                            Log.i(TAG, "Successfully inserted Location at row " + result[Constants.LOCATION_INSERTION_RESULT] +
+                            Log.i(TAG, "Successfully inserted Location at row " +
+                            result[Constants.LOCATION_INSERTION_RESULT] +
                                     " for Run " + mRunId);
                         } else */
                             if (result[Constants.LOCATION_INSERTION_RESULT] == -1){
                                 //Upon error, throw up a Toast advising the user.
                                 toastTextRes = R.string.location_insert_failed;
-                                Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
+                                Toast.makeText(getActivity(),
+                                                toastTextRes,
+                                                Toast.LENGTH_LONG)
+                                                .show();
                             }
                         /*if (result[Constants.RUN_UPDATE_RESULT] != -1) {
                             Log.i(TAG, "Successfully updated Run " + mRunId);
@@ -1515,19 +1613,24 @@ public class CombinedFragment extends Fragment {
                             if (result[Constants.RUN_UPDATE_RESULT] == -1){
                                 toastTextRes = R.string.update_run_error;
                                 if (isAdded()) {
-                                    Toast.makeText(getActivity(), toastTextRes, Toast.LENGTH_LONG).show();
+                                    Toast.makeText(getActivity(),
+                                                    toastTextRes,
+                                                    Toast.LENGTH_LONG)
+                                                    .show();
                                 }
                             }
                             break;
                         }
                     }
-                //If mViewMode is changed for any RunMapFragment, a broadcast is sent to all RunMapFragments
-                //running will also change to the same view mode
+                //If mViewMode is changed for any CombinedFragment, a broadcast is sent to all
+                // CombinedFragments currently running so they will also change to the same view mode
                 case Constants.ACTION_REFRESH_MAPS:
                     long runId = intent.getLongExtra(Constants.ARG_RUN_ID, -1);
-                    Log.i(TAG, "Received ACTION_REFRESH_MAPS in Run " + mRunId + " from Run " + runId);
+                    Log.i(TAG, "Received ACTION_REFRESH_MAPS in Run " + mRunId +
+                                " from Run " + runId);
                     if (runId != mRunId) {
-                        mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE, Constants.SHOW_ENTIRE_ROUTE);
+                        mViewMode = mRunManager.mPrefs.getInt(Constants.TRACKING_MODE,
+                                                              Constants.SHOW_ENTIRE_ROUTE);
                         setTrackingMode();
                     }
                     updateUI();

@@ -1,7 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
 /**
- * Created by dck on 10/28/15.
+ * Adapted by dck on 10/28/15. An adapter that extends the RecyclerView.Adapter for use with a
+ * cursor.
  */
 import android.content.Context;
 import android.database.Cursor;
@@ -12,7 +13,8 @@ import android.support.v7.widget.RecyclerView;
  */
 
 @SuppressWarnings("ALL")
-abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
+abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder>
+                                            extends RecyclerView.Adapter<VH> {
 
     private Cursor mCursor;
 

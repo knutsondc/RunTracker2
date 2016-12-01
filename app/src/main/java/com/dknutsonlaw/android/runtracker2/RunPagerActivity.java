@@ -156,6 +156,7 @@ public class RunPagerActivity extends AppCompatActivity
                 mSortOrder = mRunManager.mPrefs.getInt(Constants.SORT_ORDER, Constants.SORT_BY_DATE_DESC);
             }
             mRunId = getIntent().getLongExtra(Constants.EXTRA_RUN_ID, -1);
+            mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
             Log.i(TAG, "runId is " + mRunId);
         }
         mRunManager.mPrefs.edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
@@ -467,7 +468,7 @@ public class RunPagerActivity extends AppCompatActivity
             mSortOrder = Constants.SORT_BY_DATE_DESC;
         }
         Log.i(TAG, "onCreateLoader for sort order " + mSortOrder);
-        return new RunListCursorLoader(this, Constants.URI_TABLE_RUN, mSortOrder);
+        return new RunListCursorLoader(this, mSortOrder);
 
     }
 
@@ -522,7 +523,8 @@ public class RunPagerActivity extends AppCompatActivity
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data){
 
-        CombinedFragment fragment = (CombinedFragment)mAdapter.getRegisteredFragment(mViewPager.getCurrentItem());
+        CombinedFragment fragment = (CombinedFragment)mAdapter
+                .getRegisteredFragment(mViewPager.getCurrentItem());
         fragment.onActivityResult(requestCode, resultCode, data);
     }
 
@@ -555,8 +557,8 @@ public class RunPagerActivity extends AppCompatActivity
     //been started or stopped. Static class to avoid memory leaks by preventing an implicit reference
     //to the Activity from stopping the Activity from getting garbage collected.
     private static class IncomingMessenger extends Handler{
-        //Use a WeakReference to the Activity to all access to the Activity instance's methods from
-        //a static context
+        //Use a WeakReference to the Activity to access the Activity instance's methods from a
+        //static context
         private final WeakReference<RunPagerActivity> mActivity;
 
         IncomingMessenger(RunPagerActivity activity){

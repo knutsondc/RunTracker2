@@ -1,8 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
 /**
- * Created by dck on 9/6/15.
- * * Created by dck on 2/12/15.
+ * Created by dck on 9/6/15 for RunTracker2.
+ * Created by dck on 2/12/15 for original RunTracker program..
  * This loader needs only to take the Id of the run we're tracking to feed into the query into the
  * database, so we need only provide a constructor and override the loadCursor method. Note that
  * it extends MySQLiteCursorLoader which supports automatic updating upon change in the relevant
@@ -14,16 +14,15 @@ package com.dknutsonlaw.android.runtracker2;
  */
 import android.content.Context;
 import android.database.Cursor;
-import android.net.Uri;
 
-public class MyLocationListCursorLoader extends MySQLiteCursorLoader {
+class MyLocationListCursorLoader extends MySQLiteCursorLoader {
     @SuppressWarnings("unused")
     private static final String TAG = "MyLocationListCursorLoader";
 
     private final long mRunId;
 
-    public MyLocationListCursorLoader(Context c, @SuppressWarnings("SameParameterValue") Uri uri, long runId) {
-        super(c, uri);
+    MyLocationListCursorLoader(Context c, long runId) {
+        super(c, Constants.URI_TABLE_LOCATION);
         mRunId = runId;
     }
 

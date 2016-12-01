@@ -1,8 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
 /**
- * Created by dck on 9/6/15.
- *  * Created by dck on 2/11/15.
+ * Created by dck on 9/6/15 for RunTracker2.
+ * Created by dck on 2/11/15 for original RunTracker program.
  * This is based upon the SQLiteCursorLoader.java file from the Big Nerd Ranch book, the source
  * code from Android's CursorLoader, and some suggestions found on StackOverflow. To the version
  * found in the book, I added an Uri member variable to contain a description of the SQLite table
@@ -28,8 +28,7 @@ abstract class MySQLiteCursorLoader extends AsyncTaskLoader<Cursor> {
 
 
     private Cursor mCursor;
-    //Override loadCursor() to define the query that will return the data with which to fill
-    //the cursor.
+    //Override loadCursor() to define the query that will return the data with which to fill the cursor.
     protected abstract Cursor loadCursor();
 
     public Cursor loadInBackground() {

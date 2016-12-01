@@ -312,7 +312,7 @@ public class RunFragment extends Fragment {
             mStartingAddressTextView.setText(mRun.getStartAddress());
             //If what we're showing for the Starting Address is bad, try to get a good address from the
             ///geocoder and record it to the database
-            if (mRunManager.addressBad(getActivity(), mStartingAddressTextView.getText().toString())) {
+            if (RunManager.addressBad(getActivity(), mStartingAddressTextView.getText().toString())) {
                 //mStartingAddressTextView.setText(mRunManager.getRun(mRunId).getStartAddress());
                 //mRunManager.updateRunStartAddress(mRun, mStartLocation);
                 TrackingLocationIntentService.startActionUpdateStartAddress(getActivity(), mRun, mStartLocation);
@@ -334,7 +334,7 @@ public class RunFragment extends Fragment {
             mEndingAddressTextView.setText(mRun.getEndAddress());
             //If our Ending Address loaded from the database is bad, get a new value from the geocoder and store it
             //to the database,then display it
-            if (mRunManager.addressBad(getActivity(), mEndingAddressTextView.getText().toString())){
+            if (RunManager.addressBad(getActivity(), mEndingAddressTextView.getText().toString())){
                 TrackingLocationIntentService.startActionUpdateEndAddress(getActivity(), mRun, mLastLocation);
             }
             mDurationTextView.setText(Run.formatDuration((int) (mRun.getDuration() / 1000)));
@@ -450,7 +450,7 @@ public class RunFragment extends Fragment {
             //concerning the Start Location - it won't change as the Run goes on..
             if (mRun != null && mStartLocation != null) {
                 mStartingAltitudeTextView.setText(mRunManager.formatAltitude(mStartLocation.getAltitude()));
-                if (mRunManager.addressBad(getActivity(), mStartingAddressTextView.getText().toString())) {
+                if (RunManager.addressBad(getActivity(), mStartingAddressTextView.getText().toString())) {
                     Log.i(TAG, "mRun.getStartAddress() for Run " + mRun.getId() + " is bad; calling updateRunStartAddress().");
                     //Get the starting address from the geocoder and record that in the Run Table
                     TrackingLocationIntentService.startActionUpdateStartAddress(mAppContext, mRun, mStartLocation);
@@ -498,8 +498,8 @@ public class RunFragment extends Fragment {
         }
         //Save mBounds and mPoints to singletons created by RunManager so they will be available to
         //the RunMapFragment for this run
-        mRunManager.saveBounds(mRunId, mBounds);
-        mRunManager.savePoints(mRunId, mPoints);
+        RunManager.saveBounds(mRunId, mBounds);
+        RunManager.savePoints(mRunId, mPoints);
     }
 
     private void updateOnStartingLocationUpdates(){
@@ -580,7 +580,7 @@ public class RunFragment extends Fragment {
         public Loader<Cursor> onCreateLoader(int d, Bundle args){
             long runId  = args.getLong(Constants.ARG_RUN_ID);
             //Return a Loader pointing to a cursor containing a Run with specified RunId
-            return new RunCursorLoader(getActivity(), Constants.URI_TABLE_RUN, runId);
+            return new RunCursorLoader(getActivity(), runId);
         }
 
         @Override
@@ -628,7 +628,7 @@ public class RunFragment extends Fragment {
         @Override
         public Loader<Cursor> onCreateLoader(int d, Bundle args){
             long runId = args.getLong(Constants.ARG_RUN_ID);
-            return new LastLocationCursorLoader(getActivity(), Constants.URI_TABLE_LOCATION, runId);
+            return new LastLocationCursorLoader(getActivity(), runId);
         }
 
         @Override

@@ -491,7 +491,7 @@ public class RunMapPagerActivity extends AppCompatActivity
             mSortOrder = Constants.SORT_BY_DATE_DESC;
         }
         Log.i(TAG, "onCreateLoader for sort order " + mSortOrder);
-        return new RunListCursorLoader(this, Constants.URI_TABLE_RUN, mSortOrder);
+        return new RunListCursorLoader(this, mSortOrder);
 
     }
 

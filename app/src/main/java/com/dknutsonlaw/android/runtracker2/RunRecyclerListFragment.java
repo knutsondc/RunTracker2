@@ -539,7 +539,7 @@ public class RunRecyclerListFragment extends Fragment
             //fragment will apply.
             mSortOrder = args.getInt(Constants.SORT_ORDER);
 
-        return new RunListCursorLoader(getActivity(), Constants.URI_TABLE_RUN, mSortOrder);
+        return new RunListCursorLoader(getActivity(), mSortOrder);
     }
 
     @Override
@@ -610,10 +610,13 @@ public class RunRecyclerListFragment extends Fragment
             if (mRun == null){
                 return;
             }
-            //If this RunHolder hasn't been selected for deletion in an ActionMode, start RunPagerActivity
-            //specifying its mRun as the one to be displayed when the ViewPager first opens.
+            //If this RunHolder hasn't been selected for deletion in an ActionMode, start
+            //RunPagerActivity specifying its mRun as the one to be displayed when the ViewPager
+            //first opens.
             if (!mMultiSelector.tapSelection(this)){
-                Intent i = RunPagerActivity.newIntent(getActivity(), RunRecyclerListFragment.this.mSortOrder, mRun.getId());
+                Intent i = RunPagerActivity.newIntent(getActivity(),
+                           RunRecyclerListFragment.this.mSortOrder,
+                           mRun.getId());
                 startActivity(i);
             }
         }
@@ -679,10 +682,12 @@ public class RunRecyclerListFragment extends Fragment
                     case Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_FAILED:
                         ConnectionResult connectionResult = (ConnectionResult) msg.obj;
                         try {
-                            connectionResult.startResolutionForResult(fragment.getActivity(), Constants.MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST);
+                            connectionResult.startResolutionForResult(fragment.getActivity(),
+                                             Constants.MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST);
                         } catch (IntentSender.SendIntentException e) {
-                            Log.i(TAG, "Caught IntentSender.SentIntentException while trying to invoke startResolutionForResult" +
-                                    "with request code MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST");
+                            Log.i(TAG, "Caught IntentSender.SentIntentException while trying to " +
+                                    "invoke startResolutionForResult with request code " +
+                                    "MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST");
                         }
                         break;
                     case Constants.MESSAGE_PLAY_SERVICES_ERROR_DIALOG_REQUEST:
@@ -691,10 +696,16 @@ public class RunRecyclerListFragment extends Fragment
                     case Constants.MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED:
                         switch (msg.arg1) {
                             case GoogleApiClient.ConnectionCallbacks.CAUSE_NETWORK_LOST:
-                                Toast.makeText(fragment.getActivity(), R.string.connection_suspended_network_lost, Toast.LENGTH_LONG).show();
+                                Toast.makeText(fragment.getActivity(),
+                                               R.string.connection_suspended_network_lost,
+                                               Toast.LENGTH_LONG)
+                                               .show();
                                 break;
                             case GoogleApiClient.ConnectionCallbacks.CAUSE_SERVICE_DISCONNECTED:
-                                Toast.makeText(fragment.getActivity(), R.string.connection_suspended_service_disconnected, Toast.LENGTH_LONG).show();
+                                Toast.makeText(fragment.getActivity(),
+                                               R.string.connection_suspended_service_disconnected,
+                                               Toast.LENGTH_LONG)
+                                               .show();
                                 break;
                             default:
                                 break;
@@ -750,33 +761,41 @@ public class RunRecyclerListFragment extends Fragment
                         .getStringExtra(Constants.ACTION_ATTEMPTED);
                 if (actionAttempted
                         .equals(Constants.ACTION_INSERT_RUN)) {
-                    //Now that the Intent Service has gotten the new Run inserted into the Run table of the
-                    //database, we have a RunId assigned to it that can be used to start the RunPagerActivity
-                    //with the new Run's RunFragment as the current item in the ViewPager.
+                    //Now that the Intent Service has gotten the new Run inserted into the Run table
+                    //of the database, we have a RunId assigned to it that can be used to start the
+                    //RunPagerActivity with the new Run's RunFragment as the current item in the
+                    //ViewPager.
                     Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
                     long runId = run.getId();
                     if (runId != -1) {
                         Intent i = RunPagerActivity.newIntent(getActivity(), mSortOrder, runId);
                         startActivity(i);
                     } else {
-                        Toast.makeText(getActivity(), R.string.insert_run_error, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(),
+                                       R.string.insert_run_error,
+                                       Toast.LENGTH_LONG)
+                                       .show();
                     }
                 }
                 if (actionAttempted.equals(Constants.ACTION_UPDATE_END_ADDRESS)){
                     int results = intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
                     //Successful updates are not reported by the IntentService, so no need to check
-                    //for them.
-                    /*if (results == 1) {
-                        Log.i(TAG, "Successfully updated Ending Address.");
-                    } else*/
+                    //for them
                     if (results > 1) {
-                        Toast.makeText(getActivity(), R.string.multiple_runs_end_addresses_updated,
-                                Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(),
+                                       R.string.multiple_runs_end_addresses_updated,
+                                       Toast.LENGTH_LONG)
+                                       .show();
                     } else if (results == 0) {
-                        Toast.makeText(getActivity(), R.string.update_end_address_failed,
-                                Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(),
+                                       R.string.update_end_address_failed,
+                                       Toast.LENGTH_LONG)
+                                       .show();
                     } else {
-                        Toast.makeText(getActivity(), R.string.unknown_end_address_update_error, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(),
+                                       R.string.unknown_end_address_update_error,
+                                       Toast.LENGTH_LONG)
+                                       .show();
                     }
                 }
             }

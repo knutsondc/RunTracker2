@@ -37,7 +37,7 @@ public class RunManager {
 
     private static final String TAG = "RunManager";
     @SuppressLint("StaticFieldLeak")
-    private static Context mAppContext;
+    private static Context sAppContext;
     @SuppressLint("StaticFieldLeak")
     private static RunManager sRunManager;
     //LongSparseArray to associate location objects with Bounds for use in constructing RunMapFragment
@@ -56,10 +56,10 @@ public class RunManager {
 
     //The private constructor forces users to use RunManager.get(Context)
     private RunManager (Context appContext) {
-        /*mNotificationManager = (NotificationManager)mAppContext
+        /*mNotificationManager = (NotificationManager)sAppContext
                 .getSystemService(Context.NOTIFICATION_SERVICE);*/
         /*Now using NotificationManagerCompat so Wear functionality can be accessed */
-        mAppContext = appContext.getApplicationContext();
+        sAppContext = appContext.getApplicationContext();
         mNotificationManager = NotificationManagerCompat.from(appContext);
         mHelper = new RunDatabaseHelper(appContext);
         mPrefs = appContext.getSharedPreferences(Constants.PREFS_FILE, Context.MODE_PRIVATE);
@@ -126,10 +126,10 @@ public class RunManager {
     //are off screen (or even destroyed)
     private void createNotification(Context context) {
         /*Notification.Builder builder =
-                new Notification.Builder(mAppContext)
+                new Notification.Builder(sAppContext)
                         .setSmallIcon(android.R.drawable.ic_menu_report_image)
-                        .setContentTitle(mAppContext.getString(R.string.notification_title))
-                        .setContentText(mAppContext.getString(R.string.notification_text));*/
+                        .setContentTitle(sAppContext.getString(R.string.notification_title))
+                        .setContentText(sAppContext.getString(R.string.notification_text));*/
         //Switched to NotificationCompat.Builder for Android Wear functionality.
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(context)
@@ -275,11 +275,11 @@ public class RunManager {
         return location;
     }
     //Save the SparseArray associating a given Run with the Bounds needed to display it.
-    void saveBounds(Long runId, LatLngBounds bounds){
+    static void saveBounds(Long runId, LatLngBounds bounds){
         sBoundsMap.put(runId, new WeakReference<>(bounds));
     }
     //Get the the Bounds for a particular Run
-    LatLngBounds retrieveBounds(Long runId){
+    static LatLngBounds retrieveBounds(Long runId){
         WeakReference<LatLngBounds> latLngBoundsWeakReference = sBoundsMap.get(runId);
         if (latLngBoundsWeakReference != null) {
             return latLngBoundsWeakReference.get();
@@ -288,11 +288,11 @@ public class RunManager {
         }
     }
     //Save the SparseArray associating a Run with the locations, expressed as LatLngs, for that Run
-    void savePoints(Long runId, List<LatLng> points){
+    static void savePoints(Long runId, List<LatLng> points){
         sPointsMap.put(runId, new WeakReference<>(points));
     }
     //Retrieve the list of locations, expressed as LatLngs, associated with a given Run
-    List<LatLng> retrievePoints(Long runId){
+    static List<LatLng> retrievePoints(Long runId){
         WeakReference<List<LatLng>> listWeakReference = sPointsMap.get(runId);
         if (listWeakReference != null) {
             return listWeakReference.get();
@@ -304,7 +304,7 @@ public class RunManager {
     /*Function to return the street address of the nearest building to the LatLng object
      *passed in as an argument - used in the RunFragment and RunMapFragment UIs
      */
-    String getAddress(Context context, LatLng loc){
+    static String getAddress(Context context, LatLng loc){
         String filterAddress = "";
         Geocoder geocoder = new Geocoder(context);
         if (loc == null) {
@@ -337,7 +337,7 @@ public class RunManager {
     }
     //Check to see if we got a useful value when trying to look up an address. If the address is
     //"bad" we can check again for the address for a given LatLng
-    boolean addressBad(Context context, String address){
+    static boolean addressBad(Context context, String address){
         Resources r = context.getResources();
 
         return  address.compareToIgnoreCase("") == 0 ||
@@ -357,7 +357,7 @@ public class RunManager {
     //been started and no Run is being tracked.
     //boolean isTrackingRun(@NonNull Context context) {
     boolean isTrackingRun(){
-        return getLocationPendingIntent(mAppContext, false) != null;
+        return getLocationPendingIntent(sAppContext, false) != null;
     }
     //Are we tracking the specified Run?
     boolean isTrackingRun(Run run) {

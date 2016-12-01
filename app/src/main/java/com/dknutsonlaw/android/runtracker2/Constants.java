@@ -114,8 +114,6 @@ final class Constants {
             "com.dknutsonlaw.android.runtracker.action.insert.run";
     static final String ACTION_LOCATION =
             "com.dknutsonlaw.android.runtracker2.ACTION_LOCATION";
-    static final String ACTION_REFRESH =
-            "com.dknutsonlaw.android.runtracker2.action.refresh";
     static final String ACTION_REFRESH_MAPS =
             "com.dknutsonlaw.android.runtracker2.action.refresh.maps";
     static final String ACTION_REFRESH_UNITS =
