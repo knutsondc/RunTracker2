@@ -14,7 +14,9 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.text.TextUtilsCompat;
 import android.support.v4.util.LongSparseArray;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -22,6 +24,7 @@ import com.google.android.gms.maps.model.LatLngBounds;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.RejectedExecutionException;
@@ -69,7 +72,7 @@ public class RunManager {
     public static RunManager get(Context c) {
         if (sRunManager == null) {
             //Use the application context to avoid leaking activities
-            sRunManager = new RunManager(c.getApplicationContext());
+            sRunManager = new RunManager(c);
         }
         return sRunManager;
     }
@@ -305,21 +308,35 @@ public class RunManager {
      *passed in as an argument - used in the RunFragment and RunMapFragment UIs
      */
     static String getAddress(Context context, LatLng loc){
+        Log.i(TAG, "Reached getAddress(Context, LatLng)");
         String filterAddress = "";
         Geocoder geocoder = new Geocoder(context);
+        Log.i(TAG, "Geocoder is: " + geocoder);
         if (loc == null) {
             Log.i(TAG, "Location is null in geocoding getString()");
             filterAddress = context.getString(R.string.lastlocation_null);
         } else if (Geocoder.isPresent()){
             //need to check whether the getFromLocation() method is available
+            Log.i(TAG, "Geocoder is present");
             try {
                 List<Address> addresses = geocoder.getFromLocation(
                         loc.latitude, loc.longitude, 1);
+                Log.i(TAG, "addresses is: " + addresses);
                 if (addresses.size() > 0){
-                    for (int i = 0; i < addresses.get(0).getMaxAddressLineIndex(); i++)
+                    Address address = addresses.get(0);
+                    ArrayList<String> addressFragments = new ArrayList<String>();
+                    for (int i = 0; i <= address.getMaxAddressLineIndex(); i++){
+                        addressFragments.add(address.getAddressLine(i));
+                    }
+                    filterAddress = TextUtils.join(System.getProperty("line separator"), addressFragments);
+                    /*for (int i = 0; i < addresses.get(0).getMaxAddressLineIndex(); i++)
                         filterAddress += addresses.get(0).getAddressLine(i) + "\n";
+                    filterAddress  = filterAddress.substring(0, filterAddress.lastIndexOf("\n"));*/
+                } else {
+                    Log.i(TAG, "Address is empty");
                 }
-                filterAddress  = filterAddress.substring(0, filterAddress.lastIndexOf("\n"));
+
+
             } catch (IOException ioe){
                 Log.i(TAG, "IO error in geocoder.");
                 filterAddress = context.getString(R.string.geocoder_io_error);
