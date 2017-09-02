@@ -1,8 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
-/**
- * Created by dck on 9/6/15. An {@link IntentService} subclass for handling database task requests asynchronously in
- * a service on a separate handler thread.
+/*
+  Created by dck on 9/6/15. An {@link IntentService} subclass for handling database task requests asynchronously in
+  a service on a separate handler thread.
  */
 import android.app.IntentService;
 import android.content.Intent;
@@ -29,7 +29,7 @@ public class TrackingLocationIntentService extends IntentService{
 
     //Fetch the singleton RunManager so we can use our one RunDatabaseHelper, which is a member
     //variable of the singleton RunManager, and RunManager's mAppContext member variable
-    private final RunManager mRunManager = RunManager.get(this);
+    //private final RunManager mRunManager = RunManager.get(this);
     //We use local broadcasts to transmit results of the IntentService's actions back
     //to the UI fragments.
     private final LocalBroadcastManager mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
@@ -47,20 +47,6 @@ public class TrackingLocationIntentService extends IntentService{
         intent.putExtra(Constants.PARAM_RUN, run);
         context.startService(intent);
     }
-
-    /**
-     * Starts this service to delete the Runs with the RunIds contained in the runIds
-     * parameter. If the service is already performing a task this action will be queued.
-     */
-    /*public static void startActionDeleteRuns(Context context,
-                                             RunRecyclerListFragment.RunRecyclerListAdapter adapter,
-                                             ArrayList<Integer> deleteList) {
-
-        Intent intent = new Intent(context, TrackingLocationIntentService.class);
-        intent.setAction(Constants.ACTION_DELETE_RUNS);
-        intent.putExtra(Constants.PARAM_RUN_IDS, deleteList);
-        context.startService(intent);
-    }*/
 
     /*
      *Starts this service to delete a single run. If the  service is already performing a
@@ -110,21 +96,6 @@ public class TrackingLocationIntentService extends IntentService{
         context.startService(intent);
     }
 
-    /*
-     * Starts this service to check whether the Starting Address displayed in a RunFragment corresponds
-     * to the address associated with the first location recorded for the run.
-     */
-
-// --Commented out by Inspection START (7/3/16 9:07 PM):
-//    public static void startActionCheckStartAddress(Context context, Run run, Location location){
-//        Intent intent = new Intent(context, TrackingLocationIntentService.class);
-//        intent.setAction(Constants.ACTION_CHECK_START_ADDRESS);
-//        intent.putExtra(Constants.PARAM_RUN, run);
-//        intent.putExtra(Constants.PARAM_LOCATION, location);
-//        context.startService(intent);
-//    }
-// --Commented out by Inspection STOP (7/3/16 9:07 PM)
-
     /* Starts this service to change the Ending Address of the run to the address obtained from the
      * reverse geocoding function using the last location obtained while the user is tracking the run.
      * seconds. Largely replaced by the ScheduledThreadPoolExecutor calling UpdateEndAddressTask */
@@ -136,20 +107,6 @@ public class TrackingLocationIntentService extends IntentService{
         intent.putExtra(Constants.PARAM_LOCATION, location);
         context.startService(intent);
     }
-
-    /*
-     * Start this service to check whether the Ending Address displayed in a RunFragment corresponds
-     * to the address associated with the last location recorded for the run.
-     */
-
-    /*public static void checkEndAddress(Context context, Run run, Location location) {
-        Intent intent = new Intent(context, TrackingLocationIntentService.class);
-        intent.setAction(Constants.ACTION_CHECK_END_ADDRESS);
-        intent.putExtra(Constants.PARAM_RUN, run);
-        intent.putExtra(Constants.PARAM_LOCATION, location);
-        context.startService(intent);
-    }*/
-
 
     public TrackingLocationIntentService() {
         super("TrackingLocationIntentService");
@@ -165,14 +122,6 @@ public class TrackingLocationIntentService extends IntentService{
             if (Constants.ACTION_INSERT_RUN.equals(action)) {
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 handleActionInsertRun(run);
-            /*} else if (Constants.ACTION_DELETE_RUNS.equals(action)) {
-                //Unfortunately, although there are methods to put an ArrayList<> of several
-                //other primitive types as an Extra into an Intent, there is none for
-                //ArrayList<Long>, so we have to fall back on serialization. ArrayList<> is
-                //serializable.
-                @SuppressWarnings("unchecked") final ArrayList<Long> runIds =
-                        (ArrayList<Long>) intent.getSerializableExtra(Constants.PARAM_RUN_IDS);
-                handleActionDeleteRuns(runIds);*/
             } else if (Constants.ACTION_DELETE_RUN.equals(action)){
                 long runId = intent.getLongExtra(Constants.PARAM_RUN_IDS, -1);
                 handleActionDeleteRun(runId);
@@ -187,18 +136,10 @@ public class TrackingLocationIntentService extends IntentService{
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
                 handleActionUpdateStartAddress(run, location);
-            /*} else if (Constants.ACTION_CHECK_START_ADDRESS.equals(action)){
-                final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
-                final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
-                handleActionCheckStartAddress(run, location);*/
             } else if (Constants.ACTION_UPDATE_END_ADDRESS.equals(action)) {
                 final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
                 final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
                 handleActionUpdateEndAddress(run, location);
-            /*} else if (Constants.ACTION_CHECK_END_ADDRESS.equals(action)){
-                final Run run = intent.getParcelableExtra(Constants.PARAM_RUN);
-                final Location location = intent.getParcelableExtra(Constants.PARAM_LOCATION);
-                handleActionCheckEndAddress(run, location);*/
             } else {
                 Log.d(TAG, "How'd you get here!?! Unknown Action type!");
             }
@@ -212,8 +153,8 @@ public class TrackingLocationIntentService extends IntentService{
     private void handleActionInsertRun(Run run) {
         Log.i(TAG, "Reached handleActionInsertRun");
         //Insert the newly-created Run using the RunManager and its Context.
-        //long runId = mRunManager.mHelper.insertRun(mRunManager.mAppContext, run);
-        long runId = mRunManager.mHelper.insertRun(this, run);
+        //long runId = RunManager.getHelper().insertRun(mRunManager.mAppContext, run);
+        long runId = RunManager.getHelper().insertRun(this, run);
         //The database returns the Run's row number as a unique value for mRunId or -1 on error
         run.setId(runId);
         //Create an Intent with Extras to report the results of the operation. If the new Run was
@@ -241,9 +182,7 @@ public class TrackingLocationIntentService extends IntentService{
      */
     private void handleActionInsertLocation(long runId, Location loc) {
         //Perform the Location insertion using the runId parameter as the _id field
-        long result[] = mRunManager.mHelper.insertLocation(this, runId, loc);
-        //Log.i(TAG, "Insert Location result is: location #" + result[0] + ", run update result " +
-        //        result[1] + ", continuation limit result " + result[2]);
+        long result[] = RunManager.getHelper().insertLocation(this, runId, loc);
         //If there's been an error, send an intent with the results to the UI fragments so it can be
         //reported to the user.
         if (result[Constants.CONTINUATION_LIMIT_RESULT] == -1 ||
@@ -268,8 +207,8 @@ public class TrackingLocationIntentService extends IntentService{
      */
     private void handleActionUpdateStartDate(Run run) {
         //Perform the update on the database and get the result
-        //int result = mRunManager.mHelper.updateRunStartDate(mRunManager.mAppContext, run);
-        int result = mRunManager.mHelper.updateRunStartDate(this, run);
+        //int result = RunManager.getHelper().updateRunStartDate(mRunManager.mAppContext, run);
+        int result = RunManager.getHelper().updateRunStartDate(this, run);
         //Log.i(TAG, "Result of UpdateStartDate: " + result);
         //This operation should always update only one row of the Run table, so if result is anything
         //other than 1, report the result to the UI fragments.
@@ -301,8 +240,8 @@ public class TrackingLocationIntentService extends IntentService{
         String startAddress = RunManager.getAddress(this, latLng);
         run.setStartAddress(startAddress);
         //Perform the update on the database and get the result
-        //int result = mRunManager.mHelper.updateStartAddress(mRunManager.mAppContext, run);
-        int result = mRunManager.mHelper.updateStartAddress(this, run);
+        //int result = RunManager.getHelper().updateStartAddress(mRunManager.mAppContext, run);
+        int result = RunManager.getHelper().updateStartAddress(this, run);
         //This operation should only affect one row of the Run table, so report any result other
         //than 1 back to the UI fragments.
         if (result != 1) {
@@ -353,8 +292,8 @@ public class TrackingLocationIntentService extends IntentService{
         String endAddress = RunManager.getAddress(this, latLng);
         run.setEndAddress(endAddress);
         //Perform the update on the database and get the result
-        //int result = mRunManager.mHelper.updateEndAddress(mRunManager.mAppContext, run);
-        int result = mRunManager.mHelper.updateEndAddress(this, run);
+        //int result = RunManager.getHelper().updateEndAddress(mRunManager.mAppContext, run);
+        int result = RunManager.getHelper().updateEndAddress(this, run);
         //This operation should always affect only one row of the Run table, so report any result
         //other than 1 back to the UI fragments.
         if (result != 1) {
@@ -399,8 +338,8 @@ public class TrackingLocationIntentService extends IntentService{
      */
     /*private void handleActionDeleteRuns(ArrayList<Long>runIds) {
         //Delete the Runs identified in runIds
-        //int results[] = mRunManager.mHelper.deleteRuns(mRunManager.mAppContext, runIds);
-        int results[] = mRunManager.mHelper.deleteRuns(this, runIds);
+        //int results[] = RunManager.getHelper().deleteRuns(mRunManager.mAppContext, runIds);
+        int results[] = RunManager.getHelper().deleteRuns(this, runIds);
         //Log.i(TAG, "results are " + results[1] + " runs deleted and "
         //        + results[0] + " locations deleted.");
         //Create an Intent with Extras to report the results of the operation
@@ -422,8 +361,8 @@ public class TrackingLocationIntentService extends IntentService{
      * parameter - a runId identifying a Run to delete
      */
     private void handleActionDeleteRun(long runId){
-        //int results[] = mRunManager.mHelper.deleteRun(mRunManager.mAppContext, runId);
-        int results[] = mRunManager.mHelper.deleteRun(this, runId);
+        //int results[] = RunManager.getHelper().deleteRun(mRunManager.mAppContext, runId);
+        int results[] = RunManager.getHelper().deleteRun(this, runId);
         //Log.i(TAG, "results are " + results[1] + " runs deleted and " + results[0] +
         //            " locations deleted.");
         Intent responseIntent = new Intent(Constants.ACTION_DELETE_RUN)

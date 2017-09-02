@@ -1,19 +1,19 @@
 package com.dknutsonlaw.android.runtracker2;
 
-/**
- * Created by dck on 9/6/15.
- *  * Created by dck on 1/14/15.
- *
- * The basic object used to hold data concerning each particular run we've tracked or are tracking.
- *
- * 2/15/2015
- * Implemented Parcelable interface to allow a Run to be passed to TrackingLocationIntentService.
- *
- * 5/1/2015
- * Added mDistance and mDuration fields for live updating in RunRecyclerListFragment
- *
- * 8/14/2015
- * Added mStartAddress and mEndAddress fields
+/*
+  Created by dck on 9/6/15.
+   * Created by dck on 1/14/15.
+
+  The basic object used to hold data concerning each particular run we've tracked or are tracking.
+
+  2/15/2015
+  Implemented Parcelable interface to allow a Run to be passed to TrackingLocationIntentService.
+
+  5/1/2015
+  Added mDistance and mDuration fields for live updating in RunRecyclerListFragment
+
+  8/14/2015
+  Added mStartAddress and mEndAddress fields
  */
 import android.os.Parcel;
 import android.os.Parcelable;

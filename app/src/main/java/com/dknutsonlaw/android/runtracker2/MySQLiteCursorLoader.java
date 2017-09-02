@@ -1,15 +1,15 @@
 package com.dknutsonlaw.android.runtracker2;
 
-/**
- * Created by dck on 9/6/15 for RunTracker2.
- * Created by dck on 2/11/15 for original RunTracker program.
- * This is based upon the SQLiteCursorLoader.java file from the Big Nerd Ranch book, the source
- * code from Android's CursorLoader, and some suggestions found on StackOverflow. To the version
- * found in the book, I added an Uri member variable to contain a description of the SQLite table
- * upon which I want to call update notifications and a ForceLoadContentObserver to register with
- * the cursor to do the watching. Although this is not an implementation of a ContentProvider, its
- * method of automatically loading when the underlying data store changes works, as I understand it,
- * much the same way.
+/*
+  Created by dck on 9/6/15 for RunTracker2.
+  Created by dck on 2/11/15 for original RunTracker program.
+  This is based upon the SQLiteCursorLoader.java file from the Big Nerd Ranch book, the source
+  code from Android's CursorLoader, and some suggestions found on StackOverflow. To the version
+  found in the book, I added an Uri member variable to contain a description of the SQLite table
+  upon which I want to call update notifications and a ForceLoadContentObserver to register with
+  the cursor to do the watching. Although this is not an implementation of a ContentProvider, its
+  method of automatically loading when the underlying data store changes works, as I understand it,
+  much the same way.
  */
 
 
@@ -22,7 +22,7 @@ abstract class MySQLiteCursorLoader extends AsyncTaskLoader<Cursor> {
     @SuppressWarnings("unused")
     private static final String TAG = "MySQLiteCursorLoader";
     //ContentObserver used to watch for changes in the relevant data table
-    private final ForceLoadContentObserver mObserver;
+    private final ForceLoadContentObserver mObserver = new ForceLoadContentObserver();
     //Identifier for the data table we're watching
     private final Uri mUri;
 
@@ -73,7 +73,6 @@ abstract class MySQLiteCursorLoader extends AsyncTaskLoader<Cursor> {
     //Pass in an Uri describing the database table that will be watched for changes
     MySQLiteCursorLoader(Context context, Uri uri) {
         super(context);
-        mObserver = new ForceLoadContentObserver();
         mUri = uri;
     }
 

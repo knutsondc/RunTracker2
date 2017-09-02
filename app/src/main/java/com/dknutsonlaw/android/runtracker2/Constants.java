@@ -28,59 +28,36 @@ final class Constants {
     static final int CONTINUATION_LIMIT_RESULT = 2;
     //Error result when attempting to delete a run or a location
     static final int DELETION_ERROR = -1;
-    //MapView Menu selection items in RunMapFragment
+    //MapView Menu selection items
+    static final int SHOW_ENTIRE_ROUTE = 0;
     static final int FOLLOW_END_POINT = 1;
     static final int FOLLOW_STARTING_POINT = 2;
+    static final int NO_UPDATES = 3;
     //Sort direction upon restarting a RunRecyclerListFragment or RunPagerActivity
     static final int KEEP_EXISTING_SORT = -1;
     //Identifiers for the two different types of loaders we use in RunFragment
     static final int LOAD_LOCATION = 1;
     static final int LOAD_RUN = 0;
-    static final int LOCATION_CHECK = 8000;
+    static final int LOCATION_SETTINGS_CHECK = 8000;
+    static final int MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST = 3;
     //Label for member of array of ints used to report results of deletion operations
     static final int LOCATION_DELETIONS = 0;
     ///Label for result of location insertion operation
     static final int LOCATION_INSERTION_RESULT = 0;
     //Labels for Messages between UI Fragments and BackgroundLocationService
-    static final int MESSAGE_GOOGLEAPICLIENT_CONNECTION_SUSPENDED = 0;
-    static final int MESSAGE_GOOGLEAPICLIENT_CONNECTION_FAILED = 1;
-    static final int MESSAGE_TRY_GOOGLEAPICLIENT_RECONNECTION = 2;
-    static final int MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST = 3;
-    static final int MESSAGE_PLAY_SERVICES_ERROR_DIALOG_REQUEST = 4;
-    static final int MESSAGE_LOCATION_SETTINGS_RESOLUTION_NEEDED = 5;
-    static final int MESSAGE_LOCATION_SETTINGS_NOT_AVAILABLE = 6;
-    static final int MESSAGE_LOCATION_SETTINGS_RESOLUTION_SUCCEEDED = 7;
-    static final int MESSAGE_LOCATION_SETTINGS_RESOLUTION_FAILED = 8;
-    static final int MESSAGE_PERMISSION_REQUEST_NEEDED = 9;
-    static final int MESSAGE_PERMISSION_REQUEST_SUCCEEDED = 10;
-    static final int MESSAGE_PERMISSION_REQUEST_CANCELED = 11;
-    static final int MESSAGE_START_LOCATION_UPDATES = 12;
-    static final int MESSAGE_LOCATION_UPDATES_STARTED = 13;
-    static final int MESSAGE_STOP_LOCATION_UPDATES = 14;
-    static final int MESSAGE_LOCATION_UPDATES_STOPPED = 15;
-    static final int MESSAGE_REGISTER_CLIENT = 16;
-    static final int MESSENGER_RUNFRAGMENT = 0;
-    static final int MESSENGER_RECYCLERFRAGMENT = 1;
-    static final int MESSENGER_RUNMAPFRAGMENT = 2;
-    static final int MESSENGER_RUNPAGERACTIVITY = 3;
-    static final int MESSENGER_RUNMAPPAGERACTIVITY = 4;
-    static final int MESSENGER_COMBINEDFRAGMENT = 5;
-    //MapView Menu selection item in RunMapFragment
-    static final int NO_UPDATES = 3;
+
+    static final int NOTIFICATION_ID = 1;
     //Label for BackgroundLocationService to tell the UI Fragment that Location Permissions needed
     static final int REQUEST_LOCATION_PERMISSIONS = 1;
     //Label for member of array of ints used to report results of deletion operation
     static final int RUN_DELETIONS = 1;
     //Values to pass back from DeleteRunsDialog so that correct Fragment will act on the result
     static final int RUN_LIST_RECYCLER_FRAGMENT = 0;
-    static final int RUN_FRAGMENT = 1;
-    static final int RUN_MAP_FRAGMENT = 2;
+    static final int COMBINED_FRAGMENT = 1;
     //Label for loader used in RunRecyclerListFragment
     static final int RUN_LIST_LOADER = 0;
     //Label for member of array of ints used to report results of update operations
     static final int RUN_UPDATE_RESULT = 1;
-    //MapView Menu selection item in RunMapFragment
-    static final int SHOW_ENTIRE_ROUTE = 0;
     //Sort order values used in RunRecyclerListFragment and RunPagerActivity
     static final int SORT_BY_DATE_ASC = 0;
     static final int SORT_BY_DATE_DESC = 1;
@@ -100,10 +77,6 @@ final class Constants {
     //results of the operations to UI elements
     static final String ACTION_ATTEMPTED =
             "com.dknutsonlaw.android.runtracker.action.attempted";
-    /*static final String ACTION_CHECK_END_ADDRESS =
-            "com.dknutsonlaw.android.runtracker.action.check.end.address";
-    static final String ACTION_CHECK_START_ADDRESS =
-            "com.dknutsonlaw.android.runtracker.action.check.start.address";*/
     static final String ACTION_DELETE_RUN =
             "com.dknutsonlaw.android.runtracker.action.delete.run";
     static final String ACTION_DELETE_RUNS =
@@ -154,6 +127,8 @@ final class Constants {
     static final String EXTENDED_RESULTS_DATA =
             "com.dknutsonlaw.android.runtracker.extended.results.data";
     //Label used to pass along run IDs in Intents
+    static final String EXTRA_ERROR_CODE =
+            "com.dknutson.android.runtracker.error_code";
     static final String EXTRA_RUN_ID =
             "com.dknutsonlaw.android.runtracker.run_id";
     //Label used to pass along the existing sort order from RunRecyclerListFragment to RunPagerActivity
@@ -179,6 +154,7 @@ final class Constants {
     static final String PREF_CURRENT_RUN_ID = "prefs.currentRunId";
     //Label used to identify file used in SystemPreferences operations
     static final String PREFS_FILE = "runs";
+    static final String PRIMARY_CHANNEL = "primary.channel";
     //Label used to identify run id retrieved from SystemPreferences
     static final String SAVED_RUN_ID = "com.dknutsonlaw.android.runtracker2.saved_run_id";
     //Label to store boolean in shared preferences for whether a mapview should be scrollable
@@ -201,7 +177,7 @@ final class Constants {
     //Labels for the Uris for the two data tables used for observing and reporting changes in them to
     ///trigger appropriate actions in loaders
     static final Uri URI_TABLE_LOCATION =
-            Uri.parse("sqlite://com.dknutsonlaw.android.runtracker/location");
+            Uri.parse("sqlite://com.dknutsonlaw.android.runtracker2/location");
     static final Uri URI_TABLE_RUN =
-            Uri.parse("sqlite://com.dknutsonlaw.android.runtracker/run");
+            Uri.parse("sqlite://com.dknutsonlaw.android.runtracker2/run");
 }

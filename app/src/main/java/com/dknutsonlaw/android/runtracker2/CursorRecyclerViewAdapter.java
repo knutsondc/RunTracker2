@@ -1,8 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
-/**
- * Adapted by dck on 10/28/15. An adapter that extends the RecyclerView.Adapter for use with a
- * cursor.
+/*
+  Adapted by dck on 10/28/15. An adapter that extends the RecyclerView.Adapter for use with a
+  cursor.
  */
 import android.content.Context;
 import android.database.Cursor;
@@ -98,8 +98,6 @@ abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder>
             mRowIdColumn = -1;
             mDataValid = false;
             notifyItemRangeRemoved(0, getItemCount());
-            //notifyDataSetChanged();
-            //There is no notifyDataSetInvalidated() method in RecyclerView.Adapter
         }
         return oldCursor;
     }

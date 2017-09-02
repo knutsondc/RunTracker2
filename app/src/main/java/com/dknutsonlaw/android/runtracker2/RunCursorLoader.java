@@ -2,6 +2,7 @@ package com.dknutsonlaw.android.runtracker2;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.util.Log;
 
 /**
  * Created by dck on 11/14/15. Created to replace a loader that simply returns a run object
@@ -18,6 +19,7 @@ class RunCursorLoader extends MySQLiteCursorLoader{
 
     @Override
     protected Cursor loadCursor(){
-        return RunManager.get(getContext()).queryRun(mRunId);
+        Log.i(TAG, "In loadCursor for RunCursorLoader");
+        return RunManager.queryRun(mRunId);
     }
 }

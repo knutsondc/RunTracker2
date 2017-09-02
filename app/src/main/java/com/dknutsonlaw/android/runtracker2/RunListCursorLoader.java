@@ -1,8 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
-/**
- * Created by dck on 9/6/15. A loader for a cursor holding data for a list of runs that automatically
- * updates as the underlying data changes.
+/*
+  Created by dck on 9/6/15. A loader for a cursor holding data for a list of runs that automatically
+  updates as the underlying data changes.
  */
 import android.content.Context;
 import android.database.Cursor;
@@ -25,22 +25,22 @@ class RunListCursorLoader extends MySQLiteCursorLoader {
         RunDatabaseHelper.RunCursor cursor;
         switch (mSortOrder) {
             case Constants.SORT_BY_DATE_ASC:
-                cursor = RunManager.get(getContext()).queryRunsDateAsc();
+                cursor = RunManager.queryRunsDateAsc();
                 break;
             case Constants.SORT_BY_DATE_DESC:
-                cursor = RunManager.get(getContext()).queryRunsDateDesc();
+                cursor = RunManager.queryRunsDateDesc();
                 break;
             case Constants.SORT_BY_DISTANCE_ASC:
-                cursor = RunManager.get(getContext()).queryRunsDistanceAsc();
+                cursor = RunManager.queryRunsDistanceAsc();
                 break;
             case Constants.SORT_BY_DISTANCE_DESC:
-                cursor = RunManager.get(getContext()).queryRunsDistanceDesc();
+                cursor = RunManager.queryRunsDistanceDesc();
                 break;
             case Constants.SORT_BY_DURATION_ASC:
-                cursor = RunManager.get(getContext()).queryRunsDurationAsc();
+                cursor = RunManager.queryRunsDurationAsc();
                 break;
             case Constants.SORT_BY_DURATION_DESC:
-                cursor = RunManager.get(getContext()).queryRunsDurationDesc();
+                cursor = RunManager.queryRunsDurationDesc();
                 break;
             default:
                 Log.i(TAG, "How'd you get here?!?");

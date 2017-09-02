@@ -1,8 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
-/**
- * Created by dck on 9/6/15. An adapter that feeds fragments to a ViewPager based upon data taken
- * from a database cursor.
+/*
+  Created by dck on 9/6/15. An adapter that feeds fragments to a ViewPager based upon data taken
+  from a database cursor.
  */
 import android.content.Context;
 import android.database.Cursor;
@@ -35,7 +35,6 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
     }
 
     private void init(Context context, Cursor c) {
-        //noinspection Convert2Diamond
         mObjectMap = new HashMap<>();
         mRegisteredFragments = new SparseArray<>();
         mRunIdToFragment = new SparseArray<>();
@@ -43,7 +42,6 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
         mCursor = c;
         mDataValid = cursorPresent;
         mContext = context;
-        //mRowIDColumn = cursorPresent ? c.getColumnIndexOrThrow("_id") : -1;
         mRowIDColumn = cursorPresent ? c.getColumnIndexOrThrow(BaseColumns._ID) : -1;
     }
 
@@ -148,10 +146,8 @@ public abstract class CursorFragmentStatePagerAdapter extends FragmentStatePager
         Cursor oldCursor = mCursor;
         mCursor = newCursor;
         if (newCursor != null) {
-            //mRowIDColumn = newCursor.getColumnIndexOrThrow("_id");
             mRowIDColumn = newCursor.getColumnIndexOrThrow(BaseColumns._ID);
             mDataValid = true;
-            //notifyDataSetChanged();
         } else {
             mRowIDColumn = -1;
             mDataValid = false;

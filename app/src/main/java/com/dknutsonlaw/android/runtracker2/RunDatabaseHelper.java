@@ -1,8 +1,8 @@
 package com.dknutsonlaw.android.runtracker2;
 
-/**
- * Created by dck on 9/6/15. The class that creates the database used to track Runs and their associated Locations and
- * implements basic database CRUD functions needed to implement the program.
+/*
+  Created by dck on 9/6/15. The class that creates the database used to track Runs and their associated Locations and
+  implements basic database CRUD functions needed to implement the program.
  */
 
 import android.content.ContentValues;
@@ -412,7 +412,6 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
                     //result
                     Log.d(TAG, "Error trying to delete run entry.");
                     result[Constants.RUN_DELETIONS] = -1;
-                    //return result;
                     break;
                 case 0:
                     //We had a RunId, so there should have been a Run to delete; a zero
