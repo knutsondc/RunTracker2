@@ -362,7 +362,6 @@ public class RunRecyclerListFragment extends Fragment
                 //don't have to call restartLoader() on the RUN_LIST_LOADER because the query on
                 //the database hasn't changed.
                 TrackingLocationIntentService.startActionInsertRun(getActivity(), new Run());
-                //RunManager.startNewRun();
                 //Update the subtitle to reflect that there's a new run
                 setSubtitle();
                 return true;
@@ -412,11 +411,12 @@ public class RunRecyclerListFragment extends Fragment
         LocalBroadcastManager.getInstance(getActivity()).registerReceiver(
                 mResultsReceiver,
                 mIntentFilter);
+
         //Get the sort order from SharedPreferences here in case we're resumed from the RunPagerActivity
         //without being recreated.  That way, the sort order will be what it was in the RunPagerActivity.
         mSortOrder = RunTracker2.getPrefs().getInt(Constants.SORT_ORDER, Constants.SORT_BY_DATE_DESC);
         mSubtitle = RunTracker2.getPrefs().getString(Constants.SUBTITLE,
-               /* r.getQuantityString(R.plurals.subtitle_date_desc, mAdapter.getItemCount()*/
+                /*r.getQuantityString(R.plurals.subtitle_date_desc, mAdapter.getItemCount()*/
                 "Stub Value");
         changeSortOrder(mSortOrder);
         refreshUI();
@@ -641,7 +641,7 @@ public class RunRecyclerListFragment extends Fragment
                         .equals(Constants.ACTION_INSERT_RUN)) {
                     //Now that the Intent Service has gotten the new Run inserted into the Run table
                     //of the database, we have a RunId assigned to it that can be used to start the
-                    //RunPagerActivity with the new Run's RunFragment as the current item in the
+                    //RunPagerActivity with the new Run's CombinedFragment as the current item in the
                     //ViewPager.
                     Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
                     long runId = run.getId();
@@ -669,7 +669,7 @@ public class RunRecyclerListFragment extends Fragment
                                        R.string.update_end_address_failed,
                                        Toast.LENGTH_LONG)
                                        .show();
-                    } else {
+                    } else if (results != 1){
                         Toast.makeText(getActivity(),
                                        R.string.unknown_end_address_update_error,
                                        Toast.LENGTH_LONG)

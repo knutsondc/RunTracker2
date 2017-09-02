@@ -273,7 +273,7 @@ public class RunManager {
     }
 
     /*Function to return the street address of the nearest building to the LatLng object
-     *passed in as an argument - used in the RunFragment and RunMapFragment UIs
+     *passed in as an argument - used in the CombinedFragment UI
      */
     static String getAddress(Context context, LatLng loc){
         Log.i(TAG, "Reached getAddress(Context, LatLng)");
@@ -340,7 +340,7 @@ public class RunManager {
     }
     //Are we tracking the specified Run?
     static boolean isTrackingRun(Run run) {
-        return run != null && run.getId() == sCurrentRunId;
+        return run != null && run.getId() == sCurrentRunId && isTrackingRun();
     }
 
     static String formatDistance(double meters){
