@@ -22,7 +22,8 @@ import android.support.v7.app.AppCompatActivity;
 
     //Override this function if a particular subclass needs a layout with more than just a
     //container for the Fragment we're hosting.
-    int getLayoutResId(){
+    @SuppressWarnings("SameReturnValue")
+    private int getLayoutResId(){
         return R.layout.activity_fragment;
     }
 

@@ -94,10 +94,10 @@
         tracking of this run.
     </string>
     <string name="location_insert_failed">Insertion of location failed!</string>
-    <string name="update_run_start_date_sucess">Successfully updated Starting Date</string>
+    <string name="update_run_start_date_success">Successfully updated Starting Date</string>
     <string name="update_run_start_date_failed">Starting Date update failed! No rows were updated!
     </string>
-    <string name="update_run_start_address_success">Sucessfully updated Starting Address</string>
+    <string name="update_run_start_address_success">Successfully updated Starting Address</string>
     <string name="update_run_start_address_failed">Starting Address update failed! No rows were
         updated!
     </string>

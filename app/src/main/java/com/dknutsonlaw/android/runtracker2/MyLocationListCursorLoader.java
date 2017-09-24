@@ -29,6 +29,13 @@ class MyLocationListCursorLoader extends MySQLiteCursorLoader {
     @Override
     protected Cursor loadCursor() {
 
-        return RunManager.queryLocationsForRun(mRunId);
+        //return RunManager.queryLocationsForRun(mRunId);
+        return getContext().getContentResolver().query(
+                Constants.URI_TABLE_LOCATION,
+                null,
+                Constants.COLUMN_LOCATION_RUN_ID + " = ?",
+                new String[]{String.valueOf(mRunId)},
+                Constants.COLUMN_LOCATION_TIMESTAMP + "desc"
+        );
     }
 }

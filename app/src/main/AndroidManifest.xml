@@ -90,6 +90,10 @@
             android:name=".HeadlessActivity"
             android:label="@string/title_activity_headless">
         </activity>
+        <provider android:authorities="com.dknutsonlaw.android.runtracker2"
+                  android:name="MyContentProvider"
+                  android:exported="false">
+        </provider>
 
     </application>
 

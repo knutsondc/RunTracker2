@@ -6,7 +6,7 @@ android {
     //noinspection GroovyAssignabilityCheck
     defaultConfig {
         applicationId "com.dknutsonlaw.android.runtracker2"
-        minSdkVersion 17
+        minSdkVersion 24
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -28,6 +28,8 @@ android {
     compileOptions {
         android.compileOptions.sourceCompatibility 1.8
         android.compileOptions.targetCompatibility 1.8
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
     productFlavors {
     }
@@ -36,17 +38,17 @@ android {
 //noinspection GroovyAssignabilityCheck
 dependencies {
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-    implementation 'com.android.support:design:26.0.1'
+    implementation 'com.android.support:design:26.1.0'
     compile fileTree(include: ['*.jar'], dir: 'libs')
     //noinspection GradleCompatible
     //noinspection GradleCompatible,GradleCompatible
     //compile 'com.google.android.gms:play-services:9.2.1'
-    compile 'com.android.support:support-v4:26.0.1'
+    compile 'com.android.support:support-v4:26.1.0'
     //noinspection GradleCompatible,GradleCompatible
-    compile 'com.android.support:appcompat-v7:26.0.1'
-    compile 'com.android.support:recyclerview-v7:26.0.1'
-    compile 'com.google.android.gms:play-services-location:11.2.0'
-    compile 'com.google.android.gms:play-services-maps:11.2.0'
+    compile 'com.android.support:appcompat-v7:26.1.0'
+    compile 'com.android.support:recyclerview-v7:26.1.0'
+    compile 'com.google.android.gms:play-services-location:11.4.0'
+    compile 'com.google.android.gms:play-services-maps:11.4.0'
     compile 'junit:junit:4.12'
     compile 'com.bignerdranch.android:recyclerview-multiselect:0.2'
 }

@@ -47,7 +47,11 @@ import com.bignerdranch.android.multiselector.SwappingHolder;
 //import com.google.android.gms.common.api.GoogleApiClient;
 
 //import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 
 public class RunRecyclerListFragment extends Fragment
         implements LoaderManager.LoaderCallbacks<Cursor> {
@@ -122,39 +126,16 @@ public class RunRecyclerListFragment extends Fragment
                 Log.i(TAG, "Did we successfully stop Location Updates? " + RunManager.isTrackingRun());
             }
         }
-        //Keep track of number of Runs deleted
-        long runsDeleted = 0;
-        //Keep track of number of Locations deleted
-        long locationsDeleted = 0;
-        //Iterate over all the items in the List selected for deletion
-        for (int i = mDeleteList.size() - 1; i >= 0; i--) {
-
-            Log.i(TAG, "Now dealing with Run in RecyclerView position #" + mDeleteList.get(i) + " with RunId #" +
-                    mAdapter.getItemId(mDeleteList.get(i)));
-            //Delete the Run from the database and update the numbers of Runs and locations deleted.
-            int results[] = RunManager.getHelper().deleteRun(getActivity(), mAdapter.getItemId(mDeleteList.get(i)));
-            Log.i(TAG, "Deleted Run #" + mAdapter.getItemId(mDeleteList.get(i)));
-            runsDeleted += results[Constants.RUN_DELETIONS];
-            locationsDeleted += results[Constants.LOCATION_DELETIONS];
-            //Notify the adapter that we're removing the item in the specified recyclerview position
-            Log.i(TAG, "Notify adapter that item in position #" + (mDeleteList.get(i)) + " has been removed.");
-            mAdapter.notifyItemRemoved(mDeleteList.get(i));
-            //If the Run's RunHolder has been instantiated, the View for the deleted Run also has to
-            //be removed from the RecyclerView.
-            if (mRunListRecyclerView.getChildAt(mDeleteList.get(i)) != null) {
-                mRunListRecyclerView.removeViewAt(mDeleteList.get(i));
-            }
-            //Finally, notify the adapter that the items from the deleted item to the adapter's end
-            //have been modified.
-            mAdapter.notifyItemRangeChanged(mDeleteList.get(i), mAdapter.getItemCount());
-            Log.i(TAG, "Notified Adapter that Items in range " + mDeleteList.get(i) + " to " + mAdapter.getItemCount() + " changed.");
+        ArrayList<Long> runsToDelete = new ArrayList<>();
+        ArrayList<Integer> viewsToDelete = new ArrayList<>();
+        for(int i = mDeleteList.size() - 1; i >= 0; i--) {
+            runsToDelete.add(mAdapter.getItemId(mDeleteList.get(i)));
+            viewsToDelete.add(mDeleteList.get(i));
         }
-        Resources r = getResources();
-        Toast.makeText(getActivity(), r.getQuantityString(R.plurals.runs_deletion_results,
-                (int)runsDeleted,
-                (int)runsDeleted,
-                (int)locationsDeleted), Toast.LENGTH_LONG).show();
-        Log.i(TAG, "Finished deleting.");
+        Log.i(TAG, "runsToDelete is: " + runsToDelete.toString());
+        Log.i(TAG, "viewsToDelete is: " + viewsToDelete.toString());
+        TrackingLocationIntentService.startActionDeleteRuns(getContext(), runsToDelete, viewsToDelete);
+
         //Clean up the MultiSelector, finish the ActionMode, and refresh the UI now that our
         //dataset has changed
         mMultiSelector.clearSelections();
@@ -169,8 +150,6 @@ public class RunRecyclerListFragment extends Fragment
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        //Get the singleton RunManager instance
-        //mRunManager = RunManager.get(getActivity());
         if (savedInstanceState != null) {
             //Get sort order and subtitle from savedInstanceState Bundle if the Activity is
             //getting recreated
@@ -192,6 +171,14 @@ public class RunRecyclerListFragment extends Fragment
         mIntentFilter = new IntentFilter(Constants.ACTION_DELETE_RUNS);
         mIntentFilter.addAction(Constants.SEND_RESULT_ACTION);
         mResultsReceiver = new ResultsReceiver();
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState){
+        super.onActivityCreated(savedInstanceState);
+        Bundle args = new Bundle();
+        args.putInt(Constants.SORT_ORDER, mSortOrder);
+        getLoaderManager().initLoader(Constants.RUN_LIST_LOADER, args, this);
     }
 
     //Function to set subtitle according to the number of Runs recorded and their sort order..
@@ -268,20 +255,21 @@ public class RunRecyclerListFragment extends Fragment
         itemAnimator.setRemoveDuration(1000);
         itemAnimator.setAddDuration(1000);
         mRunListRecyclerView.setItemAnimator(itemAnimator);
-        mAdapter = new RunRecyclerListAdapter(getActivity(),  RunManager.queryForNoRuns());
+        Cursor cursor = getContext().getContentResolver().query(
+                Constants.URI_TABLE_RUN,
+                null,
+                null,
+                null,
+                String.valueOf(Constants.SORT_NO_RUNS)
+        );
+        mAdapter = new RunRecyclerListAdapter(getActivity(),  cursor);
         mAdapter.setHasStableIds(true);
         mRunListRecyclerView.setAdapter(mAdapter);
-        //We use the sort order of the runs to define the cursor we want to use, so put that into
-        //the args Bundle for the OnCreateLoader() callback to use in creating the
-        //RunListCursorLoader.
-        Bundle args = new Bundle();
-        args.putInt(Constants.SORT_ORDER, mSortOrder);
-        getLoaderManager().initLoader(Constants.RUN_LIST_LOADER, args, this);
         //Set up UI elements to display if there are no Runs recorded to display in the RecyclerView
         mEmptyViewTextView = v.findViewById(R.id.empty_view_textview);
         mEmptyViewButton = v.findViewById(R.id.empty_view_button);
         mEmptyViewButton.setOnClickListener(v1 -> {
-            TrackingLocationIntentService.startActionInsertRun(getActivity(), new Run());
+            TrackingLocationIntentService.startActionInsertRun(getContext(), new Run());
         });
         //Flag first visit so we don't check for which Run we were on when we pressed the Back button
         //in RunPagerAdapter
@@ -356,14 +344,8 @@ public class RunRecyclerListFragment extends Fragment
                 getActivity().invalidateOptionsMenu();
                 return true;
             case R.id.menu_item_new_run:
-                //Now that we're using an auto-updating loader for the list of runs, we don't need
-                //to call startActivityForResult() - the loader and content observer system take
-                //care of updating the list to reflect the presence of a new Run. Note that we
-                //don't have to call restartLoader() on the RUN_LIST_LOADER because the query on
-                //the database hasn't changed.
-                TrackingLocationIntentService.startActionInsertRun(getActivity(), new Run());
-                //Update the subtitle to reflect that there's a new run
-                setSubtitle();
+                TrackingLocationIntentService.startActionInsertRun(getContext(), new Run());
+
                 return true;
             //Change the sort order of the RecyclerView and the Activity subtitle to match based upon
             //the menuItem selected.
@@ -437,19 +419,10 @@ public class RunRecyclerListFragment extends Fragment
     }
 
     @Override
-    public void onStart(){
-        super.onStart();
-    }
-    @Override
     public void onPause() {
         Log.i(TAG, "onPause called.");
         LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mResultsReceiver);
         super.onPause();
-    }
-
-    @Override
-    public void onStop(){
-        super.onStop();
     }
 
     public void onDeleteRunsDialogPositiveClick(){
@@ -466,8 +439,8 @@ public class RunRecyclerListFragment extends Fragment
 
     @Override
     public Loader<Cursor> onCreateLoader(int d, Bundle args){
-        //We only ever load the list of all Runs, so assume here that this is the case.
-        //We need to pass along a reference to the Uri on the table in question to allow
+        //We only ever load the list of all Runs in this Fragment, so assume here that this is the
+        //case.We need to pass along a reference to the Uri on the table in question to allow
         //observation for content changes used in auto-updating by the loader. We also
         //need to extract the sort order for the loader from the Bundle args. Args might
         //be null upon initial start of the program, so check for it; the default value of
@@ -479,7 +452,7 @@ public class RunRecyclerListFragment extends Fragment
             //fragment will apply.
             mSortOrder = args.getInt(Constants.SORT_ORDER);
 
-        return new RunListCursorLoader(getActivity(), mSortOrder);
+        return new RunListCursorLoader(getContext(), mSortOrder);
     }
 
     @Override
@@ -488,9 +461,8 @@ public class RunRecyclerListFragment extends Fragment
         //the new one and notify the adapter that its data has changed so it will refresh the
         //RecyclerView display. An alternative approach is simply to create a new adapter here, load
         //the cursor into it, and attach the new adapter to the RecyclerListView.
-        RunDatabaseHelper.RunCursor newCursor = (RunDatabaseHelper.RunCursor)cursor;
         //The loader should take care of closing the old cursor, so use swapCursor(), not changeCursor()
-        mAdapter.swapCursor(newCursor);
+        mAdapter.swapCursor(cursor);
         refreshUI();
 
         Log.i(TAG, "RunListCursorLoader onLoadFinished() called.");
@@ -500,6 +472,10 @@ public class RunRecyclerListFragment extends Fragment
     public void onLoaderReset(Loader<Cursor> loader){
         //Stop using the cursor (via the adapter)
         mRunListRecyclerView.setAdapter(null);
+    }
+
+    public RunRecyclerListAdapter getAdapter(){
+        return mAdapter;
     }
     //ViewHolder class for use with RecyclerListView. Big Nerd Ranch's SwappingHolder swaps state
     //depending upon whether the ViewHolder has been selected.
@@ -571,7 +547,7 @@ public class RunRecyclerListFragment extends Fragment
     //Custom adapter to feed the RecyclerListView RunHolders filled with data from the correct Runs.
     public class RunRecyclerListAdapter extends CursorRecyclerViewAdapter<RunHolder>{
 
-        RunRecyclerListAdapter(Context context, RunDatabaseHelper.RunCursor cursor){
+        RunRecyclerListAdapter(Context context, Cursor cursor){
             super(context, cursor);
         }
 
@@ -584,8 +560,7 @@ public class RunRecyclerListFragment extends Fragment
 
         @Override
         public void onBindViewHolder(RunHolder holder, Cursor cursor){
-            RunDatabaseHelper.RunCursor newCursor  = (RunDatabaseHelper.RunCursor)cursor;
-            Run run = newCursor.getRun();
+            Run run = RunDatabaseHelper.getRun(cursor);
             //Change the background of this RunHolder if its Run is being tracked
             if (RunManager.isTrackingRun(run)){
                 holder.itemView.setBackgroundResource(R.drawable.selected_backgound_activated);
@@ -603,37 +578,34 @@ public class RunRecyclerListFragment extends Fragment
             String action = intent.getAction();
 
             if (action != null && action.equals(Constants.ACTION_DELETE_RUNS)) {
-                //RunDataBaseHelper's deleteRun() function returns to the IntentService
-                //an int[] with two members,the number of Locations deleted as element 0
-                //(LOCATION_DELETIONS) and the number of Runs deleted as element 1 (RUN_DELETIONS).
-                //That array is passed along here for display to the user.
-                int [] results =
-                        intent.getIntArrayExtra(Constants.EXTENDED_RESULTS_DATA);
-
-                //The getWritableDatabase().delete() method returns the number of rows affected upon
-                //success and -1 upon error. Check if either result returned is an error.
-                if (results[Constants.RUN_DELETIONS] == -1 ||
-                        results[Constants.LOCATION_DELETIONS] == -1) {
-                    //Tell the user if there was an error deleting a Run entry.
-                    if (results[Constants.RUN_DELETIONS] == -1) {
-                        Toast.makeText(getActivity(), R.string.delete_runs_error,
-                                Toast.LENGTH_LONG).show();
-                    }
-                    //Tell the user if there was an error deleting a Location entry.
-                    if (results[Constants.LOCATION_DELETIONS] == -1) {
-                        Toast.makeText(getActivity(), R.string.delete_locations_error,
-                                Toast.LENGTH_LONG).show();
-                    }
-                    //Report results to the user upon successful deletions.
-                } else {
-                    Resources r = getActivity().getResources();
-
-                    Toast.makeText(getActivity(), r.getQuantityString(R.plurals.runs_deletion_results,
-                                    results[Constants.RUN_DELETIONS],
-                                    results[Constants.RUN_DELETIONS],
-                                    results[Constants.LOCATION_DELETIONS]),
-                            Toast.LENGTH_LONG).show();
-                }
+                //The TrackingLocationIntentService broadcasts result of its handleDeleteRuns()
+                //method in an Intent so it can be displayed to the user.
+               Log.i(TAG,"Entered ACTION_DELETED_RUNS section of ResultsReceiver");
+               String resultsString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
+               //This HashMap keeps track of which of the Runs requested to be deleted were
+               //actually successfully deleted. If a Run wasn't successfully deleted, its View
+               //in the RecyclerView should not be deleted. A LinkedHashMap is needed so that
+               //the Views will be deleted in the correct order, highest numbered view to lowest.
+               LinkedHashMap<Integer, Boolean> shouldDeleteView = (LinkedHashMap<Integer, Boolean>)intent.getSerializableExtra(Constants.EXTRA_VIEW_HASHMAP);
+               //I wish this method to iterate over each key in a HashMap were available in Android
+               //versions earlier than Nougat!
+               shouldDeleteView.forEach((k, v) -> {
+                   //First  check to see that the Run was deleted so that the View should also be deleted and the Adapter
+                   //notified that the Run was removed
+                   if(v){
+                       mAdapter.notifyItemRemoved(k);
+                       if (mRunListRecyclerView.getChildAt(k) != null){
+                           mRunListRecyclerView.removeViewAt(k);
+                           Log.i(TAG, "Removed View at position " + k);
+                       }
+                       Log.i(TAG, "Notifying Adapter of change to range " + k + " to "  + mAdapter.getItemCount());
+                   } else {
+                       Log.i(TAG, "Run displayed at position " + k + " was not deleted, so that View was also not deleted.");
+                   }
+               });
+               //Now give the user a summary of the results of the deletion operation
+               Toast.makeText(getContext(), resultsString, Toast.LENGTH_LONG).show();
+               refreshUI();
             } else if (action != null && action.equals(Constants.SEND_RESULT_ACTION)) {
                 String actionAttempted = intent
                         .getStringExtra(Constants.ACTION_ATTEMPTED);
@@ -646,6 +618,9 @@ public class RunRecyclerListFragment extends Fragment
                     Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
                     long runId = run.getId();
                     if (runId != -1) {
+                        //Update the Subtitle to reflect the new number of Runs
+                        setSubtitle();
+                        //Start the RunPagerActivity to display the newly created Run
                         Intent i = RunPagerActivity.newIntent(getActivity(), mSortOrder, runId);
                         startActivity(i);
                     } else {
@@ -654,8 +629,11 @@ public class RunRecyclerListFragment extends Fragment
                                        Toast.LENGTH_LONG)
                                        .show();
                     }
-                }
-                if (actionAttempted.equals(Constants.ACTION_UPDATE_END_ADDRESS)){
+                } else if (actionAttempted.equals(Constants.ACTION_INSERT_LOCATION)){
+                    //Results of location insertions are reported only if there's an error
+                    String resultString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
+                    Toast.makeText(getContext(), resultString, Toast.LENGTH_LONG).show();
+                } else if (actionAttempted.equals(Constants.ACTION_UPDATE_END_ADDRESS)){
                     int results = intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
                     //Successful updates are not reported by the IntentService, so no need to check
                     //for them

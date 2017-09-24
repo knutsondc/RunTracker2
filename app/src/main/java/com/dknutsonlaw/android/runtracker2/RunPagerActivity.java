@@ -148,34 +148,84 @@ public class RunPagerActivity extends AppCompatActivity
         //the selected sort order
 
         Bundle args = new Bundle();
-        RunDatabaseHelper.RunCursor cursor = null;
+        /*RunDatabaseHelper.RunCursor*/Cursor cursor = null;
 
         switch (mSortOrder){
             case Constants.SORT_BY_DATE_ASC:
-                cursor = RunManager.queryRunsDateAsc();
+                //cursor = RunManager.queryRunsDateAsc();
+                cursor = getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DATE_ASC)
+                );
                 break;
             case Constants.SORT_BY_DATE_DESC:
-                cursor = RunManager.queryRunsDateDesc();
+                //cursor = RunManager.queryRunsDateDesc();
+                cursor = getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DATE_DESC)
+                );
                 break;
             case Constants.SORT_BY_DISTANCE_ASC:
-                cursor = RunManager.queryRunsDistanceAsc();
+                cursor = getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DISTANCE_ASC)
+                );
+                //cursor = RunManager.queryRunsDistanceAsc();
                 break;
             case Constants.SORT_BY_DISTANCE_DESC:
-                cursor = RunManager.queryRunsDistanceDesc();
+                cursor = getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DISTANCE_DESC)
+                );
+                //cursor = RunManager.queryRunsDistanceDesc();
                 break;
             case Constants.SORT_BY_DURATION_ASC:
-                cursor = RunManager.queryRunsDurationAsc();
+                cursor = getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DURATION_ASC)
+                );
+                //cursor = RunManager.queryRunsDurationAsc();
                 break;
             case Constants.SORT_BY_DURATION_DESC:
-                cursor = RunManager.queryRunsDurationDesc();
+                cursor = getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DURATION_DESC)
+                );
+                //cursor = RunManager.queryRunsDurationDesc();
                 break;
+            case Constants.SORT_NO_RUNS:
+                cursor = getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        null
+                );
             default:
                 Log.i(TAG, "Invalid sort order - how'd you get here!?!");
         }
         mAdapter = new RunCursorFragmentStatePagerAdapter(this, getSupportFragmentManager(), cursor);
         mViewPager.setAdapter(mAdapter);
         //Make sure the ViewPager makes the designated Run's CombinedRunFragment the current view
-        setViewPager((RunDatabaseHelper.RunCursor) mAdapter.getCursor(), mRunId);
+        setViewPager(mAdapter.getCursor(), mRunId);
         setSubtitle();
         //If there aren't any Runs left to display, close this Activity and go back to the RunRecyclerList
         //Activity and Fragment, which displays a message to the user.
@@ -406,7 +456,18 @@ public class RunPagerActivity extends AppCompatActivity
         //Now order the Run to be deleted. The Adapter, Subtitle and Loader will get reset
         //when the results of the Run deletion get reported to the ResultsReceiver
         Log.i(TAG, "Trying to delete Run " + mRunId);
-        int locations = RunManager.queryLocationsForRun(mRunId).getCount();
+        //int locations = RunManager.queryLocationsForRun(mRunId).getCount();
+        Cursor cursor = getContentResolver().query(
+                Constants.URI_TABLE_LOCATION,
+                null,
+                Constants.COLUMN_LOCATION_RUN_ID + " = ?",
+                new String[]{String.valueOf(mRunId)},
+                Constants.COLUMN_LOCATION_TIMESTAMP + " desc"
+        );
+        int locations = cursor.getCount();
+        if (!cursor.isClosed()){
+            cursor.close();
+        }
         Log.i(TAG, "There are " + locations + " locations to be deleted for Run " + mRunId);
         mAdapter.startUpdate(mViewPager);
         TrackingLocationIntentService.startActionDeleteRun(this, mRunId);
@@ -441,17 +502,17 @@ public class RunPagerActivity extends AppCompatActivity
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor){
-        RunDatabaseHelper.RunCursor newCursor = (RunDatabaseHelper.RunCursor)cursor;
+        //RunDatabaseHelper.RunCursor newCursor = (RunDatabaseHelper.RunCursor)cursor;
         Log.i(TAG, "RunListCursorLoader onLoadFinished() called");
         //The loader takes care of releasing the old cursor, so call swapCursor(), not changeCursor()
-        mAdapter.swapCursor(newCursor);
+        mAdapter.swapCursor(/*newCursor*/cursor);
         //If there are no Runs in the cursor, shut down this Activity and go back to the
         //RunRecyclerListActivity/Fragment, which has a special UI for when the database has no runs.
         if (mAdapter.getCount() == 0){
             finish();
         }
         //Make sure we keep looking at the Run we were on before the Loader updated
-        setViewPager(newCursor, mRunId);
+        setViewPager(/*newCursor*/cursor, mRunId);
     }
 
     @Override
@@ -461,24 +522,41 @@ public class RunPagerActivity extends AppCompatActivity
 
     @Override
     public void onSaveInstanceState(Bundle outState){
+        super.onSaveInstanceState(outState);
         outState.putLong(Constants.SAVED_RUN_ID, mRunId);
         outState.putInt(Constants.SORT_ORDER, mSortOrder);
     }
     //Set the ViewPager's current (displayed) item to the specified Run and save the Adapter and
     //ViewPager position of the Run so the RecyclerView can scroll to it when we go back there.
-    private void setViewPager(RunDatabaseHelper.RunCursor cursor, long runId){
+    private void setViewPager(/*RunDatabaseHelper.RunCursor*/Cursor cursor, long runId){
         cursor.moveToFirst();
         Log.i(TAG, "In setViewPager(), runId is " + runId);
         //Iterate over the Runs in the cursor until we find the one with an Id equal to the one we
         //specified in the runId parameter, then set the ViewPager's current item to that Run and
         //save the Adapter/ViewPager position.
         while (!cursor.isAfterLast()){
-            if (cursor.getRun().getId() == runId){
+            if (RunDatabaseHelper.getRun(cursor).getId() == runId){
                 mViewPager.setCurrentItem(cursor.getPosition());
                 RunTracker2.getPrefs().edit().putInt(Constants.ADAPTER_POSITION, mViewPager.getCurrentItem()).apply();
                 break;
             }
             cursor.moveToNext();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+        if (requestCode == Constants.LOCATION_SETTINGS_CHECK){
+
+            if (resultCode == RESULT_OK){
+                Log.i(TAG, "Locations Services now enabled.");
+                RunTracker2.setLocationSettingsState(true);
+                Toast.makeText(this, "Location Settings now enabled.", Toast.LENGTH_LONG).show();
+            } else {
+                Log.i(TAG, "Location Services not activated.");
+                RunTracker2.setLocationSettingsState(false);
+                Toast.makeText(this, "Location Settings were not enabled. Cannot track Run.", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -491,8 +569,8 @@ public class RunPagerActivity extends AppCompatActivity
         //Pull a Run from the supplied cursor and retrieve a CombinedRunFragment for it using its RunId
         @Override
         public Fragment getItem(Context context, Cursor cursor){
-            RunDatabaseHelper.RunCursor runCursor = (RunDatabaseHelper.RunCursor)cursor;
-            long runId = runCursor.getRun().getId();
+            //RunDatabaseHelper.RunCursor runCursor = (RunDatabaseHelper.RunCursor)cursor;
+            long runId = RunDatabaseHelper.getRun(cursor).getId();
             if (runId != -1){
                 return CombinedFragment.newInstance(runId);
             } else {
@@ -531,21 +609,23 @@ public class RunPagerActivity extends AppCompatActivity
                         //Now that the new Run has been entered into the database and the adapter
                         //the ViewPager can finish the update its View
                         mAdapter.finishUpdate(mViewPager);
-                        setViewPager((RunDatabaseHelper.RunCursor)mAdapter.getCursor(), mRunId);
+                        setViewPager(mAdapter.getCursor(), mRunId);
                     } //ViewPager isn't interested in any other ACTION_ATTEMPTED, so no "else" clauses
                       //specifying what to do with them needed.
                     break;
                 case Constants.ACTION_DELETE_RUN:
                     Log.i(TAG, "RunPagerActivity action is ACTION_DELETE_RUN");
+                    String resultsString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
+                    Toast.makeText(RunPagerActivity.this, resultsString, Toast.LENGTH_LONG).show();
                     //RunDataBaseHelper's deleteRun() function returns to the IntentService
                     //an int[] with two members,the number of Locations deleted as element 0
                     //(LOCATION_DELETIONS) and the number of Runs deleted as element 1 (RUN_DELETIONS).
                     //That array is passed along here for display to the user.
-                    int[] results =
-                            intent.getIntArrayExtra(Constants.EXTENDED_RESULTS_DATA);
+                    /*int[] results =
+                            intent.getIntArrayExtra(Constants.EXTENDED_RESULTS_DATA);*/
                     //The getWritableDatabase().delete() method returns the number of rows affected upon
                     //success and -1 upon error. Check if either result returned is an error.
-                    if (results[Constants.RUN_DELETIONS] == -1 ||
+                    /*if (results[Constants.RUN_DELETIONS] == -1 ||
                             results[Constants.LOCATION_DELETIONS] == -1) {
                         //Tell the user if there was an error deleting a Run entry.
                         if (results[Constants.RUN_DELETIONS] == -1) {
@@ -559,7 +639,7 @@ public class RunPagerActivity extends AppCompatActivity
                         }
                         //Report results to the user upon successful deletions and reset the Adapter,
                         //Subtitle and Loader.
-                    } else {
+                    } else {*/
                         //Trying to delete the last Run from this Activity after having deleted other
                         //Runs results in a problem: mRunId remains set to the last previous Run that
                         //was deleted, so we get an error for trying to delete a Run that's already
@@ -604,14 +684,14 @@ public class RunPagerActivity extends AppCompatActivity
                         //Now that we've got a "legal" mRunId, we can fetch a new cursor, reconstruct
                         //the adapter, and set the subtitle accordingly.
                         setupAdapterAndLoader();
-                        Resources r = getResources();
+                        /*Resources r = getResources();
 
                         Toast.makeText(RunPagerActivity.this, r.getQuantityString(R.plurals.runs_deletion_results,
                                 results[Constants.RUN_DELETIONS],
                                 results[Constants.RUN_DELETIONS],
                                 results[Constants.LOCATION_DELETIONS]),
-                                Toast.LENGTH_LONG).show();
-                    }
+                                Toast.LENGTH_LONG).show();*/
+                    //}
                     mAdapter.finishUpdate(mViewPager);
                     Log.i(TAG, "In ResultsReceiver ACTION_RUN_DELETE, Runs in adapter: " + mViewPager.getAdapter().getCount());
                     break;

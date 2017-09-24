@@ -5,13 +5,21 @@ package com.dknutsonlaw.android.runtracker2;
   a service on a separate handler thread.
  */
 import android.app.IntentService;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.Context;
+import android.database.Cursor;
 import android.location.Location;
+import android.net.Uri;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.util.SparseBooleanArray;
 
 import com.google.android.gms.maps.model.LatLng;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 /** Created by dck on 2/11/2015
  * An {@link IntentService} subclass for handling database task requests asynchronously in
@@ -27,9 +35,6 @@ import com.google.android.gms.maps.model.LatLng;
 public class TrackingLocationIntentService extends IntentService{
     private static final String TAG = "IntentService";
 
-    //Fetch the singleton RunManager so we can use our one RunDatabaseHelper, which is a member
-    //variable of the singleton RunManager, and RunManager's mAppContext member variable
-    //private final RunManager mRunManager = RunManager.get(this);
     //We use local broadcasts to transmit results of the IntentService's actions back
     //to the UI fragments.
     private final LocalBroadcastManager mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
@@ -57,6 +62,16 @@ public class TrackingLocationIntentService extends IntentService{
         Intent intent = new Intent(context, TrackingLocationIntentService.class);
         intent.setAction(Constants.ACTION_DELETE_RUN);
         intent.putExtra(Constants.PARAM_RUN_IDS, runId);
+        context.startService(intent);
+    }
+
+    /* Starts this service to delete multiple Runs selected from the RunRecyclerListFragment */
+
+    public static void startActionDeleteRuns(Context context, ArrayList<Long> deleteList, ArrayList<Integer> viewsToDelete){
+        Intent intent = new Intent(context, TrackingLocationIntentService.class);
+        intent.setAction(Constants.ACTION_DELETE_RUNS);
+        intent.putExtra(Constants.PARAM_RUN_IDS, deleteList);
+        intent.putIntegerArrayListExtra(Constants.VIEWS_TO_DELETE, viewsToDelete);
         context.startService(intent);
     }
 
@@ -125,6 +140,10 @@ public class TrackingLocationIntentService extends IntentService{
             } else if (Constants.ACTION_DELETE_RUN.equals(action)){
                 long runId = intent.getLongExtra(Constants.PARAM_RUN_IDS, -1);
                 handleActionDeleteRun(runId);
+            } else if (Constants.ACTION_DELETE_RUNS.equals(action)) {
+                ArrayList<Long> runIds = (ArrayList<Long>)intent.getSerializableExtra(Constants.PARAM_RUN_IDS);
+                ArrayList<Integer> viewsToDelete = intent.getIntegerArrayListExtra(Constants.VIEWS_TO_DELETE);
+                handleActionDeleteRuns(runIds, viewsToDelete);
             } else if (Constants.ACTION_INSERT_LOCATION.equals(action)) {
                 final long runId = intent.getLongExtra(Constants.PARAM_RUN_IDS, -1);
                 final Location loc = intent.getParcelableExtra(Constants.PARAM_LOCATION);
@@ -152,18 +171,26 @@ public class TrackingLocationIntentService extends IntentService{
      */
     private void handleActionInsertRun(Run run) {
         Log.i(TAG, "Reached handleActionInsertRun");
-        //Insert the newly-created Run using the RunManager and its Context.
-        //long runId = RunManager.getHelper().insertRun(mRunManager.mAppContext, run);
-        long runId = RunManager.getHelper().insertRun(this, run);
-        //The database returns the Run's row number as a unique value for mRunId or -1 on error
-        run.setId(runId);
+        ContentValues cv = new ContentValues();
+        cv.put(Constants.COLUMN_RUN_START_DATE, run.getStartDate().getTime());
+        cv.put(Constants.COLUMN_RUN_START_ADDRESS, run.getStartAddress());
+        cv.put(Constants.COLUMN_RUN_END_ADDRESS, run.getEndAddress());
+        cv.put(Constants.COLUMN_RUN_DISTANCE, run.getDistance());
+        cv.put(Constants.COLUMN_RUN_DURATION, run.getDuration());
+        Uri runResultUri = getContentResolver().insert(Constants.URI_TABLE_RUN, cv);
+        String stringRunId = runResultUri.getLastPathSegment();
+        if (!stringRunId.equals(null)) {
+            long runId = Long.valueOf(runResultUri.getLastPathSegment());
+            run.setId(runId);
+        }
+
         //Create an Intent with Extras to report the results of the operation. If the new Run was
         //created from the the RunRecyclerListFragment, the intent will return the Run to the
         //RunRecyclerListFragment, which will start the RunPagerActivity with the new Run's
         //RunId as an argument to set the current item for the ViewPager. If the new Run is created
-        //from the RunPagerActivity or the RunMapPPagerActivity, the intent will be returned to the
+        //from the RunPagerActivity, the intent will be returned to the
         //RunPagerActivity and the RunId will again be used to set the current item for the
-        //ViewPager. The ViewPager will load the RunFragment for the new Run where the user can hit
+        //ViewPager. The ViewPager will load the CombinedFragment for the new Run where the user can hit
         //the Start button to begin tracking the Run, which will start the loaders for the run and
         //set a Notification. The cursor loaders for the RunPagerActivity and the
         //RunRecyclerListFragment automatically update when the new Run is added to the Run table in
@@ -180,25 +207,125 @@ public class TrackingLocationIntentService extends IntentService{
      * Handle action InsertLocation in the provided background thread with the provided runId
      * and location parameters
      */
-    private void handleActionInsertLocation(long runId, Location loc) {
-        //Perform the Location insertion using the runId parameter as the _id field
-        long result[] = RunManager.getHelper().insertLocation(this, runId, loc);
-        //If there's been an error, send an intent with the results to the UI fragments so it can be
-        //reported to the user.
-        if (result[Constants.CONTINUATION_LIMIT_RESULT] == -1 ||
-            result[Constants.RUN_UPDATE_RESULT] == -1 ||
-            result[Constants.LOCATION_INSERTION_RESULT] == -1) {
+    private void handleActionInsertLocation(long runId, Location location) {
+        double distance = 0.0;
+        long duration = 0;
+        ContentValues cv = new ContentValues();
+        Location oldLocation = null;
+        String resultString = "";
+        StringBuilder builder = new StringBuilder(resultString);
+        Cursor cursor = getContentResolver().query(Constants.URI_SINGLE_LOCATION,
+                                        null,
+                                         Constants.COLUMN_LOCATION_RUN_ID + " = ?",
+                                        new String[]{String.valueOf(runId),},
+                                        Constants.COLUMN_LOCATION_TIMESTAMP + " desc"
+                );
+        if (cursor != null) {
+            cursor.moveToFirst();
+            if (!cursor.isAfterLast()) {
+                oldLocation = RunDatabaseHelper.getLocation(cursor);
+            }
+            cursor.close();
+        }
+        if (oldLocation != null){
+            //If the location is more than 100 meters distant from the last previous location and is
+            //more than 30 seconds more recent, the user is attempting to "continue" a run from too
+            //distant a point. We need to check the time difference because sometimes in a moving
+            //vehicle the user can travel more than 100 meters before a location update gets
+            //processed, which would otherwise incorrectly terminate the run.
+            if (location.distanceTo(oldLocation) > Constants.CONTINUATION_DISTANCE_LIMIT &&
+                    (location.getTime() - oldLocation.getTime() > Constants.CONTINUATION_TIME_LIMIT)){
+                Log.i(TAG, "Aborting Run " + runId + " for exceeding continuation distance limit.");
+                builder.append("You are more than 100 meters from your last previous location. You cannot 'continue' this Run here. Stopping further Tracking of this Run.\n");
+                Intent intent = new Intent(this, BackgroundLocationService.class);
+                stopService(intent);
+            }
+        } else {
+            Log.i(TAG, "oldLocation for Run " + runId + " is null");
+            //If oldLocation is null, this is the first location entry for this run, so the
+            //"inappropriate continuation" situation is inapplicable.
+
+        }
+        Run run = null;
+        cursor = getContentResolver().query(Constants.URI_SINGLE_RUN,
+                                null,
+                                Constants.COLUMN_RUN_ID + " = ?",
+                                 new String[]{String.valueOf(runId)},
+                                null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+            if (!cursor.isAfterLast()) {
+                run = RunDatabaseHelper.getRun(cursor);
+            }
+            cursor.close();
+        }
+        if (run != null) {
+            //Now that we know we have valid run, we can enter the new location in the Location Table.
+            cv.put(Constants.COLUMN_LOCATION_LATITUDE, location.getLatitude());
+            cv.put(Constants.COLUMN_LOCATION_LONGITUDE, location.getLongitude());
+            cv.put(Constants.COLUMN_LOCATION_ALTITUDE, location.getAltitude());
+            cv.put(Constants.COLUMN_LOCATION_TIMESTAMP, location.getTime());
+            cv.put(Constants.COLUMN_LOCATION_PROVIDER, location.getProvider());
+            cv.put(Constants.COLUMN_LOCATION_RUN_ID, runId);
+        }
+        Uri resultUri = getContentResolver().insert(Constants.URI_TABLE_LOCATION, cv);
+        String locationResult = resultUri.getLastPathSegment();
+        if (!locationResult.equals(null)) {
+            if (Integer.parseInt(resultUri.getLastPathSegment()) == -1) {
+                builder.append("There was an error inserting a location for Run ").append(runId).append(".\n");
+            } else {
+                getContentResolver().notifyChange(Constants.URI_TABLE_LOCATION, null);
+            }
+        }
+        if (run != null) {
+            distance = run.getDistance();
+            duration = run.getDuration();
+        }
+        if (oldLocation != null) {
+            //This isn't the first location for this run, so calculate the increments of distance
+            //and time and add them to the cumulative total taken from the database
+            distance += location.distanceTo(oldLocation);
+            long timeDifference = (location.getTime() - oldLocation.getTime());
+            //If it's been more than 30 seconds since the last location entry, the user must
+            //have hit the Stop button before and is now continuing the run. Rather than include
+            //all the time elapsed during the "interruption," keep the old Duration and add to
+            //that as the Run continues..
+            if (timeDifference < Constants.CONTINUATION_TIME_LIMIT) {
+
+                duration += timeDifference;
+            }
+        } else {
+            //If oldLocation is null, this is the first location entry for this run, so we
+            //just keep the initial 0.0 and 0 values for the run's Distance and Duration
+            Log.i(TAG, "oldLocation for Run " + runId + " is null");
+        }
+        ContentValues runCv = new ContentValues();
+        runCv.put(Constants.COLUMN_RUN_DISTANCE, distance);
+        runCv.put(Constants.COLUMN_RUN_DURATION, duration);
+        int runResult = getContentResolver().update(Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(run.getId())),
+                                                        runCv,
+                                                        Constants.COLUMN_RUN_ID + " + ?",
+                                                        new String[] {String.valueOf(runId)});
+
+        if (runResult == -1){
+            builder.append("There was an error updating Distance and Duration for Run ").append(runId).append(".\n");
+        } else {
+            getContentResolver().notifyChange(Constants.URI_TABLE_RUN, null);
+        }
+        resultString = builder.toString();
+        if (!resultString.equals("")) {
             //Create an Intent with Extras to report the results of the operation to the CombinedRunFragment
             //UI and advise the user if there was an error. The CombinedRunFragment, RunRecyclerListFragment
             //and RunMapFragment UIs get the new data fed to them automatically by loaders.
             Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
                     .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_INSERT_LOCATION)
-                    .putExtra(Constants.EXTENDED_RESULTS_DATA, result);
+                    .putExtra(Constants.EXTENDED_RESULTS_DATA, resultString);
             //Broadcast the Intent so that the CombinedRunFragment UI can receive the result
             boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
             if (!receiver)
                 Log.i(TAG, "No receiver for Insert Location responseIntent!");
         }
+
     }
 
     /*
@@ -208,8 +335,15 @@ public class TrackingLocationIntentService extends IntentService{
     private void handleActionUpdateStartDate(Run run) {
         //Perform the update on the database and get the result
         //int result = RunManager.getHelper().updateRunStartDate(mRunManager.mAppContext, run);
-        int result = RunManager.getHelper().updateRunStartDate(this, run);
-        //Log.i(TAG, "Result of UpdateStartDate: " + result);
+        //int result = RunManager.getHelper().updateRunStartDate(this, run);
+        ContentValues cv = new ContentValues();
+        cv.put(Constants.COLUMN_RUN_START_DATE, run.getStartDate().getTime());
+        cv.put(Constants.COLUMN_RUN_START_ADDRESS, run.getStartAddress());
+        int result = getContentResolver().update(Uri.withAppendedPath(
+                                            Constants.URI_TABLE_RUN, String.valueOf(run.getId())),
+                                            cv,
+                                            Constants.COLUMN_RUN_ID + " = ?",
+                                            new String[]{String.valueOf(run.getId())});
         //This operation should always update only one row of the Run table, so if result is anything
         //other than 1, report the result to the UI fragments.
         if (result != 1) {
@@ -239,9 +373,15 @@ public class TrackingLocationIntentService extends IntentService{
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         String startAddress = RunManager.getAddress(this, latLng);
         run.setStartAddress(startAddress);
+        ContentValues cv = new ContentValues();
+        cv.put(Constants.COLUMN_RUN_START_ADDRESS, startAddress);
         //Perform the update on the database and get the result
-        //int result = RunManager.getHelper().updateStartAddress(mRunManager.mAppContext, run);
-        int result = RunManager.getHelper().updateStartAddress(this, run);
+        int result = getContentResolver().update(
+                                                Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(run.getId())),
+                                                cv,
+                                                Constants.COLUMN_RUN_ID + " = ?",
+                                                new String[]{String.valueOf(run.getId())}
+        );
         //This operation should only affect one row of the Run table, so report any result other
         //than 1 back to the UI fragments.
         if (result != 1) {
@@ -261,25 +401,6 @@ public class TrackingLocationIntentService extends IntentService{
     }
 
     /*
-     * Handle action checkStartAddress in the background thread for the run and location provided
-     * in the parameters.
-     */
-    /*private void handleActionCheckStartAddress(Run run, Location location){
-        //Get the Starting Address recorded in the database
-        String recordedStartAddress = run.getStartAddress();
-        //Get the address the geocoder returns for the starting location provided in the location
-        //parameter
-        if (location != null){
-            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-            String checkStartAddress  = mRunManager.getAddress(this, latLng);
-            //If the two addresses aren't the same, update the Start Address in the database
-            if (recordedStartAddress.compareTo(checkStartAddress) != 0){
-                handleActionUpdateStartAddress(run, location);
-            }
-        }
-    }*/
-
-    /*
      * Handle action UpdateEndAddress in the background thread for the Run parameter using the
      * location parameter
      */
@@ -291,9 +412,15 @@ public class TrackingLocationIntentService extends IntentService{
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         String endAddress = RunManager.getAddress(this, latLng);
         run.setEndAddress(endAddress);
+        ContentValues cv = new ContentValues();
+        cv.put(Constants.COLUMN_RUN_END_ADDRESS, endAddress);
         //Perform the update on the database and get the result
-        //int result = RunManager.getHelper().updateEndAddress(mRunManager.mAppContext, run);
-        int result = RunManager.getHelper().updateEndAddress(this, run);
+        int result = getContentResolver().update(
+                                                Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(run.getId())),
+                                                cv,
+                                                Constants.COLUMN_RUN_ID + " = ?",
+                                                new String[]{String.valueOf(run.getId())}
+        );
         //This operation should always affect only one row of the Run table, so report any result
         //other than 1 back to the UI fragments.
         if (result != 1) {
@@ -313,35 +440,69 @@ public class TrackingLocationIntentService extends IntentService{
         }
     }
 
-    /*
-     * Handle action CheckEndAddress in the provided background thread for the Run parameter
-     * using the provided location parameter/
-     */
-
-    /*private void handleActionCheckEndAddress(Run run, Location location){
-        //Get the End Address recorded in the database
-        String recordedEndAddress = run.getEndAddress();
-        //Get the address the geocoder returns for the end location supplied in the location parameter
-        if (location != null) {
-            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-            String checkEndAddress = mRunManager.getAddress(this, latLng);
-            //If the two addresses aren't identical, update the database with the new, correct value
-            if (recordedEndAddress.compareTo(checkEndAddress) != 0) {
-                handleActionUpdateEndAddress(run, location);
-            }
-        }
-    }*/
-
     /**
      * Handle action DeleteRuns in the provided background thread with the provided
      * parameter - ArrayList of runIds identifying the Runs to delete.
      */
-    /*private void handleActionDeleteRuns(ArrayList<Long>runIds) {
-        //Delete the Runs identified in runIds
-        //int results[] = RunManager.getHelper().deleteRuns(mRunManager.mAppContext, runIds);
-        int results[] = RunManager.getHelper().deleteRuns(this, runIds);
-        //Log.i(TAG, "results are " + results[1] + " runs deleted and "
-        //        + results[0] + " locations deleted.");
+    private void handleActionDeleteRuns(ArrayList<Long>runIds, ArrayList<Integer> viewsToDelete) {
+        long runsDeleted = 0;
+        //Keep track of number of Locations deleted
+        long locationsDeleted = 0;
+        //Create a String to report the results of the deletion operation
+        StringBuilder stringBuilder = new StringBuilder();
+        //SparseBooleanArray shouldDeleteView = new SparseBooleanArray();
+        LinkedHashMap<Integer, Boolean> shouldDeleteView = new LinkedHashMap<>(viewsToDelete.size());
+
+        //Iterate over all the items in the List selected for deletion
+        for (int i = 0; i < runIds.size(); i++) {
+
+            Log.i(TAG, "Now dealing with Run #" + +runIds.get(i));
+            //First, delete all the locations associated with a Run to be deleted.
+            int deletedLocations = getContentResolver().delete(
+                    Constants.URI_TABLE_LOCATION,
+                    Constants.COLUMN_LOCATION_RUN_ID + " = ?",
+                    new String[]{String.valueOf(runIds.get(i))}
+            );
+            if (deletedLocations >= 0) {
+                locationsDeleted += deletedLocations;
+            }
+            //After deleting its Locations, delete the selected Run
+            int deletedRun = getContentResolver().delete(
+                    Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(runIds.get(i))),
+                    Constants.COLUMN_RUN_ID + " = ?",
+                    new String[]{String.valueOf(runIds.get(i))}
+            );
+            if (deletedRun >= 0) {
+                runsDeleted += deletedRun;
+            }
+            if (deletedRun == 1) {
+                stringBuilder.append("Run ").append(runIds.get(i)).append(" successfully deleted.\n");
+                shouldDeleteView.put(viewsToDelete.get(i), true);
+            } else if (deletedRun == 0) {
+                stringBuilder.append("Run ").append(runIds.get(i)).append(" was not deleted.\n");
+                shouldDeleteView.put(viewsToDelete.get(i), false);
+            } else if (deletedRun == -1) {
+                stringBuilder.append("There was an error attempting to deleted Run ").append(runIds.get(i)).append("\n");
+                shouldDeleteView.put(viewsToDelete.get(i), false);
+            } else {
+                stringBuilder.append("Unexpected return value from attempt to delete Run ").append(runIds.get(i)).append("\n");
+                shouldDeleteView.put(viewsToDelete.get(i), false);
+            }
+
+            if (deletedLocations > 1) {
+                stringBuilder.append(deletedLocations).append(" locations associated with Run ").append(runIds.get(i)).append(" were deleted.\n");
+            } else if (deletedLocations == 1) {
+                stringBuilder.append("One locations associated with Run ").append(runIds.get(i)).append(" was deleted.\n");
+            } else if (deletedLocations == 0) {
+                stringBuilder.append("No locations associated with Run ").append(runIds.get(i)).append(" were deleted.\n");
+            } else if (deletedLocations == -1) {
+                stringBuilder.append("There was an error attempting to delete locations associated with Run ").append(runIds.get(i)).append(".\n");
+            } else {
+                stringBuilder.append("Unrecognized return value while attempting to delete locations associated with Run ").append(runIds.get(i)).append(".\n");
+            }
+        }
+        stringBuilder.insert(0, "There were a total of " + runsDeleted + " Runs deleted, " + "together with " + locationsDeleted + " associated locations.\n");
+        String resultString = stringBuilder.toString();
         //Create an Intent with Extras to report the results of the operation
         //This Intent is aimed at a different Activity/Fragment, the RunRecyclerListFragment,
         //so it has a different Action specified. All the others are directed at
@@ -349,24 +510,55 @@ public class TrackingLocationIntentService extends IntentService{
         //display the results of the delete operation in a Toast; its RecyclerView will
         //update automatically by operation of its cursor loader.
         Intent responseIntent = new Intent(Constants.ACTION_DELETE_RUNS)
-                .putExtra(Constants.EXTENDED_RESULTS_DATA, results);
+                .putExtra(Constants.EXTENDED_RESULTS_DATA, resultString)
+                .putExtra(Constants.EXTRA_VIEW_HASHMAP, shouldDeleteView);
         //Broadcast the Intent so that the UI can receive the result
         boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
         if (!receiver)
             Log.i(TAG, "No receiver for Delete Runs responseIntent!");
-    }*/
+    }
 
     /*
      * Handle action DeleteRun in the provided background thread with the provided
      * parameter - a runId identifying a Run to delete
      */
     private void handleActionDeleteRun(long runId){
-        //int results[] = RunManager.getHelper().deleteRun(mRunManager.mAppContext, runId);
-        int results[] = RunManager.getHelper().deleteRun(this, runId);
-        //Log.i(TAG, "results are " + results[1] + " runs deleted and " + results[0] +
-        //            " locations deleted.");
+
+        String resultsString;
+        StringBuilder builder = new StringBuilder();
+        int locationsDeleted = getContentResolver().delete(
+                Constants.URI_TABLE_LOCATION,
+                Constants.COLUMN_LOCATION_RUN_ID + " = ?",
+                new String[]{String.valueOf(runId)}
+        );
+        if (locationsDeleted == -1){
+            builder.append("There was an error deleting locations associated with Run ").append(runId).append(".\n");
+        } else if (locationsDeleted == 0){
+            builder.append("There were no locations associated with Run ").append(runId).append(" to delete.\n");
+        } else if (locationsDeleted > 0){
+            builder.append(locationsDeleted).append(" locations associated with Run ").append(runId).append(" were also deleted.\n");
+        } else {
+            builder.append("There was an unexpected result from the ContentProvider while attempting to delete locations for Run ").append(runId).append(".\n");
+        }
+
+        int runsDeleted = getContentResolver().delete(
+                Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(runId)),
+                Constants.COLUMN_RUN_ID + " = ?",
+                new String[]{String.valueOf(runId)}
+        );
+        if (runsDeleted == -1){
+            builder.insert(0, "There was an error attempting to delete Run " + runId + ".\n");
+        } else if (runsDeleted == 0){
+            builder.insert(0, "Failed to deleted Run " + runId + ".\n");
+        } else if (runsDeleted == 1){
+            builder.insert(0, "Successfully deleted Run " + runId + ".\n");
+        } else {
+            builder.insert(0, "Unknown response from ContentProvider in attempting to delete Run " + runId + ".\n");
+        }
+        resultsString = builder.toString();
+
         Intent responseIntent = new Intent(Constants.ACTION_DELETE_RUN)
-                .putExtra(Constants.EXTENDED_RESULTS_DATA, results)
+                .putExtra(Constants.EXTENDED_RESULTS_DATA, resultsString)
                 //Put the runId here so the CombinedRunFragment of the Run being deleted can know to call
                 //finish()
                 .putExtra(Constants.PARAM_RUN, runId);

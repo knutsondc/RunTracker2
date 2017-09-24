@@ -41,7 +41,8 @@ public class TrackingLocationReceiver extends LocationReceiver {
        } else {
             //From LocationServices to here to RunManager to Intent Service to RunDatabaseHelper.
             //Use of the Intent Service keeps the database work off the main, UI thread
-            RunManager.get(c).insertLocation(c, loc);
+           Log.i(TAG, "Got a location.");
+           RunManager.get(c).insertLocation(c, loc);
 
        }
     }

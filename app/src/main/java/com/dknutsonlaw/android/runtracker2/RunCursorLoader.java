@@ -2,6 +2,7 @@ package com.dknutsonlaw.android.runtracker2;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.util.Log;
 
 /**
@@ -20,6 +21,13 @@ class RunCursorLoader extends MySQLiteCursorLoader{
     @Override
     protected Cursor loadCursor(){
         Log.i(TAG, "In loadCursor for RunCursorLoader");
-        return RunManager.queryRun(mRunId);
+        //return RunManager.queryRun(mRunId);
+        return getContext().getContentResolver().query(
+                Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(mRunId)),
+                null,
+                Constants.COLUMN_RUN_ID + " = ?",
+                new String[]{String.valueOf(mRunId)},
+                null
+        );
     }
 }

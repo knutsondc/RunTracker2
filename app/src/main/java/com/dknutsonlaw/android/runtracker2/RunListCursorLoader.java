@@ -22,26 +22,76 @@ class RunListCursorLoader extends MySQLiteCursorLoader {
     protected Cursor loadCursor() {
         //Query the list of all runs in the database; return different cursor
         //depending upon the sort order selected in the loader's constructor
-        RunDatabaseHelper.RunCursor cursor;
+        /*RunDatabaseHelper.RunCursor*/Cursor cursor;
         switch (mSortOrder) {
             case Constants.SORT_BY_DATE_ASC:
-                cursor = RunManager.queryRunsDateAsc();
+                //cursor = RunManager.queryRunsDateAsc();
+                cursor = getContext().getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DATE_ASC)
+                );
                 break;
             case Constants.SORT_BY_DATE_DESC:
-                cursor = RunManager.queryRunsDateDesc();
+                //cursor = RunManager.queryRunsDateDesc();
+                cursor = getContext().getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DATE_DESC)
+                );
                 break;
             case Constants.SORT_BY_DISTANCE_ASC:
-                cursor = RunManager.queryRunsDistanceAsc();
+                //cursor = RunManager.queryRunsDistanceAsc();
+                cursor = getContext().getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DISTANCE_ASC)
+                );
                 break;
             case Constants.SORT_BY_DISTANCE_DESC:
-                cursor = RunManager.queryRunsDistanceDesc();
+                //cursor = RunManager.queryRunsDistanceDesc();
+                cursor = getContext().getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DISTANCE_DESC)
+                );
                 break;
             case Constants.SORT_BY_DURATION_ASC:
-                cursor = RunManager.queryRunsDurationAsc();
+                //cursor = RunManager.queryRunsDurationAsc();
+                cursor = getContext().getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DURATION_ASC)
+                );
                 break;
             case Constants.SORT_BY_DURATION_DESC:
-                cursor = RunManager.queryRunsDurationDesc();
+                //cursor = RunManager.queryRunsDurationDesc();
+                cursor = getContext().getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        String.valueOf(Constants.SORT_BY_DURATION_DESC)
+                );
                 break;
+            case Constants.SORT_NO_RUNS:
+                cursor = getContext().getContentResolver().query(
+                        Constants.URI_TABLE_RUN,
+                        null,
+                        null,
+                        null,
+                        null
+                );
             default:
                 Log.i(TAG, "How'd you get here?!?");
                 cursor = null;

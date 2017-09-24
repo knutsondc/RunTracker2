@@ -3,13 +3,16 @@ package com.dknutsonlaw.android.runtracker2;
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 //import android.app.TaskStackBuilder;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 //import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 //import android.support.v4.app.NotificationCompat;
 import android.support.annotation.Nullable;
@@ -53,6 +56,7 @@ public class RunManager {
     private static ScheduledFuture<?> sScheduledFuture;
     private static ScheduledThreadPoolExecutor sStpe  = null;
     private static RunDatabaseHelper sHelper = null;
+    private static MyContentProvider sProvider = new MyContentProvider();
     private static long sCurrentRunId;
 
     //The private constructor forces users to use RunManager.get(Context)
@@ -71,7 +75,6 @@ public class RunManager {
         return sRunManager;
     }
 
-    //public void startTrackingRun(Run run) {
     static void startTrackingRun(Context context, long runId){
         //Location updates get started from the RunFragment by starting the BackgroundLocationService
         //and instructing it to start supplying the updates. This method handles the other
@@ -81,9 +84,6 @@ public class RunManager {
         sCurrentRunId = runId;
         //Store it in shared preferences
         RunTracker2.getPrefs().edit().putLong(Constants.PREF_CURRENT_RUN_ID, sCurrentRunId).apply();
-        //Give the user a notice that a run is being tracked that will be available even
-        //if the UI isn't visible.
-        //createNotification(context);
         startUpdatingEndAddress(context);
     }
 
@@ -152,55 +152,22 @@ public class RunManager {
         }
     }
 
-    //Methods to construct different cursors from the database.
-    static RunDatabaseHelper.RunCursor queryForNoRuns() {
-        return sHelper.queryForNoRuns();
-    }
-
-    static RunDatabaseHelper.RunCursor queryRunsDateAsc() {
-        return sHelper.queryRunsDateAsc();
-    }
-
-    static RunDatabaseHelper.RunCursor queryRunsDateDesc() {
-        return sHelper.queryRunsDateDesc();
-    }
-
-    static RunDatabaseHelper.RunCursor queryRunsDistanceAsc() {
-        return sHelper.queryRunsDistanceAsc();
-    }
-
-    static RunDatabaseHelper.RunCursor queryRunsDistanceDesc() {
-        return sHelper.queryRunsDistanceDesc();
-    }
-
-    static RunDatabaseHelper.RunCursor queryRunsDurationAsc() {
-        return sHelper.queryRunsDurationAsc();
-    }
-
-    static RunDatabaseHelper.RunCursor queryRunsDurationDesc() {
-        return sHelper.queryRunsDurationDesc();
-    }
-
-    static RunDatabaseHelper.LocationCursor queryLastLocationForRun(long runId){
-        return sHelper.queryLastLocationForRun(runId);
-    }
-    //Ask for a cursor holding all the Location objects recorded for the given Run
-    static RunDatabaseHelper.LocationCursor queryLocationsForRun(long runId) {
-        return sHelper.queryLocationsForRun(runId);
-    }
-    //Return a cursor with the data concerning a single Run
-    static RunDatabaseHelper.RunCursor queryRun(long runId){
-        return sHelper.queryRun(runId);
-    }
     //Get a Run from the database using its RunId
     static Run getRun(long id) {
         Run run = null;
-        RunDatabaseHelper.RunCursor cursor = sHelper.queryRun(id);
-        cursor.moveToFirst();
-        //If you got a row, get a run
-        if (!cursor.isAfterLast())
-            run = cursor.getRun();
-        cursor.close();
+        Cursor cursor = sAppContext.getContentResolver().query(
+                        Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(id)),
+                        null,
+                        Constants.COLUMN_RUN_ID + " = ?",
+                        new String[]{String.valueOf(id)},
+                        null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+            //If you got a row, get a run
+            if (!cursor.isAfterLast())
+                run = RunDatabaseHelper.getRun(cursor);
+            cursor.close();
+        }
         return run;
     }
 
@@ -225,23 +192,39 @@ public class RunManager {
     //Return the starting (i.e., first) location object recorded for the given Run
     static Location getStartLocationForRun(long runId) {
         Location location = null;
-        RunDatabaseHelper.LocationCursor cursor = sHelper.queryFirstLocationForRun(runId);
-        cursor.moveToFirst();
-        //If you got a row, get a location
-        if (!cursor.isAfterLast())
-            location = cursor.getLocation();
-        cursor.close();
+        Cursor cursor = sAppContext.getContentResolver().query(
+                Uri.withAppendedPath(Constants.URI_TABLE_LOCATION, String.valueOf(runId)),
+                null,
+                Constants.COLUMN_LOCATION_RUN_ID + " = ?",
+                new String[]{String.valueOf(runId)},
+                Constants.COLUMN_LOCATION_TIMESTAMP + " asc"
+        );
+        if (cursor != null) {
+            cursor.moveToFirst();
+            //If you got a row, get a location
+            if (!cursor.isAfterLast())
+                location = RunDatabaseHelper.getLocation(cursor);
+            cursor.close();
+        }
         return location;
     }
     //Return the latest location object recorded for the given Run.
     static Location getLastLocationForRun(long runId) {
         Location location = null;
-        RunDatabaseHelper.LocationCursor cursor = sHelper.queryLastLocationForRun(runId);
-        cursor.moveToFirst();
-        //If you got a row, get a location
-        if (!cursor.isAfterLast())
-            location = cursor.getLocation();
-        cursor.close();
+        Cursor cursor = sAppContext.getContentResolver().query(
+                Uri.withAppendedPath(Constants.URI_TABLE_LOCATION, String.valueOf(runId)),
+                null,
+                Constants.COLUMN_LOCATION_RUN_ID + " = ?",
+                new String[]{String.valueOf(runId)},
+                Constants.COLUMN_LOCATION_TIMESTAMP + " desc"
+        );
+        if (cursor != null) {
+            cursor.moveToFirst();
+            //If you got a row, get a location
+            if (!cursor.isAfterLast())
+                location = RunDatabaseHelper.getLocation(cursor);
+            cursor.close();
+        }
         return location;
     }
     //Save the SparseArray associating a given Run with the Bounds needed to display it.
@@ -289,7 +272,6 @@ public class RunManager {
             try {
                 List<Address> addresses = geocoder.getFromLocation(
                         loc.latitude, loc.longitude, 1);
-                //Log.i(TAG, "addresses is: " + addresses);
                 if (addresses.size() > 0){
                     Address address = addresses.get(0);
                     ArrayList<String> addressFragments = new ArrayList<>();
@@ -334,7 +316,6 @@ public class RunManager {
     //the BackgroundLocationService to get the PendingIntent used to start and stop location updates.
     //If the call to getLocationPendingIntent returns null, we know that location updates have not
     //been started and no Run is being tracked.
-    //boolean isTrackingRun(@NonNull Context context) {
     static boolean isTrackingRun(){
         return getLocationPendingIntent(sAppContext, false) != null;
     }
@@ -398,8 +379,15 @@ public class RunManager {
                 String endAddress = getAddress(mContext, latLng);
                 //Update the current run object with the address we get
                 mRun.setEndAddress(endAddress);
+                ContentValues cv = new ContentValues();
+                cv.put(Constants.COLUMN_RUN_END_ADDRESS, endAddress);
                 //update the database with the new ending address
-                int i = sHelper.updateEndAddress(mContext, mRun);
+                int i = sAppContext.getContentResolver().update(
+                        Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(mRun.getId())),
+                        cv,
+                        Constants.COLUMN_RUN_ID + " = ?",
+                        new String[]{String.valueOf(mRun.getId())}
+                );
                 //This operation should update only one row of the Run table, so i should be 1. If
                 //not, something went wrong, so report the error back to the UI fragments
                 if (i != 1) {

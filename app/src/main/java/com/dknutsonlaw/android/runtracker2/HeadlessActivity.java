@@ -10,7 +10,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 
 public class HeadlessActivity extends AppCompatActivity {
     private static final String TAG = "HeadlessActivity";
-    private static GoogleApiClient sGoogleApiClient = RunTracker2.getGoogleApiClient();
+    //private static final GoogleApiClient sGoogleApiClient = RunTracker2.getGoogleApiClient();
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data){
         Log.i(TAG, "Reached onActivityResult() in headlessActivity in RunTracker2");
@@ -42,7 +42,7 @@ public class HeadlessActivity extends AppCompatActivity {
         } else if (requestCode == Constants.MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST){
             switch (resultCode){
                 case Activity.RESULT_OK:
-                    sGoogleApiClient.connect();
+                    //sGoogleApiClient.connect();
                     break;
                 case Activity.RESULT_CANCELED:
                     Toast.makeText(this, "You canceled recovery of Google Play Services. " +
