@@ -7,17 +7,8 @@ package com.dknutsonlaw.android.runtracker2;
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentSender;
 import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.util.Log;
-import android.widget.Toast;
-
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
 
 @SuppressLint("Registered")
 public class RunTracker2 extends Application /*implements GoogleApiClient.ConnectionCallbacks,
@@ -25,10 +16,8 @@ public class RunTracker2 extends Application /*implements GoogleApiClient.Connec
 
     private static final String TAG = RunTracker2.class.getSimpleName();
     private static RunTracker2 sInstance;
-    private static GoogleApiClient sGoogleApiClient;
     private static boolean sLocationSettingsEnabled = false;
     private static SharedPreferences sPrefs = null;
-    private static RunManager sRunManager;
 
     @Override
     public void onCreate(){
@@ -39,7 +28,7 @@ public class RunTracker2 extends Application /*implements GoogleApiClient.Connec
         //This instance of RunManager is never used, but we need to create it so that the static
         //methods in its RunDataBaseHelper member are immediately accessible to create the opening
         //RunRecyclerListFragment
-        sRunManager = RunManager.get(this);
+        RunManager sRunManager = RunManager.get(getApplicationContext());
     }
 
     public static synchronized RunTracker2 getInstance(){

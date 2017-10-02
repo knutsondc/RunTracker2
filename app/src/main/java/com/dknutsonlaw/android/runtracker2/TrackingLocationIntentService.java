@@ -13,12 +13,10 @@ import android.location.Location;
 import android.net.Uri;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.util.SparseBooleanArray;
 
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 /** Created by dck on 2/11/2015
@@ -178,8 +176,13 @@ public class TrackingLocationIntentService extends IntentService{
         cv.put(Constants.COLUMN_RUN_DISTANCE, run.getDistance());
         cv.put(Constants.COLUMN_RUN_DURATION, run.getDuration());
         Uri runResultUri = getContentResolver().insert(Constants.URI_TABLE_RUN, cv);
-        String stringRunId = runResultUri.getLastPathSegment();
-        if (!stringRunId.equals(null)) {
+        String stringRunId = "";
+        try {
+            stringRunId = runResultUri.getLastPathSegment();
+        } catch (NullPointerException npe){
+            Log.e(TAG, "Caught an NPE while extracting a path segment from a Uri");
+        }
+        if (!stringRunId.equals("")) {
             long runId = Long.valueOf(runResultUri.getLastPathSegment());
             run.setId(runId);
         }
@@ -208,13 +211,36 @@ public class TrackingLocationIntentService extends IntentService{
      * and location parameters
      */
     private void handleActionInsertLocation(long runId, Location location) {
+        if (runId == -1){
+            Log.d(TAG, "RunId is -1 in attempt to insert location");
+            return;
+        }
+        Log.i(TAG, "In handleActionInsertLocation(), runId is " + runId + " ,Latitude is " + location.getLatitude() + " and Longitude is " + location.getLongitude());
         double distance = 0.0;
         long duration = 0;
         ContentValues cv = new ContentValues();
         Location oldLocation = null;
         String resultString = "";
         StringBuilder builder = new StringBuilder(resultString);
-        Cursor cursor = getContentResolver().query(Constants.URI_SINGLE_LOCATION,
+        Run run = null;
+        Cursor cursor = getContentResolver().query(Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(runId)),
+                null,
+                Constants.COLUMN_RUN_ID + " = ?",
+                new String[]{String.valueOf(runId)},
+                null);
+        if (cursor != null) {
+            Log.i(TAG, "Run cursor is not null");
+            cursor.moveToFirst();
+            if (!cursor.isAfterLast()) {
+                run = RunDatabaseHelper.getRun(cursor);
+                Log.i(TAG, "Is run null? " + (run == null));
+            }
+            cursor.close();
+        } else {
+            Log.i(TAG, "Run cursor was null");
+            return;
+        }
+        cursor = getContentResolver().query(Uri.withAppendedPath(Constants.URI_TABLE_LOCATION, String.valueOf(runId)),
                                         null,
                                          Constants.COLUMN_LOCATION_RUN_ID + " = ?",
                                         new String[]{String.valueOf(runId),},
@@ -237,6 +263,14 @@ public class TrackingLocationIntentService extends IntentService{
                     (location.getTime() - oldLocation.getTime() > Constants.CONTINUATION_TIME_LIMIT)){
                 Log.i(TAG, "Aborting Run " + runId + " for exceeding continuation distance limit.");
                 builder.append("You are more than 100 meters from your last previous location. You cannot 'continue' this Run here. Stopping further Tracking of this Run.\n");
+                resultString = builder.toString();
+                Intent responseIntent = new Intent(Constants.SEND_RESULT_ACTION)
+                        .putExtra(Constants.ACTION_ATTEMPTED, Constants.ACTION_INSERT_LOCATION)
+                        .putExtra(Constants.EXTENDED_RESULTS_DATA, resultString);
+                //Broadcast the Intent so that the CombinedRunFragment UI can receive the result
+                boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
+                if (!receiver)
+                    Log.i(TAG, "No receiver for Insert Location responseIntent!");
                 Intent intent = new Intent(this, BackgroundLocationService.class);
                 stopService(intent);
             }
@@ -246,41 +280,39 @@ public class TrackingLocationIntentService extends IntentService{
             //"inappropriate continuation" situation is inapplicable.
 
         }
-        Run run = null;
-        cursor = getContentResolver().query(Constants.URI_SINGLE_RUN,
-                                null,
-                                Constants.COLUMN_RUN_ID + " = ?",
-                                 new String[]{String.valueOf(runId)},
-                                null);
-        if (cursor != null) {
-            cursor.moveToFirst();
-            if (!cursor.isAfterLast()) {
-                run = RunDatabaseHelper.getRun(cursor);
-            }
-            cursor.close();
-        }
+
         if (run != null) {
             //Now that we know we have valid run, we can enter the new location in the Location Table.
+            Log.i(TAG, "Now inserting location data in the ContentValues");
             cv.put(Constants.COLUMN_LOCATION_LATITUDE, location.getLatitude());
             cv.put(Constants.COLUMN_LOCATION_LONGITUDE, location.getLongitude());
             cv.put(Constants.COLUMN_LOCATION_ALTITUDE, location.getAltitude());
             cv.put(Constants.COLUMN_LOCATION_TIMESTAMP, location.getTime());
             cv.put(Constants.COLUMN_LOCATION_PROVIDER, location.getProvider());
             cv.put(Constants.COLUMN_LOCATION_RUN_ID, runId);
+        } else {
+            Log.d(TAG, "run in IntentService insertLocation is null!");
+            return;
         }
+        Log.d(TAG, "URI_TABLE_LOCATION is: " + Constants.URI_TABLE_LOCATION.toString());
         Uri resultUri = getContentResolver().insert(Constants.URI_TABLE_LOCATION, cv);
-        String locationResult = resultUri.getLastPathSegment();
-        if (!locationResult.equals(null)) {
+        String locationResult = "";
+        try {
+            locationResult = resultUri.getLastPathSegment();
+        } catch(NullPointerException npe){
+            Log.e(TAG, "Caught an NPE while trying to extract a path segment from a Uri");
+        }
+        if (!locationResult.equals("")) {
             if (Integer.parseInt(resultUri.getLastPathSegment()) == -1) {
                 builder.append("There was an error inserting a location for Run ").append(runId).append(".\n");
             } else {
                 getContentResolver().notifyChange(Constants.URI_TABLE_LOCATION, null);
             }
         }
-        if (run != null) {
-            distance = run.getDistance();
-            duration = run.getDuration();
-        }
+
+        distance = run.getDistance();
+        duration = run.getDuration();
+
         if (oldLocation != null) {
             //This isn't the first location for this run, so calculate the increments of distance
             //and time and add them to the cumulative total taken from the database
@@ -302,9 +334,11 @@ public class TrackingLocationIntentService extends IntentService{
         ContentValues runCv = new ContentValues();
         runCv.put(Constants.COLUMN_RUN_DISTANCE, distance);
         runCv.put(Constants.COLUMN_RUN_DURATION, duration);
+        Log.d(TAG, "URI for updating Run in IntentService insertLocation is " + Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(runId)).toString());
+
         int runResult = getContentResolver().update(Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(run.getId())),
                                                         runCv,
-                                                        Constants.COLUMN_RUN_ID + " + ?",
+                                                        Constants.COLUMN_RUN_ID + " = ?",
                                                         new String[] {String.valueOf(runId)});
 
         if (runResult == -1){

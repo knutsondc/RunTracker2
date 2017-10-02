@@ -134,6 +134,10 @@ public class RunPagerActivity extends AppCompatActivity
             Log.i(TAG, "runId is " + mRunId);
         }
         RunTracker2.getPrefs().edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
+        float zoom = RunTracker2.getPrefs().getFloat(Constants.ZOOM_LEVEL, 17.0f) > 17.0f ?
+                RunTracker2.getPrefs().getFloat(Constants.ZOOM_LEVEL, 17.0f) :
+                17.0f;
+        RunTracker2.getPrefs().edit().putFloat(Constants.ZOOM_LEVEL, zoom).apply();
         mViewPager = findViewById(R.id.activity_run_pager_view_pager);
         //Set up BroadcastReceiver to receive results of operations we're interested in.
         mIntentFilter = new IntentFilter(Constants.SEND_RESULT_ACTION);
@@ -148,11 +152,10 @@ public class RunPagerActivity extends AppCompatActivity
         //the selected sort order
 
         Bundle args = new Bundle();
-        /*RunDatabaseHelper.RunCursor*/Cursor cursor = null;
+        Cursor cursor = null;
 
         switch (mSortOrder){
             case Constants.SORT_BY_DATE_ASC:
-                //cursor = RunManager.queryRunsDateAsc();
                 cursor = getContentResolver().query(
                         Constants.URI_TABLE_RUN,
                         null,
@@ -162,7 +165,6 @@ public class RunPagerActivity extends AppCompatActivity
                 );
                 break;
             case Constants.SORT_BY_DATE_DESC:
-                //cursor = RunManager.queryRunsDateDesc();
                 cursor = getContentResolver().query(
                         Constants.URI_TABLE_RUN,
                         null,
@@ -179,7 +181,6 @@ public class RunPagerActivity extends AppCompatActivity
                         null,
                         String.valueOf(Constants.SORT_BY_DISTANCE_ASC)
                 );
-                //cursor = RunManager.queryRunsDistanceAsc();
                 break;
             case Constants.SORT_BY_DISTANCE_DESC:
                 cursor = getContentResolver().query(
@@ -189,7 +190,6 @@ public class RunPagerActivity extends AppCompatActivity
                         null,
                         String.valueOf(Constants.SORT_BY_DISTANCE_DESC)
                 );
-                //cursor = RunManager.queryRunsDistanceDesc();
                 break;
             case Constants.SORT_BY_DURATION_ASC:
                 cursor = getContentResolver().query(
@@ -199,7 +199,6 @@ public class RunPagerActivity extends AppCompatActivity
                         null,
                         String.valueOf(Constants.SORT_BY_DURATION_ASC)
                 );
-                //cursor = RunManager.queryRunsDurationAsc();
                 break;
             case Constants.SORT_BY_DURATION_DESC:
                 cursor = getContentResolver().query(
@@ -209,7 +208,6 @@ public class RunPagerActivity extends AppCompatActivity
                         null,
                         String.valueOf(Constants.SORT_BY_DURATION_DESC)
                 );
-                //cursor = RunManager.queryRunsDurationDesc();
                 break;
             case Constants.SORT_NO_RUNS:
                 cursor = getContentResolver().query(
@@ -286,6 +284,14 @@ public class RunPagerActivity extends AppCompatActivity
     public void onStop(){
         super.onStop();
     }
+
+    /*@Override
+    public void onDestroy(){
+        if (mAdapter != null && mAdapter.getCursor() != null && !mAdapter.getCursor().isClosed()){
+            mAdapter.getCursor().close();
+        }
+        super.onDestroy();
+    }*/
 
     @Override
     public void onResume(){
@@ -379,40 +385,22 @@ public class RunPagerActivity extends AppCompatActivity
             //adapter and subtitle and restart the RunListLoader
             case R.id.run_map_pager_menu_item_sort_by_date_asc:
                 mSortOrder = Constants.SORT_BY_DATE_ASC;
-                RunTracker2.getPrefs().edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_date_desc:
                 mSortOrder = Constants.SORT_BY_DATE_DESC;
-                RunTracker2.getPrefs().edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_distance_asc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_ASC;
-                RunTracker2.getPrefs().edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_distance_desc:
                 mSortOrder = Constants.SORT_BY_DISTANCE_DESC;
-                RunTracker2.getPrefs().edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_duration_asc:
                 mSortOrder = Constants.SORT_BY_DURATION_ASC;
-                RunTracker2.getPrefs().edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.run_map_pager_menu_item_sort_by_duration_desc:
                 mSortOrder = Constants.SORT_BY_DURATION_DESC;
-                RunTracker2.getPrefs().edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
-                args = setupAdapterAndLoader();
-                getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
-                return true;
+                break;
             case R.id.show_entire_route_menu_item:
                 Log.i(TAG, "In RunPagerActivity, entered oonOptionsItemSelected case:show_entire_route_menu_item");
                 //This is implemented in the CombinedFragment
@@ -437,8 +425,13 @@ public class RunPagerActivity extends AppCompatActivity
                 //This is implemented in the CombinedFragment
                 return false;
             default:
-                return super.onOptionsItemSelected(item);
+                super.onOptionsItemSelected(item);
+                return true;
         }
+        RunTracker2.getPrefs().edit().putInt(Constants.SORT_ORDER, mSortOrder).apply();
+        args = setupAdapterAndLoader();
+        getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
+        return true;
     }
     //method that's called by onDeleteRunDialogPositiveClick callback confirming deletion.
     private void deleteRun(){
@@ -505,7 +498,7 @@ public class RunPagerActivity extends AppCompatActivity
         //RunDatabaseHelper.RunCursor newCursor = (RunDatabaseHelper.RunCursor)cursor;
         Log.i(TAG, "RunListCursorLoader onLoadFinished() called");
         //The loader takes care of releasing the old cursor, so call swapCursor(), not changeCursor()
-        mAdapter.swapCursor(/*newCursor*/cursor);
+        mAdapter.swapCursor(cursor);
         //If there are no Runs in the cursor, shut down this Activity and go back to the
         //RunRecyclerListActivity/Fragment, which has a special UI for when the database has no runs.
         if (mAdapter.getCount() == 0){

@@ -64,7 +64,7 @@ public class RunManager {
         sAppContext = appContext.getApplicationContext();
         sNotificationManager = NotificationManagerCompat.from(appContext);
         sHelper = new RunDatabaseHelper(appContext);
-        sCurrentRunId = RunTracker2.getPrefs().getLong(Constants.PREF_CURRENT_RUN_ID, -1);
+        //sCurrentRunId = RunTracker2.getPrefs().getLong(Constants.PREF_CURRENT_RUN_ID, -1);
     }
 
     public static RunManager get(Context c) {
@@ -83,7 +83,7 @@ public class RunManager {
         Log.i(TAG, "Reached RunManager.startTrackingRun()");
         sCurrentRunId = runId;
         //Store it in shared preferences
-        RunTracker2.getPrefs().edit().putLong(Constants.PREF_CURRENT_RUN_ID, sCurrentRunId).apply();
+        //RunTracker2.getPrefs().edit().putLong(Constants.PREF_CURRENT_RUN_ID, sCurrentRunId).apply();
         startUpdatingEndAddress(context);
     }
 
@@ -122,7 +122,7 @@ public class RunManager {
     //the PendingIntent to start location updates, this will return the existing PendingIntent, but if not,
     //this will not create the PendingIntent, but rather return null.
     static PendingIntent getLocationPendingIntent(@NonNull Context context, boolean shouldCreate) {
-        Intent broadcast = new Intent(Constants.ACTION_LOCATION);
+        Intent broadcast = new Intent("com.dknutsonlaw.android.runtracker2.ACTION_LOCATION");
         int flags = shouldCreate ? 0 : PendingIntent.FLAG_NO_CREATE;
         return PendingIntent.getBroadcast(context, 0, broadcast, flags);
     }
@@ -179,6 +179,8 @@ public class RunManager {
     //Insert a new Location into the database relating to the CurrentRun using the Intent service
     //to take this task off the main, UI thread
     static void insertLocation(Context context, Location loc) {
+        //sCurrentRunId = RunTracker2.getPrefs().getLong(Constants.ARG_RUN_ID, -1);
+        Log.d(TAG, "In RunManager insertLocation(), sCurrentRunId is: " + sCurrentRunId);
         if (sCurrentRunId != -1) {
             //Pass along the Application Context to the Intent Service so it can
             //pass it to the Database Helper method so that it,  in turn, can call
@@ -321,7 +323,7 @@ public class RunManager {
     }
     //Are we tracking the specified Run?
     static boolean isTrackingRun(Run run) {
-        return run != null && run.getId() == sCurrentRunId && isTrackingRun();
+        return (isTrackingRun() && run != null && run.getId() == sCurrentRunId);
     }
 
     static String formatDistance(double meters){

@@ -6,8 +6,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.common.api.GoogleApiClient;
-
 public class HeadlessActivity extends AppCompatActivity {
     private static final String TAG = "HeadlessActivity";
     //private static final GoogleApiClient sGoogleApiClient = RunTracker2.getGoogleApiClient();

@@ -48,9 +48,9 @@ import com.bignerdranch.android.multiselector.SwappingHolder;
 
 //import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class RunRecyclerListFragment extends Fragment
@@ -268,9 +268,7 @@ public class RunRecyclerListFragment extends Fragment
         //Set up UI elements to display if there are no Runs recorded to display in the RecyclerView
         mEmptyViewTextView = v.findViewById(R.id.empty_view_textview);
         mEmptyViewButton = v.findViewById(R.id.empty_view_button);
-        mEmptyViewButton.setOnClickListener(v1 -> {
-            TrackingLocationIntentService.startActionInsertRun(getContext(), new Run());
-        });
+        mEmptyViewButton.setOnClickListener(v1 -> TrackingLocationIntentService.startActionInsertRun(getContext(), new Run()));
         //Flag first visit so we don't check for which Run we were on when we pressed the Back button
         //in RunPagerAdapter
         mFirstVisit = true;
@@ -425,6 +423,14 @@ public class RunRecyclerListFragment extends Fragment
         super.onPause();
     }
 
+    /*@Override
+    public void onDestroy(){
+        if(mAdapter != null && mAdapter.getCursor() != null && !mAdapter.getCursor().isClosed()){
+            mAdapter.getCursor().close();
+        }
+        super.onDestroy();
+    }*/
+
     public void onDeleteRunsDialogPositiveClick(){
             deleteRuns();
     }
@@ -530,6 +536,8 @@ public class RunRecyclerListFragment extends Fragment
                 Intent i = RunPagerActivity.newIntent(getActivity(),
                            RunRecyclerListFragment.this.mSortOrder,
                            mRun.getId());
+                RunTracker2.getPrefs().edit().putLong(Constants.ARG_RUN_ID, mRun.getId()).apply();
+                RunTracker2.getPrefs().edit().putFloat(Constants.ZOOM_LEVEL, 17.0f).apply();
                 startActivity(i);
             }
         }
@@ -586,10 +594,24 @@ public class RunRecyclerListFragment extends Fragment
                //actually successfully deleted. If a Run wasn't successfully deleted, its View
                //in the RecyclerView should not be deleted. A LinkedHashMap is needed so that
                //the Views will be deleted in the correct order, highest numbered view to lowest.
-               LinkedHashMap<Integer, Boolean> shouldDeleteView = (LinkedHashMap<Integer, Boolean>)intent.getSerializableExtra(Constants.EXTRA_VIEW_HASHMAP);
+               Map<Integer, Boolean> shouldDeleteView = (LinkedHashMap<Integer, Boolean>)intent.getSerializableExtra(Constants.EXTRA_VIEW_HASHMAP);
+               Set<Integer> keys = shouldDeleteView.keySet();
+               for(Integer k:keys){
+                   if (shouldDeleteView.get(k)){
+                       Log.i(TAG, "Removing Run at position " + k + " in the adapter");
+                       mAdapter.notifyItemRemoved(k);
+                       mAdapter.notifyItemRangeChanged(k, mAdapter.getItemCount());
+                       if (mRunListRecyclerView.getChildAt(k) != null){
+                           Log.i(TAG, "Now removing view at position " + k + " from RecyclerView");
+                           mRunListRecyclerView.removeViewAt(k);
+                       } else {
+                           Log.i(TAG, "View at position " + k + " was null, already deleted");
+                       }
+                   }
+               }
                //I wish this method to iterate over each key in a HashMap were available in Android
                //versions earlier than Nougat!
-               shouldDeleteView.forEach((k, v) -> {
+               /*shouldDeleteView.forEach((k, v) -> {
                    //First  check to see that the Run was deleted so that the View should also be deleted and the Adapter
                    //notified that the Run was removed
                    if(v){
@@ -602,57 +624,60 @@ public class RunRecyclerListFragment extends Fragment
                    } else {
                        Log.i(TAG, "Run displayed at position " + k + " was not deleted, so that View was also not deleted.");
                    }
-               });
+               });*/
                //Now give the user a summary of the results of the deletion operation
                Toast.makeText(getContext(), resultsString, Toast.LENGTH_LONG).show();
                refreshUI();
             } else if (action != null && action.equals(Constants.SEND_RESULT_ACTION)) {
                 String actionAttempted = intent
                         .getStringExtra(Constants.ACTION_ATTEMPTED);
-                if (actionAttempted
-                        .equals(Constants.ACTION_INSERT_RUN)) {
-                    //Now that the Intent Service has gotten the new Run inserted into the Run table
-                    //of the database, we have a RunId assigned to it that can be used to start the
-                    //RunPagerActivity with the new Run's CombinedFragment as the current item in the
-                    //ViewPager.
-                    Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
-                    long runId = run.getId();
-                    if (runId != -1) {
-                        //Update the Subtitle to reflect the new number of Runs
-                        setSubtitle();
-                        //Start the RunPagerActivity to display the newly created Run
-                        Intent i = RunPagerActivity.newIntent(getActivity(), mSortOrder, runId);
-                        startActivity(i);
-                    } else {
-                        Toast.makeText(getActivity(),
-                                       R.string.insert_run_error,
-                                       Toast.LENGTH_LONG)
-                                       .show();
-                    }
-                } else if (actionAttempted.equals(Constants.ACTION_INSERT_LOCATION)){
-                    //Results of location insertions are reported only if there's an error
-                    String resultString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
-                    Toast.makeText(getContext(), resultString, Toast.LENGTH_LONG).show();
-                } else if (actionAttempted.equals(Constants.ACTION_UPDATE_END_ADDRESS)){
-                    int results = intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
-                    //Successful updates are not reported by the IntentService, so no need to check
-                    //for them
-                    if (results > 1) {
-                        Toast.makeText(getActivity(),
-                                       R.string.multiple_runs_end_addresses_updated,
-                                       Toast.LENGTH_LONG)
-                                       .show();
-                    } else if (results == 0) {
-                        Toast.makeText(getActivity(),
-                                       R.string.update_end_address_failed,
-                                       Toast.LENGTH_LONG)
-                                       .show();
-                    } else if (results != 1){
-                        Toast.makeText(getActivity(),
-                                       R.string.unknown_end_address_update_error,
-                                       Toast.LENGTH_LONG)
-                                       .show();
-                    }
+                switch (actionAttempted) {
+                    case Constants.ACTION_INSERT_RUN:
+                        //Now that the Intent Service has gotten the new Run inserted into the Run table
+                        //of the database, we have a RunId assigned to it that can be used to start the
+                        //RunPagerActivity with the new Run's CombinedFragment as the current item in the
+                        //ViewPager.
+                        Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
+                        long runId = run.getId();
+                        if (runId != -1) {
+                            //Update the Subtitle to reflect the new number of Runs
+                            setSubtitle();
+                            //Start the RunPagerActivity to display the newly created Run
+                            Intent i = RunPagerActivity.newIntent(getActivity(), mSortOrder, runId);
+                            startActivity(i);
+                        } else {
+                            Toast.makeText(getActivity(),
+                                    R.string.insert_run_error,
+                                    Toast.LENGTH_LONG)
+                                    .show();
+                        }
+                        break;
+                    case Constants.ACTION_INSERT_LOCATION:
+                        //Results of location insertions are reported only if there's an error
+                        String resultString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
+                        Toast.makeText(getContext(), resultString, Toast.LENGTH_LONG).show();
+                        break;
+                    case Constants.ACTION_UPDATE_END_ADDRESS:
+                        int results = intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
+                        //Successful updates are not reported by the IntentService, so no need to check
+                        //for them
+                        if (results > 1) {
+                            Toast.makeText(getActivity(),
+                                    R.string.multiple_runs_end_addresses_updated,
+                                    Toast.LENGTH_LONG)
+                                    .show();
+                        } else if (results == 0) {
+                            Toast.makeText(getActivity(),
+                                    R.string.update_end_address_failed,
+                                    Toast.LENGTH_LONG)
+                                    .show();
+                        } else if (results != 1) {
+                            Toast.makeText(getActivity(),
+                                    R.string.unknown_end_address_update_error,
+                                    Toast.LENGTH_LONG)
+                                    .show();
+                        }
+                        break;
                 }
             }
         }

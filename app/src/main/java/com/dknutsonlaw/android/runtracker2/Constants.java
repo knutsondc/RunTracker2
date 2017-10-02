@@ -22,12 +22,6 @@ final class Constants {
     static final double METERS_TO_FEET = 3.28083989501;
     static final double METERS_TO_MILES = .000621371192237;
 
-    //Identifies member of array of ints reporting results of attempt to insert a location signifying
-    //whether the location was too far from last previous location to be considered a continuation of
-    //the same run.
-    static final int CONTINUATION_LIMIT_RESULT = 2;
-    //Error result when attempting to delete a run or a location
-    static final int DELETION_ERROR = -1;
     //MapView Menu selection items
     static final int SHOW_ENTIRE_ROUTE = 0;
     static final int FOLLOW_END_POINT = 1;
@@ -40,10 +34,6 @@ final class Constants {
     static final int LOAD_RUN = 0;
     static final int LOCATION_SETTINGS_CHECK = 8000;
     static final int MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST = 3;
-    //Label for member of array of ints used to report results of deletion operations
-    static final int LOCATION_DELETIONS = 0;
-    ///Label for result of location insertion operation
-    static final int LOCATION_INSERTION_RESULT = 0;
     //Labels for Messages between UI Fragments and BackgroundLocationService
 
     static final int NOTIFICATION_ID = 1;
@@ -56,8 +46,6 @@ final class Constants {
     static final int COMBINED_FRAGMENT = 1;
     //Label for loader used in RunRecyclerListFragment
     static final int RUN_LIST_LOADER = 0;
-    //Label for member of array of ints used to report results of update operations
-    static final int RUN_UPDATE_RESULT = 1;
     //Sort order values used in RunRecyclerListFragment and RunPagerActivity
     static final int SORT_BY_DATE_ASC = 0;
     static final int SORT_BY_DATE_DESC = 1;
@@ -91,8 +79,6 @@ final class Constants {
             "com.dknutsonlaw.android.runtracker.action.insert.location";
     static final String ACTION_INSERT_RUN =
             "com.dknutsonlaw.android.runtracker.action.insert.run";
-    static final String ACTION_LAST_LOCATION =
-            "com.dknutsonlaw.android.runtracker2.action.last.location";
     static final String ACTION_LOCATION =
             "com.dknutsonlaw.android.runtracker2.ACTION_LOCATION";
     static final String ACTION_REFRESH_MAPS =
@@ -114,7 +100,6 @@ final class Constants {
             "com.dknutsonlaw.com.android.runtracker2.adapter.position";
     //Label used to pass ID of run to use in a new instance of RunFragment
     static final String ARG_RUN_ID = "RUN_ID";
-    static final String ARG_ERROR_CODE = "error_code";
     //Labels for columns in the Location table
     static final String COLUMN_LOCATION_ALTITUDE = "altitude";
     static final String COLUMN_LOCATION_LATITUDE = "latitude";
@@ -136,9 +121,7 @@ final class Constants {
             "com.dknutsonlaw.android.runtracker.extended.results.data";
     //Label used to pass along run IDs in Intents
     static final String EXTRA_ERROR_CODE =
-            "com.dknutson.android.runtracker.error_code";
-    static final String EXTRA_LOCATION =
-            "com.dknutsonlaw.android.runtracker2.extra.location";
+            "com.dknutsonlaw.android.runtracker.error_code";
     static final String EXTRA_RUN_ID =
             "com.dknutsonlaw.android.runtracker.run_id";
     //Label used to pass along the existing sort order from RunRecyclerListFragment to RunPagerActivity
@@ -147,10 +130,8 @@ final class Constants {
     static final String EXTRA_STARTED_FROM_NOTIFICATION =
             "com.dknutsonlaw.android.runtracker2.started.from.notification";
     static final String EXTRA_VIEW_HASHMAP = "com.dknutsonlaw.android.runtracker2.view_hash_map";
-    static final String FIRST_LOCATION = "com.dknutsonlaw.android.runtracker2.first_location;";
     //Label to identify type of fragment that called DeleteRunsDialog
     static final String FRAGMENT = "com.dknutsonlaw.android.runtracker2.fragment";
-    static final String LAST_LOCATION = "com.dknutsonlaw.android.runtracker2.last_location";
     //Label for distance/altitude measurement system
     static final String MEASUREMENT_SYSTEM =
             "com.dknutsonlaw.android.runtracker2.measurement_system";
@@ -187,10 +168,6 @@ final class Constants {
     static final String TABLE_RUN = "run";
     static final String TRACKING_MODE = "tracking_mode";
     static final String UPDATED_ADDRESS_RESULT = "addressResult";
-    static final String UPDATE_START_DATE = "update_start_date";
-    static final String UPDATE_START_ADDRESS = "update_start_date";
-    static final String UPDATE_END_ADDRESS = "update_end_address";
-    static final String UPDATE_DISTANCE_AND_DURATION = "update_distance_and_duration";
     static final String VIEWS_TO_DELETE = "views_to_delete";
     static final String ZOOM_LEVEL = "zoom_level";
 
@@ -199,9 +176,5 @@ final class Constants {
     static final String AUTHORITY = "com.dknutsonlaw.android.runtracker2";
     private static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY);
     static final Uri URI_TABLE_LOCATION = Uri.withAppendedPath(CONTENT_URI, "location");
-            //Uri.parse("sqlite://com.dknutsonlaw.android.runtracker2/location");
-    static final Uri URI_SINGLE_LOCATION = Uri.withAppendedPath(URI_TABLE_LOCATION, "#");
     static final Uri URI_TABLE_RUN = Uri.withAppendedPath(CONTENT_URI, "run");
-            //Uri.parse("sqlite://com.dknutsonlaw.android.runtracker2/run");
-    static final Uri URI_SINGLE_RUN = Uri.withAppendedPath(URI_TABLE_RUN, "#");
 }

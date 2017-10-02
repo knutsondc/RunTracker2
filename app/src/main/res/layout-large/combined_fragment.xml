@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:tools="http://schemas.android.com/tools"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+    <TableLayout android:layout_width="match_parent"
+                 android:layout_height="0dp"
+                 android:layout_weight="1"
+                 android:shrinkColumns="1">
+        <TableRow>
+            <TextView android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:gravity="end"
+                      android:paddingRight="5sp"
+                      android:paddingEnd="5sp"
+                      android:text="@string/run_fragment_started"
+                      tools:ignore="RtlHardcoded,RtlSymmetry"/>
+            <TextView android:id="@+id/run_startedTextView"
+                      android:layout_width="fill_parent"
+                      android:layout_height="wrap_content"/>
+        </TableRow>
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:paddingRight="5sp"
+                android:paddingEnd="5sp"
+                android:text="@string/starting_position"
+                tools:ignore="RtlHardcoded,RtlSymmetry"/>
+            <TextView android:id="@+id/run_starting_pointTextView"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:gravity="start"/>
+        </TableRow>
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:paddingRight="5sp"
+                android:paddingEnd="5sp"
+                android:text="@string/starting_altitude"
+                tools:ignore="RtlHardcoded,RtlSymmetry"/>
+            <TextView android:id="@+id/run__starting_altitudeTextView"
+                      android:layout_width="fill_parent"
+                      android:layout_height="wrap_content"/>
+        </TableRow>
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:paddingRight="5sp"
+                android:paddingEnd="5sp"
+                android:text="@string/starting_address"
+                tools:ignore="RtlHardcoded,RtlSymmetry"/>
+            <TextView android:id="@+id/run_starting_addressTextView"
+                      android:layout_width="fill_parent"
+                      android:layout_height="wrap_content"/>
+        </TableRow>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="0dp"
+            android:descendantFocusability="afterDescendants">
+
+            <Button
+                android:id="@+id/run_startButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="@string/start"
+                tools:ignore="ButtonStyle"/>
+
+            <Button
+                android:id="@+id/run_stopButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="@string/stop"
+                tools:ignore="ButtonStyle"/>
+        </LinearLayout>
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:paddingRight="5sp"
+                android:paddingEnd="5sp"
+                android:text="@string/run_fragment_ended"
+                tools:ignore="RtlHardcoded,RtlSymmetry"/>
+            <TextView android:id="@+id/run_endedTextView"
+                      android:layout_width="fill_parent"
+                      android:layout_height="wrap_content"/>
+        </TableRow>
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:paddingRight="5sp"
+                android:paddingEnd="5sp"
+                android:text="@string/ending_position"
+                tools:ignore="RtlHardcoded,RtlSymmetry"/>
+            <TextView android:id="@+id/ending_pointTextView"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:gravity="start"/>
+        </TableRow>
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:paddingRight="5sp"
+                android:paddingEnd="5sp"
+                android:text="@string/ending_altitude"
+                tools:ignore="RtlHardcoded,RtlSymmetry"/>
+            <TextView android:id="@+id/run__ending_altitudeTextView"
+                      android:layout_width="fill_parent"
+                      android:layout_height="wrap_content"/>
+        </TableRow>
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:paddingRight="5sp"
+                android:paddingEnd="5sp"
+                android:text="@string/ending_address"
+                tools:ignore="RtlHardcoded,RtlSymmetry" />
+            <TextView android:id="@+id/run_ending_address_TextView"
+                      android:layout_width="fill_parent"
+                      android:layout_height="wrap_content"/>
+        </TableRow>
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:paddingRight="5sp"
+                android:paddingEnd="5sp"
+                android:text="@string/elapsed_time"
+                tools:ignore="RtlHardcoded,RtlSymmetry"/>
+            <TextView android:id="@+id/run_durationTextView"
+                      android:layout_width="fill_parent"
+                      android:layout_height="wrap_content"/>
+        </TableRow>
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:paddingRight="5sp"
+                android:paddingEnd="5sp"
+                android:text="@string/distance_covered"
+                tools:ignore="RtlHardcoded,RtlSymmetry"/>
+            <TextView android:id="@+id/distance_coveredTextView"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"/>
+        </TableRow>
+
+    </TableLayout>
+    <com.google.android.gms.maps.MapView android:id="@+id/mapViewContainer"
+                                         android:layout_width="match_parent"
+                                         android:layout_height="0dp"
+                                         android:layout_weight="2"/>
+</LinearLayout>

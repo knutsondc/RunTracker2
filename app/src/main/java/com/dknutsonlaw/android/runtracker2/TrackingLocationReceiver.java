@@ -28,6 +28,8 @@ public class TrackingLocationReceiver extends LocationReceiver {
 
     @Override
     protected void onLocationReceived(Context c, Location loc) {
+        Log.d(TAG, "Entered onLocationReceived method of TrackingLocationReceiver");
+        Log.d(TAG, "Is the location null? " + (loc == null));
        if (!loc.hasAccuracy()) {
             Log.i(TAG, "Location rejected - no accuracy value");
        } else if(!loc.hasAltitude()){
