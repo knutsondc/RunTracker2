@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion '26.0.1'
+    buildToolsVersion '26.0.2'
     //noinspection GroovyAssignabilityCheck
     defaultConfig {
         applicationId "com.dknutsonlaw.android.runtracker2"
@@ -47,8 +47,9 @@ dependencies {
     //noinspection GradleCompatible,GradleCompatible
     compile 'com.android.support:appcompat-v7:26.1.0'
     compile 'com.android.support:recyclerview-v7:26.1.0'
-    compile 'com.google.android.gms:play-services-location:11.4.0'
-    compile 'com.google.android.gms:play-services-maps:11.4.0'
+    compile 'com.google.android.gms:play-services-location:11.4.2'
+    compile 'com.google.android.gms:play-services-maps:11.4.2'
+    compile 'com.google.maps.android:android-maps-utils:0.5+'
     compile 'junit:junit:4.12'
     compile 'com.bignerdranch.android:recyclerview-multiselect:0.2'
 }

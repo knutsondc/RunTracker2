@@ -2,6 +2,7 @@
   <dictionary name="dck">
     <words>
       <w>abtf</w>
+      <w>apie</w>
       <w>combinedfragment</w>
       <w>combinedrunfragment</w>
       <w>dataset</w>
@@ -19,6 +20,7 @@
       <w>qlite</w>
       <w>recyclerfragment</w>
       <w>recyclerview</w>
+      <w>reenabled</w>
       <w>restartloaders</w>
       <w>runfragment</w>
       <w>runlistcursorloader</w>

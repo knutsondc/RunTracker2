@@ -39,8 +39,6 @@ final class Constants {
     static final int NOTIFICATION_ID = 1;
     //Label for BackgroundLocationService to tell the UI Fragment that Location Permissions needed
     static final int REQUEST_LOCATION_PERMISSIONS = 1;
-    //Label for member of array of ints used to report results of deletion operation
-    static final int RUN_DELETIONS = 1;
     //Values to pass back from DeleteRunsDialog so that correct Fragment will act on the result
     static final int RUN_LIST_RECYCLER_FRAGMENT = 0;
     static final int COMBINED_FRAGMENT = 1;
@@ -127,8 +125,6 @@ final class Constants {
     //Label used to pass along the existing sort order from RunRecyclerListFragment to RunPagerActivity
     //and vice-versa
     static final String EXTRA_SORT_ORDER = "com.dknutsonlaw.android.runtracker2.sort_order";
-    static final String EXTRA_STARTED_FROM_NOTIFICATION =
-            "com.dknutsonlaw.android.runtracker2.started.from.notification";
     static final String EXTRA_VIEW_HASHMAP = "com.dknutsonlaw.android.runtracker2.view_hash_map";
     //Label to identify type of fragment that called DeleteRunsDialog
     static final String FRAGMENT = "com.dknutsonlaw.android.runtracker2.fragment";
@@ -159,6 +155,8 @@ final class Constants {
     //Label used to communicate results of TrackingLocationIntentService operations in response Intents
     static final String SEND_RESULT_ACTION =
             "com.dknutsonlaw.android.runtracker.send.result.action";
+    static final String SHOULD_STOP =
+            "com.dknutsonlaw.android.runtracker2.should.stop";
     //Label used to store and retrieve the run sort order in Intents and Bundles
     static final String SORT_ORDER = "sort";
     //Label used to store and retrieve fragment subtitles in Intents and Bundles

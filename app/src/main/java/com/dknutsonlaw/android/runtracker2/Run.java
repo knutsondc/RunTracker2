@@ -23,7 +23,7 @@ import java.util.Locale;
 
 public class Run implements Parcelable {
     @SuppressWarnings("unused")
-    private static final String TAG = "run";
+    private static final String TAG = "com.dknutsonlaw.android.runtracker2.run";
 
     private long mId;
     private Date mStartDate;

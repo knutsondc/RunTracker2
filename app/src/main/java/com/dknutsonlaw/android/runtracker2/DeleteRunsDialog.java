@@ -75,8 +75,5 @@ public class DeleteRunsDialog extends DialogFragment {
                     }
                 });
         return builder.create();
-
-
     }
-
 }

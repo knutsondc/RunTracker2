@@ -18,6 +18,8 @@ public class RunTracker2 extends Application /*implements GoogleApiClient.Connec
     private static RunTracker2 sInstance;
     private static boolean sLocationSettingsEnabled = false;
     private static SharedPreferences sPrefs = null;
+    private static boolean mTrackingRun = false;
+
 
     @Override
     public void onCreate(){
@@ -45,5 +47,9 @@ public class RunTracker2 extends Application /*implements GoogleApiClient.Connec
 
     public static void setLocationSettingsState(boolean isEnabled){
         sLocationSettingsEnabled = isEnabled;
+    }
+
+    public static void setIsTrackingRun(boolean isTrackingRun){
+        mTrackingRun = isTrackingRun;
     }
 }

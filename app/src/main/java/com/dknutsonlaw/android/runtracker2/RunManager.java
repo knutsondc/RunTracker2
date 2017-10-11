@@ -3,7 +3,6 @@ package com.dknutsonlaw.android.runtracker2;
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 //import android.app.TaskStackBuilder;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 //import android.content.SharedPreferences;
@@ -17,7 +16,6 @@ import android.support.annotation.NonNull;
 //import android.support.v4.app.NotificationCompat;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.util.LongSparseArray;
 import android.text.TextUtils;
 import android.util.Log;
@@ -30,10 +28,8 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by dck on 9/6/15. Basic set of methods for creating, updating and deleting Runs and their
@@ -50,19 +46,17 @@ public class RunManager {
     private static final LongSparseArray<WeakReference<LatLngBounds>> sBoundsMap = new LongSparseArray<>();
     //LongSparseArray to associate location objects with Points used to  construct Polyline in RunMapFragment.
     private static final LongSparseArray<WeakReference<List<LatLng>>> sPointsMap = new LongSparseArray<>();
-    private static NotificationManagerCompat sNotificationManager = null;
     //Handle for the recurring task of updating Ending Addresses; needed so task can be cancelled
     //when we're not tracking runs
     private static ScheduledFuture<?> sScheduledFuture;
     private static ScheduledThreadPoolExecutor sStpe  = null;
     private static RunDatabaseHelper sHelper = null;
-    private static MyContentProvider sProvider = new MyContentProvider();
     private static long sCurrentRunId;
 
     //The private constructor forces users to use RunManager.get(Context)
     private RunManager (Context appContext) {
         sAppContext = appContext.getApplicationContext();
-        sNotificationManager = NotificationManagerCompat.from(appContext);
+        NotificationManagerCompat sNotificationManager = NotificationManagerCompat.from(appContext);
         sHelper = new RunDatabaseHelper(appContext);
         //sCurrentRunId = RunTracker2.getPrefs().getLong(Constants.PREF_CURRENT_RUN_ID, -1);
     }
@@ -83,15 +77,16 @@ public class RunManager {
         Log.i(TAG, "Reached RunManager.startTrackingRun()");
         sCurrentRunId = runId;
         //Store it in shared preferences
-        //RunTracker2.getPrefs().edit().putLong(Constants.PREF_CURRENT_RUN_ID, sCurrentRunId).apply();
-        startUpdatingEndAddress(context);
+        RunTracker2.getPrefs().edit().putLong(Constants.PREF_CURRENT_RUN_ID, runId).apply();
+        Log.i(TAG, "Run " + runId + " saved in SharedPrefs as PREF_CURRENT_RUN_ID");
+        //startUpdatingEndAddress(context);
     }
-
+    //Logic for this method moved to startLocationUpdates method of BackgroundLocationService
     //Set up a scheduled thread pool executor and a task to schedule on it for updating Ending
-    //Addresses every 5 seconds. Initial call comes in 15 seconds to make sure a new run gets
+    //Addresses every 10 seconds. Initial call comes in 30 seconds to make sure a new run gets
     //properly initialized in time so the first call won't fail and suppress ALL subsequent
     //calls for the scheduled task.
-    private static void startUpdatingEndAddress(Context context){
+    /*private static void startUpdatingEndAddress(Context context){
         Log.i(TAG, "Reached startUpdatingEndAddress() for Run " + sCurrentRunId);
         if (!isTrackingRun(getRun(sCurrentRunId))) {
             Log.i(TAG, "In startUpdatingEndAddress, returned because not tracking current run");
@@ -108,32 +103,34 @@ public class RunManager {
             }
             sStpe = new ScheduledThreadPoolExecutor(3);
             Log.i(TAG, "Created new ScheduledThreadPoolExecutor" + sStpe + " for Run " + sCurrentRunId);
-            sScheduledFuture = sStpe.scheduleAtFixedRate(new updateEndAddressTask(context, getRun(sCurrentRunId)), 20, 10, TimeUnit.SECONDS);
+            sScheduledFuture = sStpe.scheduleAtFixedRate(new updateEndAddressTask(context, getRun(sCurrentRunId)), 30, 10, TimeUnit.SECONDS);
             Log.i(TAG, "Created ScheduledFuture " + sScheduledFuture +  " for Run " + sCurrentRunId);
         } catch (RejectedExecutionException rJee){
             Log.i(TAG, "Caught rejected execution exception");
             Log.i(TAG, "Cause: " + rJee.getCause());
             Log.i(TAG, "Message: " + rJee.getMessage());
         }
-    }
+    }*/
 
     //When starting location updates, call with shouldCreate true, so the PendingIntent will be returned;
     //When calling just to check if any Run is being tracked, call with shouldCreate false; if we've created
     //the PendingIntent to start location updates, this will return the existing PendingIntent, but if not,
     //this will not create the PendingIntent, but rather return null.
     static PendingIntent getLocationPendingIntent(@NonNull Context context, boolean shouldCreate) {
-        Intent broadcast = new Intent("com.dknutsonlaw.android.runtracker2.ACTION_LOCATION");
+        Intent broadcast = new Intent(Constants.ACTION_LOCATION);
+        broadcast.setClass(RunTracker2.getInstance(), TrackingLocationReceiver.class);
         int flags = shouldCreate ? 0 : PendingIntent.FLAG_NO_CREATE;
         return PendingIntent.getBroadcast(context, 0, broadcast, flags);
     }
-
+    //The logic in this method moved to onSuccessListener() of removeLocationUpdates() in
+    //stopLocationUpdates method of BackgroundLocationService.
     static void stopRun(){
         Log.i(TAG, "Entered stopRun()");
         //Location updates get stopped from the RunFragment by instructing the BackgroundLocationService
         //to stop supplying updates. This method handles the rest of the housekeeping following
         //shutdown of location updates.
 
-        //We only use a single notification, so we can assume its id is 0 when we stop
+        /*//We only use a single notification, so we can assume its id is 0 when we stop
         //tracking a run and should cancel the notification.
         sNotificationManager.cancel(0);
         sCurrentRunId = -1;
@@ -149,7 +146,7 @@ public class RunManager {
             List<Runnable> shutdownList = sStpe.shutdownNow();
             Log.i(TAG, "There were " + shutdownList.size() + " tasks queued when Stop was pressed.");
             Log.i(TAG, "Called .shutdownNow() on ScheduledThreadPoolExecutor " + sStpe);
-        }
+        }*/
     }
 
     //Get a Run from the database using its RunId
@@ -179,7 +176,6 @@ public class RunManager {
     //Insert a new Location into the database relating to the CurrentRun using the Intent service
     //to take this task off the main, UI thread
     static void insertLocation(Context context, Location loc) {
-        //sCurrentRunId = RunTracker2.getPrefs().getLong(Constants.ARG_RUN_ID, -1);
         Log.d(TAG, "In RunManager insertLocation(), sCurrentRunId is: " + sCurrentRunId);
         if (sCurrentRunId != -1) {
             //Pass along the Application Context to the Intent Service so it can
@@ -262,6 +258,8 @@ public class RunManager {
      */
     static String getAddress(Context context, LatLng loc){
         Log.i(TAG, "Reached getAddress(Context, LatLng)");
+        //Get a geocoder from Google Play Services and use its output to build an address string or
+        //an error message, depending upon result.
         String filterAddress = "";
         Geocoder geocoder = new Geocoder(context);
         Log.i(TAG, "Geocoder is: " + geocoder);
@@ -272,8 +270,12 @@ public class RunManager {
             //need to check whether the getFromLocation() method is available
             Log.i(TAG, "Geocoder is present");
             try {
+                //The geocoder will return a list of addresses. We want only one, hence the final
+                //argument to this method.
                 List<Address> addresses = geocoder.getFromLocation(
                         loc.latitude, loc.longitude, 1);
+                //Any address result will be a List element, even though we're getting only a single
+                //result
                 if (addresses.size() > 0){
                     Address address = addresses.get(0);
                     ArrayList<String> addressFragments = new ArrayList<>();
@@ -325,7 +327,7 @@ public class RunManager {
     static boolean isTrackingRun(Run run) {
         return (isTrackingRun() && run != null && run.getId() == sCurrentRunId);
     }
-
+    //Format output of distance values depending upon whether we're using Metric or Imperial measures.
     static String formatDistance(double meters){
         boolean system = RunTracker2.getPrefs().getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL);
         String result;
@@ -345,23 +347,77 @@ public class RunManager {
         }
         return result;
     }
-
+    //Format output of altitude values depending upon whether we're using Metric or Imperial measures.
     static String formatAltitude(double meters){
-        boolean system = RunTracker2.getPrefs().getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL);
+        boolean system = RunTracker2.getPrefs()
+                .getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL);
         String result;
         if (system == Constants.METRIC){
             result = String.format(Locale.US, "%.0f", meters) + " meters";
         } else {
-            result = String.format(Locale.US, "%.0f", meters * Constants.METERS_TO_FEET) + " feet";
+            result = String.format(Locale.US, "%.0f",
+                    meters * Constants.METERS_TO_FEET) + " feet";
         }
         return result;
+    }
+    /*This method converts the +- decimal degrees formatted locations produced by Location Services
+     *to N/S/E/W degrees/minutes/seconds format with the conventional symbols for degrees, minutes
+     *and seconds.
+     */
+    protected static String convertLocation(double latitude, double longitude){
+        StringBuilder builder = new StringBuilder();
+        //Unicode for the little circle degree symbol
+        char degree = 0x00B0;
+        //First format the latitude value. Android assigns positive values to northern hemisphere
+        //latitudes and negative values to the southern hemisphere, so assign letters accordingly.
+        if (latitude < 0){
+            builder.append("S ");
+        } else {
+            builder.append("N ");
+        }
+        //First strip the negative/positive designation and then get degrees/minutes/seconds colon-
+        //separated format Android makes available
+        String latitudeDegrees = Location.convert(Math.abs(latitude), Location.FORMAT_SECONDS);
+        //Separate the degrees, minutes and seconds values and add the appropriate symbols
+        String[] latitudeSplit = latitudeDegrees.split(":");
+        builder.append(latitudeSplit[0]);
+        builder.append(degree);
+        builder.append(latitudeSplit[1]);
+        builder.append("'");
+        builder.append(latitudeSplit[2]);
+        builder.append("\"");
+        //Separate the latitude and longitude values
+        builder.append(" ");
+        //Now convert the longitude value. Android assigns positive values to locations east of 0
+        //degrees longitude and negative values to locations west of there, so assign symbols accordingly.
+        if(longitude < 0){
+            builder.append("W ");
+        } else {
+            builder.append("E ");
+        }
+        //Repeat same process as used for the latitude figure.
+        String longitudeDegrees = Location.convert(Math.abs(longitude), Location.FORMAT_SECONDS);
+        String[] longitudeSplit = longitudeDegrees.split(":");
+
+        builder.append(longitudeSplit[0]);
+        builder.append(degree);
+        builder.append(longitudeSplit[1]);
+        builder.append("'");
+        builder.append(longitudeSplit[2]);
+        builder.append("\"");
+
+        return builder.toString();
+
+
+
+
     }
 
     //Set up task to update End Address field that can be submitted to the ScheduledThreadPoolExecutor.
     //We need to use a named class for the Runnable so that we can pass in the Run as a parameter
     //to be used in the run() method.
 
-    private static class updateEndAddressTask implements Runnable {
+    /*private static class updateEndAddressTask implements Runnable {
 
         private final Context mContext;
         private final Run mRun;
@@ -376,8 +432,8 @@ public class RunManager {
 
             //Get address for last location received from geocoder for this Run.
             try {
-                LatLng latLng = new LatLng(getLastLocationForRun(mRun.getId()).getLatitude(),
-                        getLastLocationForRun(mRun.getId()).getLongitude());
+                Location location = getLastLocationForRun(mRun.getId());
+                LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
                 String endAddress = getAddress(mContext, latLng);
                 //Update the current run object with the address we get
                 mRun.setEndAddress(endAddress);
@@ -401,7 +457,7 @@ public class RunManager {
                             .putExtra(Constants.EXTENDED_RESULTS_DATA, i)
                             .putExtra(Constants.UPDATED_ADDRESS_RESULT, endAddress);
                     boolean receiver = localBroadcastManager.sendBroadcast(resultIntent);
-                    Log.i(TAG, "Successfully completed updateEndAddressTask");
+                    Log.i(TAG, "updateEndAddressTask failed!");
                     if (!receiver)
                         Log.i(TAG, "No receiver for EndAddressUpdate resultIntent!");
                 }
@@ -416,6 +472,6 @@ public class RunManager {
                 e.printStackTrace();
             }
         }
-    }
+    }*/
 }
 

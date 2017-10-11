@@ -65,7 +65,7 @@
             <intent-filter>
                 <action
                     android:name="com.dknutsonlaw.android.runtracker2.ACTION_LOCATION"
-                    android:enabled="true"/>
+                    android:exported="false"/>
             </intent-filter>
         </receiver>
 

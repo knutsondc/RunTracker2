@@ -85,6 +85,7 @@ class RunListCursorLoader extends MySQLiteCursorLoader {
                 );
                 break;
             case Constants.SORT_NO_RUNS:
+                //noinspection UnusedAssignment
                 cursor = getContext().getContentResolver().query(
                         Constants.URI_TABLE_RUN,
                         null,

@@ -24,6 +24,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.view.ActionMode;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -127,14 +128,14 @@ public class RunRecyclerListFragment extends Fragment
             }
         }
         ArrayList<Long> runsToDelete = new ArrayList<>();
-        ArrayList<Integer> viewsToDelete = new ArrayList<>();
+        //ArrayList<Integer> viewsToDelete = new ArrayList<>();
         for(int i = mDeleteList.size() - 1; i >= 0; i--) {
             runsToDelete.add(mAdapter.getItemId(mDeleteList.get(i)));
-            viewsToDelete.add(mDeleteList.get(i));
+            //viewsToDelete.add(mDeleteList.get(i));
         }
         Log.i(TAG, "runsToDelete is: " + runsToDelete.toString());
-        Log.i(TAG, "viewsToDelete is: " + viewsToDelete.toString());
-        TrackingLocationIntentService.startActionDeleteRuns(getContext(), runsToDelete, viewsToDelete);
+        //Log.i(TAG, "viewsToDelete is: " + viewsToDelete.toString());
+        TrackingLocationIntentService.startActionDeleteRuns(getContext(), runsToDelete/*, viewsToDelete*/);
 
         //Clean up the MultiSelector, finish the ActionMode, and refresh the UI now that our
         //dataset has changed
@@ -154,14 +155,14 @@ public class RunRecyclerListFragment extends Fragment
             //Get sort order and subtitle from savedInstanceState Bundle if the Activity is
             //getting recreated
             mSortOrder = savedInstanceState.getInt(Constants.SORT_ORDER);
-            Log.i(TAG, "Getting mSortOrder from savedInstanceState");
+            //Log.i(TAG, "Getting mSortOrder from savedInstanceState");
             //noinspection ConstantConditions
             ((AppCompatActivity)getActivity()).getSupportActionBar().setSubtitle(savedInstanceState.getString(Constants.SUBTITLE));
         } else {
             //When Activity is created for the first time or if the Fragment is getting created
             //for the first time even though the Activity isn't, get sort order and subtitle
             //from SharedPreferences.
-            Log.i(TAG, "Getting Sort Order from SharedPreferences in onCreate");
+           // Log.i(TAG, "Getting Sort Order from SharedPreferences in onCreate");
             mSortOrder = RunTracker2.getPrefs().getInt(Constants.SORT_ORDER, Constants.SORT_BY_DATE_DESC);
             mSubtitle = RunTracker2.getPrefs().getString(Constants.SUBTITLE, /*getActivity().getResources()
                     .getQuantityString(R.plurals.subtitle_date_desc, mAdapter.getItemCount(),
@@ -413,12 +414,12 @@ public class RunRecyclerListFragment extends Fragment
         }
         //We will now have displayed the RecyclerView at least once, so clear the FirstVisit flag.
         mFirstVisit = false;
-        Log.i(TAG, "onResume called - mSortOrder is " + mSortOrder);
+        //Log.i(TAG, "onResume called - mSortOrder is " + mSortOrder);
     }
 
     @Override
     public void onPause() {
-        Log.i(TAG, "onPause called.");
+        //Log.i(TAG, "onPause called.");
         LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mResultsReceiver);
         super.onPause();
     }
@@ -471,7 +472,7 @@ public class RunRecyclerListFragment extends Fragment
         mAdapter.swapCursor(cursor);
         refreshUI();
 
-        Log.i(TAG, "RunListCursorLoader onLoadFinished() called.");
+        //Log.i(TAG, "RunListCursorLoader onLoadFinished() called.");
     }
 
     @Override
@@ -536,7 +537,7 @@ public class RunRecyclerListFragment extends Fragment
                 Intent i = RunPagerActivity.newIntent(getActivity(),
                            RunRecyclerListFragment.this.mSortOrder,
                            mRun.getId());
-                RunTracker2.getPrefs().edit().putLong(Constants.ARG_RUN_ID, mRun.getId()).apply();
+                RunTracker2.getPrefs().edit().putLong(Constants.PREF_CURRENT_RUN_ID, mRun.getId()).apply();
                 RunTracker2.getPrefs().edit().putFloat(Constants.ZOOM_LEVEL, 17.0f).apply();
                 startActivity(i);
             }
@@ -594,19 +595,25 @@ public class RunRecyclerListFragment extends Fragment
                //actually successfully deleted. If a Run wasn't successfully deleted, its View
                //in the RecyclerView should not be deleted. A LinkedHashMap is needed so that
                //the Views will be deleted in the correct order, highest numbered view to lowest.
-               Map<Integer, Boolean> shouldDeleteView = (LinkedHashMap<Integer, Boolean>)intent.getSerializableExtra(Constants.EXTRA_VIEW_HASHMAP);
-               Set<Integer> keys = shouldDeleteView.keySet();
-               for(Integer k:keys){
-                   if (shouldDeleteView.get(k)){
+               //Map<Integer, Boolean> shouldDeleteView = (LinkedHashMap<Integer, Boolean>)intent.getSerializableExtra(Constants.EXTRA_VIEW_HASHMAP);
+               //Set<Integer> keys = shouldDeleteView.keySet();
+               Map<Long, Boolean> wasRunDeleted = (LinkedHashMap<Long, Boolean>)intent.getSerializableExtra(Constants.EXTRA_VIEW_HASHMAP);
+               Set<Long> keys = wasRunDeleted.keySet();
+               for(Long k:keys){
+                   if (wasRunDeleted.get(k)){
                        Log.i(TAG, "Removing Run at position " + k + " in the adapter");
-                       mAdapter.notifyItemRemoved(k);
-                       mAdapter.notifyItemRangeChanged(k, mAdapter.getItemCount());
-                       if (mRunListRecyclerView.getChildAt(k) != null){
+
+                       /*if (mRunListRecyclerView.getChildAt(k) != null){
                            Log.i(TAG, "Now removing view at position " + k + " from RecyclerView");
                            mRunListRecyclerView.removeViewAt(k);
                        } else {
                            Log.i(TAG, "View at position " + k + " was null, already deleted");
-                       }
+                       }*/
+                       int l = k.intValue();
+                       mAdapter.notifyItemRemoved(l);
+                       mAdapter.notifyItemRangeChanged(l, mAdapter.getItemCount());
+                   } else {
+                       Log.d(TAG, "Run " + k + " was not deleted, so not notifying the adapter it was deleted");
                    }
                }
                //I wish this method to iterate over each key in a HashMap were available in Android
@@ -626,8 +633,14 @@ public class RunRecyclerListFragment extends Fragment
                    }
                });*/
                //Now give the user a summary of the results of the deletion operation
-               Toast.makeText(getContext(), resultsString, Toast.LENGTH_LONG).show();
-               refreshUI();
+               //Toast.makeText(getContext(), resultsString, Toast.LENGTH_LONG).show();
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext())
+                        .setPositiveButton("OK", (dialogInterface, i) -> dialogInterface.dismiss())
+                        .setTitle("Run Deletion Report")
+                        .setMessage(resultsString);
+                builder.create().show();
+                refreshUI();
             } else if (action != null && action.equals(Constants.SEND_RESULT_ACTION)) {
                 String actionAttempted = intent
                         .getStringExtra(Constants.ACTION_ATTEMPTED);

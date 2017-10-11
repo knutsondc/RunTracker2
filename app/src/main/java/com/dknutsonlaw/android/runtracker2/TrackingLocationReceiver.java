@@ -28,8 +28,8 @@ public class TrackingLocationReceiver extends LocationReceiver {
 
     @Override
     protected void onLocationReceived(Context c, Location loc) {
-        Log.d(TAG, "Entered onLocationReceived method of TrackingLocationReceiver");
-        Log.d(TAG, "Is the location null? " + (loc == null));
+        //Log.d(TAG, "Entered onLocationReceived method of TrackingLocationReceiver");
+        //Log.d(TAG, "Is the location null? " + (loc == null));
        if (!loc.hasAccuracy()) {
             Log.i(TAG, "Location rejected - no accuracy value");
        } else if(!loc.hasAltitude()){
@@ -43,7 +43,7 @@ public class TrackingLocationReceiver extends LocationReceiver {
        } else {
             //From LocationServices to here to RunManager to Intent Service to RunDatabaseHelper.
             //Use of the Intent Service keeps the database work off the main, UI thread
-           Log.i(TAG, "Got a location.");
+           //Log.i(TAG, "Got a location.");
            RunManager.get(c).insertLocation(c, loc);
 
        }

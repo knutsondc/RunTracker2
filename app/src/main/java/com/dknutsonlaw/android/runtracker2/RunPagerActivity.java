@@ -23,6 +23,7 @@ import android.support.v4.content.Loader;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -73,10 +74,10 @@ public class RunPagerActivity extends AppCompatActivity
             //Make sure that mRunId is always equal to the run id of the currently viewed
             //CombinedFragment as we page through them.
             CombinedFragment fragment = (CombinedFragment)mAdapter.getItem(position);
-            Log.i(TAG, "In onPageSelected(), is the CombinedFragment null? " + (fragment == null));
+            //Log.i(TAG, "In onPageSelected(), is the CombinedFragment null? " + (fragment == null));
             mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID, -1);
             RunTracker2.getPrefs().edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
-            Log.i(TAG, "In ViewPager onPageSelected(), mRunId set to " + mRunId);
+            //Log.i(TAG, "In ViewPager onPageSelected(), mRunId set to " + mRunId);
             invalidateFragmentMenus(position);
         }
 
@@ -89,9 +90,7 @@ public class RunPagerActivity extends AppCompatActivity
            CombinedFragment fragment = (CombinedFragment) mAdapter.getItem(i);
             if (fragment != null) {
                 fragment.setHasOptionsMenu(i == position);
-                Log.i(TAG, "setHasOptionsMenu() for fragment in position " + i + " set to " + (i == position));
-            } else {
-                Log.i(TAG, "In invalidateFragmentMenus(), mapFragment is null!");
+                //Log.i(TAG, "setHasOptionsMenu() for fragment in position " + i + " set to " + (i == position));
             }
         }
         invalidateOptionsMenu();
@@ -116,22 +115,22 @@ public class RunPagerActivity extends AppCompatActivity
         //the critical initialization variable, so either retrieve them from the Intent that started
         //this Activity or retrieve them from the savedInstanceState Bundle.
         if (savedInstanceState != null) {
-            Log.i(TAG, "Retrieved savedInstanceState");
+            //Log.i(TAG, "Retrieved savedInstanceState");
             mSortOrder = savedInstanceState.getInt(Constants.SORT_ORDER);
-            Log.i(TAG, "mSortOrder is " + mSortOrder);
+            //Log.i(TAG, "mSortOrder is " + mSortOrder);
             mRunId = savedInstanceState.getLong(Constants.SAVED_RUN_ID);
-            Log.i(TAG, "mRunId is " + savedInstanceState.getLong(Constants.SAVED_RUN_ID));
+            //Log.i(TAG, "mRunId is " + savedInstanceState.getLong(Constants.SAVED_RUN_ID));
         } else {
-            Log.i(TAG, "Taking values from the Intent");
+            //Log.i(TAG, "Taking values from the Intent");
             mSortOrder = getIntent().getIntExtra(Constants.EXTRA_SORT_ORDER, Constants.KEEP_EXISTING_SORT);
-            Log.i(TAG, "mSortOrder is " + mSortOrder);
+            //Log.i(TAG, "mSortOrder is " + mSortOrder);
             if (mSortOrder == Constants.KEEP_EXISTING_SORT) {
-                Log.i(TAG, "SortOrder is KEEP_EXISTING_SORT - using SharedPrefs");
+                //Log.i(TAG, "SortOrder is KEEP_EXISTING_SORT - using SharedPrefs");
                 mSortOrder = RunTracker2.getPrefs().getInt(Constants.SORT_ORDER, Constants.SORT_BY_DATE_DESC);
             }
             mRunId = getIntent().getLongExtra(Constants.EXTRA_RUN_ID, -1);
-            RunTracker2.getPrefs().edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
-            Log.i(TAG, "runId is " + mRunId);
+            //RunTracker2.getPrefs().edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
+            //Log.i(TAG, "runId is " + mRunId);
         }
         RunTracker2.getPrefs().edit().putLong(Constants.ARG_RUN_ID, mRunId).apply();
         float zoom = RunTracker2.getPrefs().getFloat(Constants.ZOOM_LEVEL, 17.0f) > 17.0f ?
@@ -230,7 +229,7 @@ public class RunPagerActivity extends AppCompatActivity
         if (mAdapter.getCount() == 0) {
             finish();
         }
-        Log.i(TAG, "onCreate(), run id for current item is " + mRunId);
+        //Log.i(TAG, "onCreate(), run id for current item is " + mRunId);
         args.putInt(Constants.SORT_ORDER, mSortOrder);
         return args;
     }
@@ -317,11 +316,11 @@ public class RunPagerActivity extends AppCompatActivity
         //in onResume(), because we only want this behavior the happen when the Activity has already been
         //opened before with an Intent. When this Activity is opened for the first time, it gets its
         //values from the Intent dispatched by the RunRecyclerListFragment.
-        Log.i(TAG, "Calling onRestart()");
+        //Log.i(TAG, "Calling onRestart()");
         mRunId = RunTracker2.getPrefs().getLong(Constants.ARG_RUN_ID, -1);
-        Log.i(TAG, "mRunId in onRestart() is " + mRunId);
+        //Log.i(TAG, "mRunId in onRestart() is " + mRunId);
         mSortOrder = RunTracker2.getPrefs().getInt(Constants.SORT_ORDER, Constants.KEEP_EXISTING_SORT);
-        Log.i(TAG, "mSortOrder in onRestart() is " + mSortOrder);
+        //Log.i(TAG, "mSortOrder in onRestart() is " + mSortOrder);
         Bundle args = setupAdapterAndLoader();
         getSupportLoaderManager().restartLoader(Constants.RUN_LIST_LOADER, args, this);
     }
@@ -337,7 +336,7 @@ public class RunPagerActivity extends AppCompatActivity
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu){
-        Log.i(TAG, "Entered onPrepareOptionsMenu()");
+        //Log.i(TAG, "Entered onPrepareOptionsMenu()");
 
         super.onPrepareOptionsMenu(menu);
 
@@ -356,11 +355,11 @@ public class RunPagerActivity extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
-        Log.i(TAG, "In onOptionsItemSelected(), mRunId is " + mRunId);
+        //Log.i(TAG, "In onOptionsItemSelected(), mRunId is " + mRunId);
         Bundle args;
         switch(item.getItemId()){
             case R.id.run_map_pager_menu_item_new_run:
-                Log.i(TAG, "In New Run menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
+                //Log.i(TAG, "In New Run menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
                 //Don't need to tell the Adapter its getting an update because we're recreating the
                 //Adapter shortly.
                 //First, tell the ViewPager's adapter that its content is receiving an update
@@ -402,26 +401,26 @@ public class RunPagerActivity extends AppCompatActivity
                 mSortOrder = Constants.SORT_BY_DURATION_DESC;
                 break;
             case R.id.show_entire_route_menu_item:
-                Log.i(TAG, "In RunPagerActivity, entered oonOptionsItemSelected case:show_entire_route_menu_item");
+                //Log.i(TAG, "In RunPagerActivity, entered oonOptionsItemSelected case:show_entire_route_menu_item");
                 //This is implemented in the CombinedFragment
                 return false;
             case R.id.track_end_point_menu_item:
-                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:track_end_point_menu_item");
+                //Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:track_end_point_menu_item");
                 //This is implemented in the CombinedFragment
                 return false;
             case R.id.track_start_point_menu_item:
-                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:track_start_point_menu_item");
+                //Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:track_start_point_menu_item");
                 //This is implemented in the CombinedFragment
                 return false;
             case R.id.tracking_off_menu_item:
-                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:tracking_off_menu_item");
+                //Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:tracking_off_menu_item");
                 return false;
             case R.id.run_map_pager_activity_units:
                 //This is implemented in the CombinedFragment
-                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:run_map_pager_activity_units");
+                //Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:run_map_pager_activity_units");
                 return false;
             case R.id.run_map_pager_activity_scroll:
-                Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:run_pager_activity_scroll");
+                //Log.i(TAG, "In RunPagerActivity entered onOptionsItemSelected case:run_pager_activity_scroll");
                 //This is implemented in the CombinedFragment
                 return false;
             default:
@@ -435,7 +434,7 @@ public class RunPagerActivity extends AppCompatActivity
     }
     //method that's called by onDeleteRunDialogPositiveClick callback confirming deletion.
     private void deleteRun(){
-        Log.i(TAG, "In Delete Run Menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
+        //Log.i(TAG, "In Delete Run Menu, Runs in the adapter: " + mViewPager.getAdapter().getCount());
         //First, stop location updates if the Run we're deleting is currently being tracked
         if (RunManager.isTrackingRun(RunManager.getRun(mRunId))){
             Intent serviceIntent = new Intent(RunTracker2.getInstance(), BackgroundLocationService.class);
@@ -445,10 +444,10 @@ public class RunPagerActivity extends AppCompatActivity
             mMenu.findItem(R.id.run_map_pager_menu_item_new_run).setEnabled(true);
             invalidateOptionsMenu();
         }
-        Log.i(TAG, "Runs in Adapter before Run deletion: " + mAdapter.getCount());
+        //Log.i(TAG, "Runs in Adapter before Run deletion: " + mAdapter.getCount());
         //Now order the Run to be deleted. The Adapter, Subtitle and Loader will get reset
         //when the results of the Run deletion get reported to the ResultsReceiver
-        Log.i(TAG, "Trying to delete Run " + mRunId);
+        //Log.i(TAG, "Trying to delete Run " + mRunId);
         //int locations = RunManager.queryLocationsForRun(mRunId).getCount();
         Cursor cursor = getContentResolver().query(
                 Constants.URI_TABLE_LOCATION,
@@ -461,7 +460,7 @@ public class RunPagerActivity extends AppCompatActivity
         if (!cursor.isClosed()){
             cursor.close();
         }
-        Log.i(TAG, "There are " + locations + " locations to be deleted for Run " + mRunId);
+        //Log.i(TAG, "There are " + locations + " locations to be deleted for Run " + mRunId);
         mAdapter.startUpdate(mViewPager);
         TrackingLocationIntentService.startActionDeleteRun(this, mRunId);
     }
@@ -488,7 +487,7 @@ public class RunPagerActivity extends AppCompatActivity
         } else {
             mSortOrder = Constants.SORT_BY_DATE_DESC;
         }
-        Log.i(TAG, "onCreateLoader for sort order " + mSortOrder);
+        //Log.i(TAG, "onCreateLoader for sort order " + mSortOrder);
         return new RunListCursorLoader(this, mSortOrder);
 
     }
@@ -496,7 +495,7 @@ public class RunPagerActivity extends AppCompatActivity
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor){
         //RunDatabaseHelper.RunCursor newCursor = (RunDatabaseHelper.RunCursor)cursor;
-        Log.i(TAG, "RunListCursorLoader onLoadFinished() called");
+        //Log.i(TAG, "RunListCursorLoader onLoadFinished() called");
         //The loader takes care of releasing the old cursor, so call swapCursor(), not changeCursor()
         mAdapter.swapCursor(cursor);
         //If there are no Runs in the cursor, shut down this Activity and go back to the
@@ -523,7 +522,7 @@ public class RunPagerActivity extends AppCompatActivity
     //ViewPager position of the Run so the RecyclerView can scroll to it when we go back there.
     private void setViewPager(/*RunDatabaseHelper.RunCursor*/Cursor cursor, long runId){
         cursor.moveToFirst();
-        Log.i(TAG, "In setViewPager(), runId is " + runId);
+        //Log.i(TAG, "In setViewPager(), runId is " + runId);
         //Iterate over the Runs in the cursor until we find the one with an Id equal to the one we
         //specified in the runId parameter, then set the ViewPager's current item to that Run and
         //save the Adapter/ViewPager position.
@@ -542,11 +541,11 @@ public class RunPagerActivity extends AppCompatActivity
         if (requestCode == Constants.LOCATION_SETTINGS_CHECK){
 
             if (resultCode == RESULT_OK){
-                Log.i(TAG, "Locations Services now enabled.");
+                //Log.i(TAG, "Locations Services now enabled.");
                 RunTracker2.setLocationSettingsState(true);
                 Toast.makeText(this, "Location Settings now enabled.", Toast.LENGTH_LONG).show();
             } else {
-                Log.i(TAG, "Location Services not activated.");
+                //Log.i(TAG, "Location Services not activated.");
                 RunTracker2.setLocationSettingsState(false);
                 Toast.makeText(this, "Location Settings were not enabled. Cannot track Run.", Toast.LENGTH_LONG).show();
             }
@@ -580,25 +579,25 @@ public class RunPagerActivity extends AppCompatActivity
         @Override
         public void onReceive(Context context, Intent intent){
             String action = intent.getAction();
-            Log.i(TAG, "Action in ResultsReceiver is " + action);
+            //Log.i(TAG, "Action in ResultsReceiver is " + action);
             switch (action) {
                 case Constants.SEND_RESULT_ACTION:
-                    Log.i(TAG, "RunPagerActivity action is SEND_RESULT_ACTION");
+                    //Log.i(TAG, "RunPagerActivity action is SEND_RESULT_ACTION");
                     String actionAttempted = intent.getStringExtra(Constants.ACTION_ATTEMPTED);
-                    Log.i(TAG, "actionAttempted is " + actionAttempted);
+                    //Log.i(TAG, "actionAttempted is " + actionAttempted);
                     if (actionAttempted.equals(Constants.ACTION_INSERT_RUN)) {
                         Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
                         if (run.getId() != -1) {
                             //Now that the new Run has been added to the database, we need to reset
                             //the Adapter, Subtitle and Loader.
                             mRunId = run.getId();
-                            Log.i(TAG, "in ResultsReceiver, got Run " + run.getId());
+                            //Log.i(TAG, "in ResultsReceiver, got Run " + run.getId());
                             setupAdapterAndLoader();
                         } else {
                             Toast.makeText(RunPagerActivity.this, R.string.insert_run_error,
                                     Toast.LENGTH_LONG).show();
                         }
-                        Log.i(TAG, "in ResultsReceiver on Insert Run, Runs in adapter: " + mViewPager.getAdapter().getCount());
+                        //Log.i(TAG, "in ResultsReceiver on Insert Run, Runs in adapter: " + mViewPager.getAdapter().getCount());
                         //Now that the new Run has been entered into the database and the adapter
                         //the ViewPager can finish the update its View
                         mAdapter.finishUpdate(mViewPager);
@@ -607,9 +606,14 @@ public class RunPagerActivity extends AppCompatActivity
                       //specifying what to do with them needed.
                     break;
                 case Constants.ACTION_DELETE_RUN:
-                    Log.i(TAG, "RunPagerActivity action is ACTION_DELETE_RUN");
+                    //Log.i(TAG, "RunPagerActivity action is ACTION_DELETE_RUN");
                     String resultsString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
-                    Toast.makeText(RunPagerActivity.this, resultsString, Toast.LENGTH_LONG).show();
+                    AlertDialog.Builder builder = new AlertDialog.Builder(RunPagerActivity.this)
+                            .setPositiveButton("OK", (dialogInterface, i) -> dialogInterface.dismiss())
+                            .setTitle("Run Deletion Report")
+                            .setMessage(resultsString);
+                    builder.create().show();
+                    //Toast.makeText(RunPagerActivity.this, resultsString, Toast.LENGTH_LONG).show();
                     //RunDataBaseHelper's deleteRun() function returns to the IntentService
                     //an int[] with two members,the number of Locations deleted as element 0
                     //(LOCATION_DELETIONS) and the number of Runs deleted as element 1 (RUN_DELETIONS).
@@ -644,7 +648,7 @@ public class RunPagerActivity extends AppCompatActivity
                         //child view before the deletion, we know we just deleted the last Run so we
                         //can just finish this activity and go back to RunRecyclerView
                         if (mViewPager.getChildCount() == 1){
-                            Log.i(TAG, "Upon entry to ResultsReceiver, ACTION_DELETE_RUN:, getChildCount() is 1, so call finish()");
+                            //Log.i(TAG, "Upon entry to ResultsReceiver, ACTION_DELETE_RUN:, getChildCount() is 1, so call finish()");
                             mAdapter.finishUpdate(mViewPager);
                             finish();
                         //If there was more than one Run held in the ViewPager, set the ViewPager's
@@ -654,7 +658,7 @@ public class RunPagerActivity extends AppCompatActivity
                         //position in the ViewPager.
                         } else {
                             int currentPosition = mViewPager.getCurrentItem();
-                            Log.i(TAG, "In ResultsReceiver, currentPosition is " + currentPosition + " and getChildCount() is " + mViewPager.getChildCount());
+                            //Log.i(TAG, "In ResultsReceiver, currentPosition is " + currentPosition + " and getChildCount() is " + mViewPager.getChildCount());
                             //Get the fragment associated with the child view we're going to move
                             //to and get its RunId from the arguments that were attached to the
                             //fragment when it was created. Is there a better way to do this? Why
@@ -665,13 +669,13 @@ public class RunPagerActivity extends AppCompatActivity
                                 mViewPager.setCurrentItem(index);
                                 CombinedFragment fragment = (CombinedFragment) mAdapter.getItem(index);
                                 mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID);
-                                Log.i(TAG, "After Run deletion, we moved UP one position and RunId is " + mRunId);
+                                //Log.i(TAG, "After Run deletion, we moved UP one position and RunId is " + mRunId);
                             } else {
                                 int index = currentPosition - 1;
                                 mViewPager.setCurrentItem(index);
                                 CombinedFragment fragment = (CombinedFragment)mAdapter.getItem(index);
                                 mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID);
-                                Log.i(TAG, "After Run deletion, we moved DOWN one position and RunId is " + mRunId);
+                                //Log.i(TAG, "After Run deletion, we moved DOWN one position and RunId is " + mRunId);
                             }
                         }
                         //Now that we've got a "legal" mRunId, we can fetch a new cursor, reconstruct
@@ -686,7 +690,7 @@ public class RunPagerActivity extends AppCompatActivity
                                 Toast.LENGTH_LONG).show();*/
                     //}
                     mAdapter.finishUpdate(mViewPager);
-                    Log.i(TAG, "In ResultsReceiver ACTION_RUN_DELETE, Runs in adapter: " + mViewPager.getAdapter().getCount());
+                    //Log.i(TAG, "In ResultsReceiver ACTION_RUN_DELETE, Runs in adapter: " + mViewPager.getAdapter().getCount());
                     break;
                 default:
                     //Shouldn't ever get here - intent filter limits us to SEND_RESULT_ACTION
