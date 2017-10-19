@@ -11,15 +11,12 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 @SuppressLint("Registered")
-public class RunTracker2 extends Application /*implements GoogleApiClient.ConnectionCallbacks,
-                                                GoogleApiClient.OnConnectionFailedListener*/{
+public class RunTracker2 extends Application {
 
     private static final String TAG = RunTracker2.class.getSimpleName();
     private static RunTracker2 sInstance;
     private static boolean sLocationSettingsEnabled = false;
     private static SharedPreferences sPrefs = null;
-    private static boolean mTrackingRun = false;
-
 
     @Override
     public void onCreate(){
@@ -27,9 +24,10 @@ public class RunTracker2 extends Application /*implements GoogleApiClient.Connec
         Log.i(TAG, "In onCreate() of RunTracker2");
         sInstance = this;
         sPrefs = getSharedPreferences(Constants.PREFS_FILE, Context.MODE_PRIVATE);
-        //This instance of RunManager is never used, but we need to create it so that the static
-        //methods in its RunDataBaseHelper member are immediately accessible to create the opening
-        //RunRecyclerListFragment
+        /*This instance of RunManager is never used, but we need to create it so that the static
+         *methods in its RunDataBaseHelper member are immediately accessible to create the opening
+         *RunRecyclerListFragment.
+         */
         RunManager sRunManager = RunManager.get(getApplicationContext());
     }
 
@@ -47,9 +45,5 @@ public class RunTracker2 extends Application /*implements GoogleApiClient.Connec
 
     public static void setLocationSettingsState(boolean isEnabled){
         sLocationSettingsEnabled = isEnabled;
-    }
-
-    public static void setIsTrackingRun(boolean isTrackingRun){
-        mTrackingRun = isTrackingRun;
     }
 }

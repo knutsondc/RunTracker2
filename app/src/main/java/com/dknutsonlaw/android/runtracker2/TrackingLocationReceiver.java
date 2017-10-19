@@ -28,23 +28,24 @@ public class TrackingLocationReceiver extends LocationReceiver {
 
     @Override
     protected void onLocationReceived(Context c, Location loc) {
-        //Log.d(TAG, "Entered onLocationReceived method of TrackingLocationReceiver");
-        //Log.d(TAG, "Is the location null? " + (loc == null));
+
        if (!loc.hasAccuracy()) {
             Log.i(TAG, "Location rejected - no accuracy value");
        } else if(!loc.hasAltitude()){
-           //Reject all location updates that have no altitude value - this insures that only
-           //GPS locations get accepted
+           /*Reject all location updates that have no altitude value - this insures that only
+            *GPS locations get accepted.
+            */
            Log.i(TAG, "Location rejected - no altitude value");
        } else if (loc.getAccuracy() > 15.0) {
-           //Reject all location updates that have an accuracy of greater than
-           //15 meters.
+           /*Reject all location updates that have an accuracy of greater than
+            *15 meters.
+            */
            Log.i(TAG, "Location rejected - insufficiently accurate: " + loc.getAccuracy());
        } else {
-            //From LocationServices to here to RunManager to Intent Service to RunDatabaseHelper.
-            //Use of the Intent Service keeps the database work off the main, UI thread
-           //Log.i(TAG, "Got a location.");
-           RunManager.get(c).insertLocation(c, loc);
+            /*From LocationServices to here to RunManager to Runnable task to ContentProvider.
+             *Use of the Runnable task keeps the database work off the main, UI thread.
+             */
+           RunManager.get(c).insertLocation(loc);
 
        }
     }

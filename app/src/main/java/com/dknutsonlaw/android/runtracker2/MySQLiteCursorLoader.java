@@ -10,6 +10,8 @@ package com.dknutsonlaw.android.runtracker2;
   the cursor to do the watching. Although this is not an implementation of a ContentProvider, its
   method of automatically loading when the underlying data store changes works, as I understand it,
   much the same way.
+
+  This Loader also works with a ContentProvider, which is the approach adopted in September 2017.
  */
 
 

@@ -13,14 +13,14 @@ public class RunRecyclerListActivity extends SingleFragmentActivity implements D
 
     @Override
     protected Fragment createFragment(){
-        Log.i(TAG, "Inside RunRecyclerListActivity createFragment");
         return new RunRecyclerListFragment();
     }
 
     @Override
     public void onDeleteRunsDialogPositiveClick(int which){
-        //Check to see if this call is for us and, if so, forward to the fragment's
-        //onDeleteRunsDialogPositiveClick method
+        /*Check to see if this call is for us and, if so, forward to the fragment's
+         *onDeleteRunsDialogPositiveClick method.
+         */
         Log.i(TAG, "Reached RunRecyclerListActivity PositiveClick callback");
         if (which == Constants.RUN_LIST_RECYCLER_FRAGMENT){
             RunRecyclerListFragment fragment = (RunRecyclerListFragment)getSupportFragmentManager()
@@ -31,14 +31,14 @@ public class RunRecyclerListActivity extends SingleFragmentActivity implements D
 
     @Override
     public void onDeleteRunsDialogNegativeClick(int which){
-        //Check to see if this call is for us and, if so, forward to the fragment's
-        //onDeleteRunsDialogNegativeClick method
+        /*Check to see if this call is for us and, if so, forward to the fragment's
+         *onDeleteRunsDialogNegativeClick method.
+         */
         Log.i(TAG, "Reached RunRecyclerListActivity NegativeClick callback");
         if (which == Constants.RUN_LIST_RECYCLER_FRAGMENT){
             RunRecyclerListFragment fragment = (RunRecyclerListFragment)getSupportFragmentManager()
                     .findFragmentById(R.id.fragmentContainer);
             fragment.onDeleteRunsDialogNegativeClick();
         }
-
     }
 }

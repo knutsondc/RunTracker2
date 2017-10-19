@@ -25,7 +25,7 @@ public class DeleteRunsDialog extends DialogFragment {
     private int mNumberOfRuns;
     private int mWhichFragment;
 
-    //Interface to communicate back to relevant UI fragment confirmation of whether or not to delete Runs
+    //Interface to communicate to relevant UI fragment confirmation of whether to delete Runs.
     public interface DeleteRunsDialogListener {
         void onDeleteRunsDialogPositiveClick(int which);
         void onDeleteRunsDialogNegativeClick(int which);

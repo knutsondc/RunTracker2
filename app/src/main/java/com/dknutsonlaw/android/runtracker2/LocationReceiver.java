@@ -30,9 +30,9 @@ public class LocationReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        //Log.d(TAG, "Entered LocationReceiver onReceive() method.");
-        // This method is called when the BroadcastReceiver is receiving
-        // an Intent broadcast. Extract the results and use them.
+        /*This method is called when the BroadcastReceiver is receiving
+         *an Intent broadcast. Extract the results and use them.
+         */
         if (LocationResult.hasResult(intent)) {
             LocationResult locationResult = LocationResult.extractResult(intent);
             List<Location> locationList = locationResult.getLocations();

@@ -1,9 +1,12 @@
+/*Cursor Loader designed to return a single Run from the Run table in the database.
+ *
+ */
+
 package com.dknutsonlaw.android.runtracker2;
 
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.util.Log;
 
 /**
  * Created by dck on 11/14/15. Created to replace a loader that simply returns a run object
@@ -20,8 +23,7 @@ class RunCursorLoader extends MySQLiteCursorLoader{
 
     @Override
     protected Cursor loadCursor(){
-        Log.i(TAG, "In loadCursor for RunCursorLoader");
-        //return RunManager.queryRun(mRunId);
+
         return getContext().getContentResolver().query(
                 Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(mRunId)),
                 null,

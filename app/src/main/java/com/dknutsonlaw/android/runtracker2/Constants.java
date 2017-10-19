@@ -33,7 +33,8 @@ final class Constants {
     static final int LOAD_LOCATION = 1;
     static final int LOAD_RUN = 0;
     static final int LOCATION_SETTINGS_CHECK = 8000;
-    static final int MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST = 3;
+    static final int MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST = 8001;
+
     //Labels for Messages between UI Fragments and BackgroundLocationService
 
     static final int NOTIFICATION_ID = 1;
@@ -60,13 +61,15 @@ final class Constants {
     //Identifier of version of db schema
     static final int VERSION = 1;
 
-    //Values preventing insertion of locations that are too far away from the last previous location
-    //to be considered a "continuation" of a run
+    /*//Values preventing insertion of locations that are too far away from the last previous location
+     *to be considered a "continuation" of a run.
+     */
     static final long CONTINUATION_DISTANCE_LIMIT = 100; //100 meters
     static final long CONTINUATION_TIME_LIMIT = 30000; //30 seconds
 
-    //Labels used in creating Intents used to invoke TrackingLocationIntentService and to report the
-    //results of the operations to UI elements
+   /*Labels used in creating Intents used to invoke TrackingLocationIntentService and to report the
+    *results of the operations to UI elements.
+    */
     static final String ACTION_ATTEMPTED =
             "com.dknutsonlaw.android.runtracker.action.attempted";
     static final String ACTION_DELETE_RUN =
@@ -83,47 +86,53 @@ final class Constants {
             "com.dknutsonlaw.android.runtracker2.action.refresh.maps";
     static final String ACTION_REFRESH_UNITS =
             "com.dknutsonlaw.android.runtracker2.action.refresh.units";
+    static final String ACTION_START_UPDATING_END_ADDRESS =
+            "com.dknutsonlaw.android.runtracker2.action.start.updating.end.address";
+    static final String ACTION_STOP_UPDATING_END_ADDRESS =
+            "com.dknutsonlaw.android.runtracker2.action.stop.updating.end.address";
     static final String ACTION_UPDATE_END_ADDRESS =
             "com.dknutsonlaw.android.runtracker.action.update.end.address";
     static final String ACTION_UPDATE_START_ADDRESS =
             "com.dknutsonlaw.android.runtracker2.action.update.start.address";
     static final String ACTION_UPDATE_START_DATE =
             "com.dknutsonlaw.android.runtracker.action.update.start.date";
-    //Label for saving adapter item count to SharedPreferences and in savedInstanceState
-    //Bundles
+    //Label for saving adapter item count to SharedPreferences and in savedInstanceState Bundles.
     static final String ADAPTER_ITEM_COUNT =
             "com.dknutsonlaw.android.runtracker2.adapter.item.count";
-    //Label for saving adapter position of Run currently being displayed in RunPagerActivity
+    //Label for saving adapter position of Run currently being displayed in RunPagerActivity.
     static final String ADAPTER_POSITION =
             "com.dknutsonlaw.com.android.runtracker2.adapter.position";
-    //Label used to pass ID of run to use in a new instance of RunFragment
+    //Label used to pass ID of run to use in a new instance of RunFragment.
     static final String ARG_RUN_ID = "RUN_ID";
-    //Labels for columns in the Location table
+    //Labels for columns in the Location table.
     static final String COLUMN_LOCATION_ALTITUDE = "altitude";
     static final String COLUMN_LOCATION_LATITUDE = "latitude";
     static final String COLUMN_LOCATION_LONGITUDE = "longitude";
     static final String COLUMN_LOCATION_PROVIDER = "provider";
     static final String COLUMN_LOCATION_RUN_ID = "run_id";
     static final String COLUMN_LOCATION_TIMESTAMP = "timestamp";
-    //Labels for column in the Run table
+    //Labels for column in the Run table.
     static final String COLUMN_RUN_DISTANCE = "distance";
     static final String COLUMN_RUN_DURATION = "duration";
     static final String COLUMN_RUN_END_ADDRESS = "end_address";
     static final String COLUMN_RUN_ID = "_id";
     static final String COLUMN_RUN_START_ADDRESS = "start_address";
     static final String COLUMN_RUN_START_DATE = "start_date";
-    //Label for name of database
+    static final String CURRENTLY_VIEWED_RUN = "currently_viewed_run";
+    //Label for name of database.
     static final String DB_NAME = "runs.sqlite";
-    //Label used to pass along extra info about results of TrackingLocationIntentService operation
+    //Label used to pass along extra info about results of database operations.
     static final String EXTENDED_RESULTS_DATA =
             "com.dknutsonlaw.android.runtracker.extended.results.data";
-    //Label used to pass along run IDs in Intents
+
     static final String EXTRA_ERROR_CODE =
             "com.dknutsonlaw.android.runtracker.error_code";
+    //Label used to pass along run IDs in Intents
     static final String EXTRA_RUN_ID =
             "com.dknutsonlaw.android.runtracker.run_id";
-    //Label used to pass along the existing sort order from RunRecyclerListFragment to RunPagerActivity
-    //and vice-versa
+    /*Label used to pass along the existing sort order from RunRecyclerListFragment to
+     *RunPagerActivity and vice-versa.
+     */
     static final String EXTRA_SORT_ORDER = "com.dknutsonlaw.android.runtracker2.sort_order";
     static final String EXTRA_VIEW_HASHMAP = "com.dknutsonlaw.android.runtracker2.view_hash_map";
     //Label to identify type of fragment that called DeleteRunsDialog
@@ -166,11 +175,12 @@ final class Constants {
     static final String TABLE_RUN = "run";
     static final String TRACKING_MODE = "tracking_mode";
     static final String UPDATED_ADDRESS_RESULT = "addressResult";
-    static final String VIEWS_TO_DELETE = "views_to_delete";
     static final String ZOOM_LEVEL = "zoom_level";
 
-    //Labels for the Uris for the two data tables used for observing and reporting changes in them to
-    ///trigger appropriate actions in loaders
+    /*Labels for the Uris used for observing and reporting changes in the database tables
+     *triggering appropriate actions in loaders and in forming query and update requests directed
+     *to the database
+     */
     static final String AUTHORITY = "com.dknutsonlaw.android.runtracker2";
     private static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY);
     static final Uri URI_TABLE_LOCATION = Uri.withAppendedPath(CONTENT_URI, "location");

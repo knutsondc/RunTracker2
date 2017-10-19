@@ -12,6 +12,7 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.location.Location;
 import android.net.Uri;
+import android.os.Build;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -82,7 +83,11 @@ public class TrackingLocationIntentService extends IntentService{
         intent.setAction(Constants.ACTION_INSERT_LOCATION);
         intent.putExtra(Constants.PARAM_RUN_IDS, runId);
         intent.putExtra(Constants.PARAM_LOCATION, loc);
-        context.startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
+        }
     }
 
     /* Starts this service to change the Start Date of the run to the time returned by the first
@@ -94,7 +99,11 @@ public class TrackingLocationIntentService extends IntentService{
         Intent intent = new Intent(context, TrackingLocationIntentService.class);
         intent.setAction(Constants.ACTION_UPDATE_START_DATE);
         intent.putExtra(Constants.PARAM_RUN, run);
-        context.startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
+        }
     }
 
     /* Starts this service to change the Starting Address of the run to the address obtained from the
@@ -107,7 +116,11 @@ public class TrackingLocationIntentService extends IntentService{
         intent.setAction(Constants.ACTION_UPDATE_START_ADDRESS);
         intent.putExtra(Constants.PARAM_RUN, run);
         intent.putExtra(Constants.PARAM_LOCATION, location);
-        context.startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
+        }
     }
 
     /* Starts this service to change the Ending Address of the run to the address obtained from the
@@ -119,7 +132,11 @@ public class TrackingLocationIntentService extends IntentService{
         intent.setAction(Constants.ACTION_UPDATE_END_ADDRESS);
         intent.putExtra(Constants.PARAM_RUN, run);
         intent.putExtra(Constants.PARAM_LOCATION, location);
-        context.startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
+        }
     }
 
     public TrackingLocationIntentService() {
@@ -130,6 +147,8 @@ public class TrackingLocationIntentService extends IntentService{
     //onHandleIntent is always the initial entry point in an IntentService.
     @Override
     protected void onHandleIntent(Intent intent) {
+        startForeground(Constants.NOTIFICATION_ID, BackgroundLocationService.getNotification());
+        //startForeground(Constants.NOTIFICATION_ID, BackgroundLocationService.createNotification(this));
         //Dispatch Intents to different methods for processing, depending upon their Actions,
         if (intent != null) {
             final String action = intent.getAction();
@@ -205,6 +224,7 @@ public class TrackingLocationIntentService extends IntentService{
         boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
         if (!receiver)
             Log.i(TAG, "No receiver for Insert Run responseIntent!");
+        stopForeground(true);
     }
 
     /*
@@ -212,8 +232,13 @@ public class TrackingLocationIntentService extends IntentService{
      * and location parameters
      */
     private void handleActionInsertLocation(long runId, Location location) {
+        long viewRunId = RunTracker2.getPrefs().getLong(Constants.CURRENTLY_VIEWED_RUN, -1);
+        if (runId != viewRunId || Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            startForeground(Constants.NOTIFICATION_ID, BackgroundLocationService.createNotification(this));
+        }
         if (runId == -1){
             Log.d(TAG, "RunId is -1 in attempt to insert location");
+            stopForeground(true);
             return;
         }
         Resources r = getResources();
@@ -237,12 +262,14 @@ public class TrackingLocationIntentService extends IntentService{
                 run = RunDatabaseHelper.getRun(cursor);
                 Log.i(TAG, "Is run null? " + (run == null));
                 if (run == null){
+                    stopForeground(true);
                     return;
                 }
             }
             cursor.close();
         } else {
             Log.i(TAG, "Run cursor was null");
+            stopForeground(true);
             return;
         }
         //Retrieve list of locations for the designated Run in order to get last previous location
@@ -281,6 +308,7 @@ public class TrackingLocationIntentService extends IntentService{
                 if (!receiver) {
                     Log.i(TAG, "No receiver for Insert Location responseIntent!");
                 }
+                stopForeground(true);
                 return;
             }
         } else {
@@ -300,6 +328,7 @@ public class TrackingLocationIntentService extends IntentService{
             cv.put(Constants.COLUMN_LOCATION_RUN_ID, runId);
         } else {
             Log.d(TAG, "run in IntentService insertLocation is null!");
+            stopForeground(true);
             return;
         }
         Log.d(TAG, "URI_TABLE_LOCATION is: " + Constants.URI_TABLE_LOCATION.toString());
@@ -368,7 +397,7 @@ public class TrackingLocationIntentService extends IntentService{
             if (!receiver)
                 Log.i(TAG, "No receiver for Insert Location responseIntent!");
         }
-
+        stopForeground(true);
     }
 
     /*
@@ -379,6 +408,14 @@ public class TrackingLocationIntentService extends IntentService{
         //Perform the update on the database and get the result
         //int result = RunManager.getHelper().updateRunStartDate(mRunManager.mAppContext, run);
         //int result = RunManager.getHelper().updateRunStartDate(this, run);
+        if (run == null){
+            stopForeground(true);
+            return;
+        }
+        long viewRunId = RunTracker2.getPrefs().getLong(Constants.CURRENTLY_VIEWED_RUN, -1);
+        /*if (run.getId() != viewRunId || Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            startForeground(Constants.NOTIFICATION_ID, BackgroundLocationService.createNotification(this));
+        }*/
         ContentValues cv = new ContentValues();
         cv.put(Constants.COLUMN_RUN_START_DATE, run.getStartDate().getTime());
         cv.put(Constants.COLUMN_RUN_START_ADDRESS, run.getStartAddress());
@@ -402,6 +439,7 @@ public class TrackingLocationIntentService extends IntentService{
             if (!receiver)
                 Log.i(TAG, "No receiver for Update Start Date responseIntent!");
         }
+        stopForeground(true);
     }
 
     /*
@@ -411,8 +449,13 @@ public class TrackingLocationIntentService extends IntentService{
     private void handleActionUpdateStartAddress(Run run, Location location){
         if (run == null || location == null){
             Log.i(TAG, "Null value parameter passed into handleActionUpdateStartAddress()");
+            stopForeground(true);
             return;
         }
+        /*long viewRunId = RunTracker2.getPrefs().getLong(Constants.CURRENTLY_VIEWED_RUN, -1);
+        if (run.getId() != viewRunId || Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            startForeground(Constants.NOTIFICATION_ID, BackgroundLocationService.createNotification(this));
+        }*/
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         String startAddress = RunManager.getAddress(this, latLng);
         run.setStartAddress(startAddress);
@@ -441,6 +484,7 @@ public class TrackingLocationIntentService extends IntentService{
             if (!receiver)
                 Log.i(TAG, "No receiver for Update Start Date responseIntent!");
         }
+        stopForeground(true);
     }
 
     /*
@@ -450,8 +494,13 @@ public class TrackingLocationIntentService extends IntentService{
     private void handleActionUpdateEndAddress(Run run, Location location){
         if (run == null || location == null){
             Log.i(TAG, "Null value parameter passed into handleActionUpdateEndAddress()");
+            stopForeground(true);
             return;
         }
+        /*long viewRunId = RunTracker2.getPrefs().getLong(Constants.CURRENTLY_VIEWED_RUN, -1);
+        if (run.getId() != viewRunId || Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            startForeground(Constants.NOTIFICATION_ID, BackgroundLocationService.createNotification(this));
+        }*/
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         String endAddress = RunManager.getAddress(this, latLng);
         run.setEndAddress(endAddress);
@@ -481,6 +530,7 @@ public class TrackingLocationIntentService extends IntentService{
             if (!receiver)
                 Log.i(TAG, "No receiver for Update End Date responseIntent!");
         }
+        stopForeground(true);
     }
 
     /**
@@ -559,6 +609,7 @@ public class TrackingLocationIntentService extends IntentService{
         boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
         if (!receiver)
             Log.i(TAG, "No receiver for Delete Runs responseIntent!");
+        stopForeground(true);
     }
 
     /*
@@ -608,5 +659,6 @@ public class TrackingLocationIntentService extends IntentService{
         boolean receiver = mLocalBroadcastManager.sendBroadcast(responseIntent);
         if (!receiver)
             Log.i(TAG, "No receiver for Delete Run responseIntent!");
+        stopForeground(true);
     }
 }

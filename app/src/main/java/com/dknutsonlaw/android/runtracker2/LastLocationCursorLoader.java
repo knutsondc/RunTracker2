@@ -15,8 +15,8 @@ class LastLocationCursorLoader extends MySQLiteCursorLoader{
 
     private final long mRunId;
 
-    LastLocationCursorLoader(Context context, long runId){
-        super(context, Constants.URI_TABLE_LOCATION);
+    LastLocationCursorLoader(Context c, long runId){
+        super(c, Constants.URI_TABLE_LOCATION);
         mRunId = runId;
     }
 

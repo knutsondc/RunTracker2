@@ -1,5 +1,10 @@
 package com.dknutsonlaw.android.runtracker2;
 
+/*
+ *This Activity has no visible UI of its own. Its exclusive use is to provide its onActivityResult()
+ *method when startResolutionForResult() needs to be called to get needed Location Settings fixed.
+ */
+
 import android.app.Activity;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
@@ -8,7 +13,7 @@ import android.widget.Toast;
 
 public class HeadlessActivity extends AppCompatActivity {
     private static final String TAG = "HeadlessActivity";
-    //private static final GoogleApiClient sGoogleApiClient = RunTracker2.getGoogleApiClient();
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data){
         Log.i(TAG, "Reached onActivityResult() in headlessActivity in RunTracker2");
@@ -34,7 +39,7 @@ public class HeadlessActivity extends AppCompatActivity {
                                 "Never got any locations for this Run. Deleting Run.",
                                 Toast.LENGTH_LONG)
                                 .show();
-                        TrackingLocationIntentService.startActionDeleteRun(this, RunManager.getCurrentRunId());
+                        RunManager.deleteRun(RunManager.getCurrentRunId());
                     }
             }
         } else if (requestCode == Constants.MESSAGE_PLAY_SERVICES_RESOLUTION_REQUEST){
@@ -51,15 +56,13 @@ public class HeadlessActivity extends AppCompatActivity {
                                 "Never got any locations for this Run. Deleting Run.",
                                 Toast.LENGTH_LONG)
                                 .show();
-                        TrackingLocationIntentService.startActionDeleteRun(this, RunManager.getCurrentRunId());
+                        RunManager.deleteRun(RunManager.getCurrentRunId());
+
                     }
                     break;
             }
         }
     }
-
-
-
 }
 
 

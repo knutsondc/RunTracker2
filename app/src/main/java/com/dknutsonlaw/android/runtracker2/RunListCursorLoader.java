@@ -20,12 +20,12 @@ class RunListCursorLoader extends MySQLiteCursorLoader {
 
     @Override
     protected Cursor loadCursor() {
-        //Query the list of all runs in the database; return different cursor
-        //depending upon the sort order selected in the loader's constructor
-        /*RunDatabaseHelper.RunCursor*/Cursor cursor;
+        /*Query the list of all runs in the database; return different cursor
+         *depending upon the sort order selected in the loader's constructor.
+         */
+        Cursor cursor;
         switch (mSortOrder) {
             case Constants.SORT_BY_DATE_ASC:
-                //cursor = RunManager.queryRunsDateAsc();
                 cursor = getContext().getContentResolver().query(
                         Constants.URI_TABLE_RUN,
                         null,
@@ -35,7 +35,6 @@ class RunListCursorLoader extends MySQLiteCursorLoader {
                 );
                 break;
             case Constants.SORT_BY_DATE_DESC:
-                //cursor = RunManager.queryRunsDateDesc();
                 cursor = getContext().getContentResolver().query(
                         Constants.URI_TABLE_RUN,
                         null,
@@ -45,7 +44,6 @@ class RunListCursorLoader extends MySQLiteCursorLoader {
                 );
                 break;
             case Constants.SORT_BY_DISTANCE_ASC:
-                //cursor = RunManager.queryRunsDistanceAsc();
                 cursor = getContext().getContentResolver().query(
                         Constants.URI_TABLE_RUN,
                         null,
@@ -55,7 +53,6 @@ class RunListCursorLoader extends MySQLiteCursorLoader {
                 );
                 break;
             case Constants.SORT_BY_DISTANCE_DESC:
-                //cursor = RunManager.queryRunsDistanceDesc();
                 cursor = getContext().getContentResolver().query(
                         Constants.URI_TABLE_RUN,
                         null,
@@ -65,7 +62,6 @@ class RunListCursorLoader extends MySQLiteCursorLoader {
                 );
                 break;
             case Constants.SORT_BY_DURATION_ASC:
-                //cursor = RunManager.queryRunsDurationAsc();
                 cursor = getContext().getContentResolver().query(
                         Constants.URI_TABLE_RUN,
                         null,
@@ -75,7 +71,6 @@ class RunListCursorLoader extends MySQLiteCursorLoader {
                 );
                 break;
             case Constants.SORT_BY_DURATION_DESC:
-                //cursor = RunManager.queryRunsDurationDesc();
                 cursor = getContext().getContentResolver().query(
                         Constants.URI_TABLE_RUN,
                         null,

@@ -72,11 +72,11 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
         Log.i(TAG, "Called notifyChange on URI_TABLE_RUN in insertRun for Run " + results);
         return results;
     }
-    /*This function is needed to update the Run Table so that the Distance and Duration
-     */
+
     /*This function is needed to update the Run Table so that the StartDate field is equal to
     * the timestamp of the Run's first location. The Run is updated in memory in RunFragment and
-    * is then routed here through the Intent Service.*/
+    * is then routed here through the updateStartDateTask Runnable.
+    */
     public int updateRunStartDate(Context context, Run run) {
         ContentValues cv = new ContentValues();
         cv.put(Constants.COLUMN_RUN_START_DATE, run.getStartDate().getTime());
@@ -87,11 +87,12 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
                 Constants.COLUMN_RUN_ID + " =?",
                 new String[]{String.valueOf(run.getId())});
         if (result == 1){
-            Log.i(TAG, "In updateRunStartDate(), successfully updated Start Address for Run " + run.getId() +
-                    "to " + run.getStartAddress());
+            Log.i(TAG, "In updateRunStartDate(), successfully updated Start Address for Run "
+                                                    + run.getId() + "to " + run.getStartAddress());
         }
         context.getContentResolver().notifyChange(Constants.URI_TABLE_RUN, null);
-        Log.i(TAG, "Called notifyChange on TABLE_RUN from updateRunStartDate() for Run " + run.getId());
+        Log.i(TAG, "Called notifyChange on TABLE_RUN from updateRunStartDate() for Run "
+                                                                                    + run.getId());
         return result;
     }
 
@@ -100,16 +101,19 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
     * UI
     */
     public int updateStartAddress(Context context, Run run) {
-        Log.i(TAG, "Entering updateStartAddress(), run.getStartAddress() for Run " + run.getId() + " is: " + run.getStartAddress());
+        Log.i(TAG, "Entering updateStartAddress(), run.getStartAddress() for Run " +
+                                                    run.getId() + " is: " + run.getStartAddress());
         ContentValues cv = new ContentValues();
         cv.put(Constants.COLUMN_RUN_START_ADDRESS, run.getStartAddress());
-        Log.i(TAG, "ContentValues in updateStartAddress() for Run " + run.getId() + ": " + cv.toString());
+        Log.i(TAG, "ContentValues in updateStartAddress() for Run " +
+                                            run.getId() + ": " + cv.toString());
         int result = getWritableDatabase().update(Constants.TABLE_RUN,
                 cv,
                 Constants.COLUMN_RUN_ID + " =?",
                 new String[]{String.valueOf(run.getId())});
         context.getContentResolver().notifyChange(Constants.URI_TABLE_RUN, null);
-        Log.i(TAG, "Called notifyChange on TABLE_RUN from updateStartAddress() for Run " + run.getId());
+        Log.i(TAG, "Called notifyChange on TABLE_RUN from updateStartAddress() for Run "
+                                                                                    + run.getId());
         return result;
     }
     /*This function is needed to update the Run Table with the Ending Address value derived from
@@ -117,16 +121,19 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
     * Stop button in the RunFragment UI.
     */
     public int updateEndAddress(Context context, Run run) {
-        Log.i(TAG, "Entering updateEndAddress() for Run " + run.getId() + " run.getEndAddress() is: " + run.getEndAddress());
+        Log.i(TAG, "Entering updateEndAddress() for Run " + run.getId() +
+                                " run.getEndAddress() is: " + run.getEndAddress());
         ContentValues cv = new ContentValues();
         cv.put(Constants.COLUMN_RUN_END_ADDRESS, run.getEndAddress());
-        Log.i(TAG, "ContentValues for Run " + run.getId() + " in updateEndAddress(): " + cv.toString());
+        Log.i(TAG, "ContentValues for Run " + run.getId() +
+                        " in updateEndAddress(): " + cv.toString());
         int result = getWritableDatabase().update(Constants.TABLE_RUN,
                 cv,
                 Constants.COLUMN_RUN_ID + " =?",
                 new String[]{String.valueOf(run.getId())});
         context.getContentResolver().notifyChange(Constants.URI_TABLE_RUN, null);
-        Log.i(TAG, "Called notifyChange on TABLE_RUN from updateEndAddress() for Run " + run.getId());
+        Log.i(TAG, "Called notifyChange on TABLE_RUN from updateEndAddress() for Run "
+                                                                            + run.getId());
         return result;
     }
     public long insertLocation(Uri uri, ContentValues values){
@@ -153,13 +160,15 @@ public class RunDatabaseHelper extends SQLiteOpenHelper {
         run.setId(runId);
         long startDate = cursor.getLong(cursor.getColumnIndex(Constants.COLUMN_RUN_START_DATE));
         run.setStartDate(new Date(startDate));
-        String startAddress = cursor.getString(cursor.getColumnIndex(Constants.COLUMN_RUN_START_ADDRESS));
+        String startAddress = cursor.getString(cursor.getColumnIndex(
+                                                            Constants.COLUMN_RUN_START_ADDRESS));
         run.setStartAddress(startAddress);
         double distance = cursor.getDouble(cursor.getColumnIndex(Constants.COLUMN_RUN_DISTANCE));
         run.setDistance(distance);
         long duration = cursor.getLong(cursor.getColumnIndex(Constants.COLUMN_RUN_DURATION));
         run.setDuration(duration);
-        String endAddress = cursor.getString(cursor.getColumnIndex(Constants.COLUMN_RUN_END_ADDRESS));
+        String endAddress = cursor.getString(cursor.getColumnIndex(
+                                                            Constants.COLUMN_RUN_END_ADDRESS));
         run.setEndAddress(endAddress);
         return run;
     }

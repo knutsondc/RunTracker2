@@ -7,11 +7,13 @@ package com.dknutsonlaw.android.runtracker2;
 
 import android.content.BroadcastReceiver;
 //import android.content.ComponentName;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 //import android.content.IntentSender;
 //import android.content.ServiceConnection;
+import android.content.ServiceConnection;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -20,6 +22,7 @@ import android.os.Bundle;
 //import android.os.Message;
 //import android.os.Messenger;
 //import android.os.RemoteException;
+import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
@@ -69,16 +72,37 @@ public class RunRecyclerListFragment extends Fragment
     private RunRecyclerListAdapter mAdapter;
     private TextView mEmptyViewTextView;
     private Button mEmptyViewButton;
+    private BackgroundLocationService mService;
+    private boolean mBound = false;
     private List<Integer> mDeleteList;
     private ActionMode mActionMode;
     //Are we newly opening this fragment or are we coming back from RunPagerActivity?
     private boolean mFirstVisit;
 
-    //Using Big Nerd Ranch MultiSelector library for RecyclerView to enable multiselect for deletion
-    //of Runs.
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            BackgroundLocationService.LocationBinder binder = (BackgroundLocationService.LocationBinder)iBinder;
+            mService = binder.getService();
+            mBound = true;
+            Log.i(TAG, "BackgroundLocationService connected");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mService = null;
+            mBound = false;
+            Log.i(TAG, "BackgroundLocationService disconnected.");
+        }
+    };
+
+    /*Using Big Nerd Ranch MultiSelector library for RecyclerView to enable multiselect for deletion
+     *of Runs.
+     */
     private final MultiSelector mMultiSelector = new MultiSelector();
-    //Callback invoked upon long click on RunHolder that creates an ActionMode used for deletion of
-    //the selected Runs.
+    /*Callback invoked upon long click on RunHolder that creates an ActionMode used for deletion of
+     *the selected Runs.
+     */
     private final ModalMultiSelectorCallback mDeleteMode = new ModalMultiSelectorCallback(mMultiSelector) {
         @Override
         public boolean onCreateActionMode(ActionMode actionMode, Menu menu){
@@ -87,19 +111,21 @@ public class RunRecyclerListFragment extends Fragment
             getActivity().getMenuInflater().inflate(R.menu.run_list_item_context, menu);
             return true;
         }
-        //The action mode simply gathers the Runs selected for deletion into a List<Integer> member
-        //variable. If the confirmation dialog confirms deletion, deleteRuns is called, deletes one-by-one
-        //the Runs selected using the member variable List, and then clears the multiselector and
-        //finishes the ActionMode. If the deletion is cancelled, the NegativeClick callback simply
-        //clears the multiselector and finishes the ActionMode.
+        /*The action mode simply gathers the Runs selected for deletion into a List<Integer> member
+         *variable. If the confirmation dialog confirms deletion, deleteRuns is called,
+         *deletes one-by-one the Runs selected using the member variable List, and then clears the
+         *multiselector and finishes the ActionMode. If the deletion is cancelled, the NegativeClick
+         *callback simply clears the multiselector and finishes the ActionMode.
+         */
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item){
             //Fetch a List of the Runs by Adapter position that have been selected for deletion.
             mDeleteList = mMultiSelector.getSelectedPositions();
             mActionMode = mode;
-            Log.i(TAG, "Runs to be deleted: " + mDeleteList);
-            //Now invoke the deletion confirmation dialog, telling where the request comes from and
-            //passing along the number of Runs to be deleted so the dialog's message will be accurate.
+            /*Now invoke the deletion confirmation dialog, telling where the request comes from and
+             *passing along the number of Runs to be deleted so the dialog's message will be
+             *accurate.
+             */
             Bundle args = new Bundle();
             args.putInt(Constants.FRAGMENT, Constants.RUN_LIST_RECYCLER_FRAGMENT);
             args.putInt(Constants.NUMBER_OF_RUNS, mDeleteList.size());
@@ -111,40 +137,37 @@ public class RunRecyclerListFragment extends Fragment
     };
 
     private void deleteRuns(){
-        //If a Run to be deleted is being tracked, stop tracking - otherwise location updates will
-        //continue with updates not associated with any Run and really with no way to
-        //turn updates off. First, check to see if we're tracking any run.
+        /*If a Run to be deleted is being tracked, stop tracking - otherwise location updates will
+         *continue with updates not associated with any Run and really with no way to turn updates
+         *off. First, check to see if we're tracking any Run.
+         */
         if (RunManager.isTrackingRun()){
-            //We know a Run's being tracked; check the Runs selected for deletion to see if
-            //it's included; if so, stop location updates before deleting
+            /*We know a Run's being tracked; check the Runs selected for deletion to see if
+             *it's included; if so, stop location updates before deleting.
+             */
             for (int i = mDeleteList.size()-1; i >= 0; i--) {
                 if (RunManager.isTrackingRun(RunManager.getRun(mAdapter.getItemId(mDeleteList.get(i))))) {
-                    Log.i(TAG, "Run #" + mAdapter.getItemId(mDeleteList.get(i)) + " and in RecyclerView" +
-                            "position #" + mDeleteList.get(i) + " being tracked. Now trying to stop tracking.");
-                    Intent serviceIntent = new Intent(RunTracker2.getInstance(), BackgroundLocationService.class);
-                    getActivity().stopService(serviceIntent);
+                    mService.stopLocationUpdates();
                 }
-                Log.i(TAG, "Did we successfully stop Location Updates? " + RunManager.isTrackingRun());
             }
         }
+        /*Take the list of adapter positions selected for deletion from the highest position to the
+         *lowest and add the RunId for the Run displayed in each position to a list of RunIds to use
+         *for the actual deletion process. The adapter positions have to be taken from the highest down
+         *so that earlier deletions will not change the adapter positions of later Runs to be deleted.
+         */
         ArrayList<Long> runsToDelete = new ArrayList<>();
-        //ArrayList<Integer> viewsToDelete = new ArrayList<>();
         for(int i = mDeleteList.size() - 1; i >= 0; i--) {
             runsToDelete.add(mAdapter.getItemId(mDeleteList.get(i)));
-            //viewsToDelete.add(mDeleteList.get(i));
         }
         Log.i(TAG, "runsToDelete is: " + runsToDelete.toString());
-        //Log.i(TAG, "viewsToDelete is: " + viewsToDelete.toString());
-        TrackingLocationIntentService.startActionDeleteRuns(getContext(), runsToDelete/*, viewsToDelete*/);
-
-        //Clean up the MultiSelector, finish the ActionMode, and refresh the UI now that our
-        //dataset has changed
+        RunManager.deleteRuns(runsToDelete);
+        /*Clean up the MultiSelector, finish the ActionMode, and refresh the UI now that our
+         *dataset has changed.
+         */
         mMultiSelector.clearSelections();
-        Log.i(TAG, "Passed mMultiSelector.clearSelections");
         mActionMode.finish();
-        Log.i(TAG, "Passed mode.finish()");
         refreshUI();
-        Log.i(TAG, "Passed refreshUI()");
     }
 
     @Override
@@ -152,23 +175,23 @@ public class RunRecyclerListFragment extends Fragment
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
         if (savedInstanceState != null) {
-            //Get sort order and subtitle from savedInstanceState Bundle if the Activity is
-            //getting recreated
+            /*Get sort order and subtitle from savedInstanceState Bundle if the Activity is
+             *getting recreated.
+             */
             mSortOrder = savedInstanceState.getInt(Constants.SORT_ORDER);
-            //Log.i(TAG, "Getting mSortOrder from savedInstanceState");
             //noinspection ConstantConditions
-            ((AppCompatActivity)getActivity()).getSupportActionBar().setSubtitle(savedInstanceState.getString(Constants.SUBTITLE));
+            ((AppCompatActivity)getActivity()).getSupportActionBar().setSubtitle(savedInstanceState
+                                                                    .getString(Constants.SUBTITLE));
         } else {
-            //When Activity is created for the first time or if the Fragment is getting created
-            //for the first time even though the Activity isn't, get sort order and subtitle
-            //from SharedPreferences.
-           // Log.i(TAG, "Getting Sort Order from SharedPreferences in onCreate");
-            mSortOrder = RunTracker2.getPrefs().getInt(Constants.SORT_ORDER, Constants.SORT_BY_DATE_DESC);
-            mSubtitle = RunTracker2.getPrefs().getString(Constants.SUBTITLE, /*getActivity().getResources()
-                    .getQuantityString(R.plurals.subtitle_date_desc, mAdapter.getItemCount(),
-                            mAdapter.getItemCount())*/"Stub Value");
+            /*When Activity is created for the first time or if the Fragment is getting created
+             *for the first time even though the Activity isn't, get sort order and subtitle
+             *from SharedPreferences.
+             */
+            mSortOrder = RunTracker2.getPrefs().getInt(Constants.SORT_ORDER,
+                                                       Constants.SORT_BY_DATE_DESC);
+            mSubtitle = RunTracker2.getPrefs().getString(Constants.SUBTITLE, "Stub Value");
         }
-        //Define the kinds of Intents we want to know about and set up BroadcastReceiver accordingly
+        //Define the kinds of Intents we want to know about and set up BroadcastReceiver accordingly.
         mIntentFilter = new IntentFilter(Constants.ACTION_DELETE_RUNS);
         mIntentFilter.addAction(Constants.SEND_RESULT_ACTION);
         mResultsReceiver = new ResultsReceiver();
@@ -180,6 +203,13 @@ public class RunRecyclerListFragment extends Fragment
         Bundle args = new Bundle();
         args.putInt(Constants.SORT_ORDER, mSortOrder);
         getLoaderManager().initLoader(Constants.RUN_LIST_LOADER, args, this);
+    }
+
+    @Override
+    public void onStart(){
+        super.onStart();
+        Intent bindIntent = new Intent(getContext(), BackgroundLocationService.class);
+        getContext().bindService(bindIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
     //Function to set subtitle according to the number of Runs recorded and their sort order..
@@ -235,13 +265,15 @@ public class RunRecyclerListFragment extends Fragment
         try {
             //noinspection ConstantConditions,ConstantConditions
             RunTracker2.getPrefs().edit().putString(Constants.SUBTITLE,
-                    ((AppCompatActivity) getActivity()).getSupportActionBar().getSubtitle().toString()).apply();
+                    ((AppCompatActivity) getActivity()).getSupportActionBar().getSubtitle()
+                                                                             .toString()).apply();
         } catch (NullPointerException npe){
-            Log.i(TAG, "Couldn't write subtitle to default preferences file - attempt to get SupportActionBar" +
-                    "returned a null pointer");
+            Log.i(TAG, "Couldn't write subtitle to default preferences file - attempt to get " +
+                            "SupportActionBar returned a null pointer.");
         }
         saveInstanceState.putInt(Constants.ADAPTER_ITEM_COUNT, mAdapter.getItemCount());
-        RunTracker2.getPrefs().edit().putInt(Constants.ADAPTER_ITEM_COUNT, mAdapter.getItemCount()).apply();
+        RunTracker2.getPrefs().edit().putInt(Constants.ADAPTER_ITEM_COUNT,
+                                             mAdapter.getItemCount()).apply();
     }
 
     @Override
@@ -266,25 +298,28 @@ public class RunRecyclerListFragment extends Fragment
         mAdapter = new RunRecyclerListAdapter(getActivity(),  cursor);
         mAdapter.setHasStableIds(true);
         mRunListRecyclerView.setAdapter(mAdapter);
-        //Set up UI elements to display if there are no Runs recorded to display in the RecyclerView
+        //Set up UI elements to display if there are no Runs recorded to display in the RecyclerView.
         mEmptyViewTextView = v.findViewById(R.id.empty_view_textview);
         mEmptyViewButton = v.findViewById(R.id.empty_view_button);
-        mEmptyViewButton.setOnClickListener(v1 -> TrackingLocationIntentService.startActionInsertRun(getContext(), new Run()));
-        //Flag first visit so we don't check for which Run we were on when we pressed the Back button
-        //in RunPagerAdapter
+        mEmptyViewButton.setOnClickListener(v1 -> RunManager.insertRun());
+        /*Flag first visit so we don't check for which Run we were on when we pressed the Back button
+         *in RunPagerAdapter.
+         */
         mFirstVisit = true;
         refreshUI();
         return v;
     }
 
     private void refreshUI() {
-        //Restarting the loader forces an update of the UI: notifyDataSetChanged()
-        //gets called on the adapter, which in turn causes onBindHolder() to get called, thus updating
-        //the RecyclerView's contents and the background of any selected RunHolder item. When a new
-        //sort order is selected, we invoke restartLoader() to get a Loader with fresh data
+    /*Restarting the loader forces an update of the UI: notifyDataSetChanged() gets called on the
+     *adapter, which in turn causes onBindHolder() to get called, thus updating the RecyclerView's
+     *contents and the background of any selected RunHolder item. When a new sort order is selected,
+     *we invoke restartLoader() to get a Loader with fresh data.
+     */
 
-        //If we have no Runs recorded, hide the RecyclerView and display a TextView and Button
-        //inviting the user to record the first Run
+    /*If we have no Runs recorded, hide the RecyclerView and display a TextView and Button
+     *inviting the user to record the first Run.
+     */
         if (mAdapter.getItemCount() == 0){
             mRunListRecyclerView.setVisibility(View.GONE);
             mEmptyViewTextView.setVisibility(View.VISIBLE);
@@ -294,8 +329,9 @@ public class RunRecyclerListFragment extends Fragment
             mEmptyViewButton.setVisibility(View.GONE);
             mRunListRecyclerView.setVisibility(View.VISIBLE);
         }
-        //Disable the New Run Menu item if we're tracking a run - trying to start a new run while
-        //another's already being tracked will crash the program!
+        /*Disable the New Run Menu item if we're tracking a run - trying to start a new run while
+         *another's already being tracked will crash the program!
+         */
         if (mOptionsMenu != null) {
             if (RunManager.isTrackingRun()){
                 mOptionsMenu.findItem(R.id.menu_item_new_run).setEnabled(false);
@@ -321,8 +357,9 @@ public class RunRecyclerListFragment extends Fragment
 
     @Override
     public void onPrepareOptionsMenu(Menu menu){
-        //Set title of menuItem to change distance measurement units according
-        //to the units currently used
+        /*Set title of menuItem to change distance measurement units according
+         *to the units currently used.
+         */
         MenuItem item = mOptionsMenu.findItem(R.id.recycler_menu_item_units);
         if (RunTracker2.getPrefs().getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)){
             item.setTitle(R.string.imperial);
@@ -335,19 +372,21 @@ public class RunRecyclerListFragment extends Fragment
 
         switch (item.getItemId()) {
             case R.id.recycler_menu_item_units:
-                //Changed shared prefs value for measurement system and force adapter to redraw all
-                //items in the RecyclerView
+                /*Changed shared prefs value for measurement system and force adapter to redraw all
+                 *items in the RecyclerView.
+                 */
                 RunTracker2.getPrefs().edit().putBoolean(Constants.MEASUREMENT_SYSTEM,
-                        !RunTracker2.getPrefs().getBoolean(Constants.MEASUREMENT_SYSTEM, Constants.IMPERIAL)).apply();
+                        !RunTracker2.getPrefs().getBoolean(Constants.MEASUREMENT_SYSTEM,
+                                                           Constants.IMPERIAL)).apply();
                 mAdapter.notifyDataSetChanged();
                 getActivity().invalidateOptionsMenu();
                 return true;
             case R.id.menu_item_new_run:
-                TrackingLocationIntentService.startActionInsertRun(getContext(), new Run());
-
+                RunManager.insertRun();
                 return true;
-            //Change the sort order of the RecyclerView and the Activity subtitle to match based upon
-            //the menuItem selected.
+            /*Change the sort order of the RecyclerView and the Activity subtitle to match based
+             *upon the menuItem selected.
+             */
             case R.id.menu_item_sort_by_date_asc:
                 changeSortOrder(Constants.SORT_BY_DATE_ASC);
                 return true;
@@ -370,11 +409,12 @@ public class RunRecyclerListFragment extends Fragment
                 return super.onOptionsItemSelected(item);
         }
     }
-    //Whenever we change the sort order, a new query must be made on the database, which
-    //in turn requires creation of a new RUN_LIST_LOADER, so we need to call
-    //restartLoader() to provide the RecyclerView's adapter with a new cursor of data
-    //reflecting the new sort order. We also change the ActionBar's subtitle to display
-    //the new sort order.
+    /*Whenever we change the sort order, a new query must be made on the database, which
+     *in turn requires creation of a new RUN_LIST_LOADER, so we need to call
+     *restartLoader() to provide the RecyclerView's adapter with a new cursor of data
+     *reflecting the new sort order. We also change the ActionBar's subtitle to display
+     *the new sort order.
+     */
     private void changeSortOrder(int sortOrder) {
         Bundle args = new Bundle();
         mSortOrder = sortOrder;
@@ -393,70 +433,74 @@ public class RunRecyclerListFragment extends Fragment
                 mResultsReceiver,
                 mIntentFilter);
 
-        //Get the sort order from SharedPreferences here in case we're resumed from the RunPagerActivity
-        //without being recreated.  That way, the sort order will be what it was in the RunPagerActivity.
+        /*Get the sort order from SharedPreferences here in case we're resumed from the
+         *RunPagerActivity without being recreated.  That way, the sort order will be what it was in
+         *the RunPagerActivity.
+         */
         mSortOrder = RunTracker2.getPrefs().getInt(Constants.SORT_ORDER, Constants.SORT_BY_DATE_DESC);
         mSubtitle = RunTracker2.getPrefs().getString(Constants.SUBTITLE,
-                /*r.getQuantityString(R.plurals.subtitle_date_desc, mAdapter.getItemCount()*/
                 "Stub Value");
         changeSortOrder(mSortOrder);
         refreshUI();
-        //If we're coming back here from the RunPagerActivity, check which Run was displayed there
-        //and scroll the RecyclerList to place that Run at the top of the display
+        /*If we're coming back here from the RunPagerActivity, check which Run was displayed there
+         *and scroll the RecyclerList to place that Run at the top of the display.
+         */
         if (!mFirstVisit){
-            //First fetch the position the displayed Run had in the RunPager - all positions in
-            //the RunPager map directly to positions in the adapter and the RecyclerView
+            /*First fetch the position the displayed Run had in the RunPager - all positions in
+             *the RunPager map directly to positions in the adapter and the RecyclerView.
+             */
             int adapterPosition = RunTracker2.getPrefs().getInt(Constants.ADAPTER_POSITION, 0);
             LinearLayoutManager lm = (LinearLayoutManager)mRunListRecyclerView.getLayoutManager();
-            //Scroll RecyclerView so the designated Run is displayed 20 pixels below the top of the
-            //display
+            /*Scroll RecyclerView so the designated Run is displayed 20 pixels below the top of the
+             *display.
+             */
             lm.scrollToPositionWithOffset(adapterPosition, 20);
         }
         //We will now have displayed the RecyclerView at least once, so clear the FirstVisit flag.
         mFirstVisit = false;
-        //Log.i(TAG, "onResume called - mSortOrder is " + mSortOrder);
     }
 
     @Override
     public void onPause() {
-        //Log.i(TAG, "onPause called.");
         LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mResultsReceiver);
         super.onPause();
     }
 
-    /*@Override
-    public void onDestroy(){
-        if(mAdapter != null && mAdapter.getCursor() != null && !mAdapter.getCursor().isClosed()){
-            mAdapter.getCursor().close();
+    @Override
+    public void onStop(){
+        if (mBound) {
+            getContext().unbindService(mServiceConnection);
         }
-        super.onDestroy();
-    }*/
+        super.onStop();
+    }
 
     public void onDeleteRunsDialogPositiveClick(){
             deleteRuns();
     }
 
     public void onDeleteRunsDialogNegativeClick(){
-            //If we don't select Delete from the ActionMode menu, just clear the MultiSelector and
-            //the ActionMode without doing anything.
-            mMultiSelector.clearSelections();
-            mActionMode.finish();
-            refreshUI();
+        /*If we don't select Delete from the ActionMode menu, just clear the MultiSelector and the
+         *ActionMode without doing anything.
+         */
+        mMultiSelector.clearSelections();
+        mActionMode.finish();
+        refreshUI();
     }
 
     @Override
     public Loader<Cursor> onCreateLoader(int d, Bundle args){
-        //We only ever load the list of all Runs in this Fragment, so assume here that this is the
-        //case.We need to pass along a reference to the Uri on the table in question to allow
-        //observation for content changes used in auto-updating by the loader. We also
-        //need to extract the sort order for the loader from the Bundle args. Args might
-        //be null upon initial start of the program, so check for it; the default value of
-        //SORT_DATE_DESC is set in the initialization of RunRecyclerListFragment member variable
-        //mSortOrder.
+        /*We only ever load the list of all Runs in this Fragment, so assume here that this is the
+         *case. We need to pass along a reference to the Uri on the table in question to allow
+         *observation for content changes used in auto-updating by the loader. We also need to
+         *extract the sort order for the loader from the Bundle args. Args might be null upon
+         *initial start of the program, so check for it; the default value of SORT_DATE_DESC is set
+         *in the initialization of RunRecyclerListFragment member variable mSortOrder.
+         */
 
         if (args != null)
-            //If args is null, the default value of mSortOrder set at the beginning of this
-            //fragment will apply.
+            /*If args is null, the default value of mSortOrder set at the beginning of this
+             *fragment will apply.
+             */
             mSortOrder = args.getInt(Constants.SORT_ORDER);
 
         return new RunListCursorLoader(getContext(), mSortOrder);
@@ -464,15 +508,14 @@ public class RunRecyclerListFragment extends Fragment
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor){
-        //Now that we've got a fresh cursor of data, swap out from the adapter the old cursor for
-        //the new one and notify the adapter that its data has changed so it will refresh the
-        //RecyclerView display. An alternative approach is simply to create a new adapter here, load
-        //the cursor into it, and attach the new adapter to the RecyclerListView.
-        //The loader should take care of closing the old cursor, so use swapCursor(), not changeCursor()
+       /*Now that we've got a fresh cursor of data, swap out from the adapter the old cursor for the
+        *new one and notify the adapter that its data has changed so it will refresh the
+        *RecyclerView display. An alternative approach is simply to create a new adapter here, load
+        *the cursor into it, and attach the new adapter to the RecyclerListView. The loader should
+        *take care of closing the old cursor, so use swapCursor(), not changeCursor().
+        */
         mAdapter.swapCursor(cursor);
         refreshUI();
-
-        //Log.i(TAG, "RunListCursorLoader onLoadFinished() called.");
     }
 
     @Override
@@ -481,11 +524,9 @@ public class RunRecyclerListFragment extends Fragment
         mRunListRecyclerView.setAdapter(null);
     }
 
-    public RunRecyclerListAdapter getAdapter(){
-        return mAdapter;
-    }
-    //ViewHolder class for use with RecyclerListView. Big Nerd Ranch's SwappingHolder swaps state
-    //depending upon whether the ViewHolder has been selected.
+    /*ViewHolder class for use with RecyclerListView. Big Nerd Ranch's SwappingHolder swaps state
+     *depending upon whether the ViewHolder has been selected.
+     */
     private class RunHolder extends SwappingHolder
             implements View.OnClickListener, View.OnLongClickListener{
         Run mRun;
@@ -510,7 +551,7 @@ public class RunRecyclerListFragment extends Fragment
             mDurationTextView = itemView.findViewById(R.id.list_item_duration_textview);
             mEndAddressTextView = itemView.findViewById(R.id.list_item_end_address_textview);
         }
-        //Plug values from a specific Run into the View elements of the RunHolder
+        //Plug values from a specific Run into the View elements of the RunHolder.
         void bindRun(Run run){
             mRun = run;
             Resources r = getActivity().getResources();
@@ -530,14 +571,16 @@ public class RunRecyclerListFragment extends Fragment
             if (mRun == null){
                 return;
             }
-            //If this RunHolder hasn't been selected for deletion in an ActionMode, start
-            //RunPagerActivity specifying its mRun as the one to be displayed when the ViewPager
-            //first opens.
+            /*If this RunHolder hasn't been selected for deletion in an ActionMode, start
+             *RunPagerActivity specifying its mRun as the one to be displayed when the ViewPager
+             *first opens.
+             */
             if (!mMultiSelector.tapSelection(this)){
                 Intent i = RunPagerActivity.newIntent(getActivity(),
                            RunRecyclerListFragment.this.mSortOrder,
                            mRun.getId());
-                RunTracker2.getPrefs().edit().putLong(Constants.PREF_CURRENT_RUN_ID, mRun.getId()).apply();
+                RunTracker2.getPrefs().edit().putLong(Constants.PREF_CURRENT_RUN_ID,
+                                                      mRun.getId()).apply();
                 RunTracker2.getPrefs().edit().putFloat(Constants.ZOOM_LEVEL, 17.0f).apply();
                 startActivity(i);
             }
@@ -545,7 +588,7 @@ public class RunRecyclerListFragment extends Fragment
 
         @Override
         public boolean onLongClick(View v){
-            //On a long click, start an ActionMode and mark this RunHolder as selected
+            //On a long click, start an ActionMode and mark this RunHolder as selected.
             ((AppCompatActivity)getActivity()).startSupportActionMode(mDeleteMode);
             mMultiSelector.setSelected(this, true);
             return true;
@@ -587,53 +630,29 @@ public class RunRecyclerListFragment extends Fragment
             String action = intent.getAction();
 
             if (action != null && action.equals(Constants.ACTION_DELETE_RUNS)) {
-                //The TrackingLocationIntentService broadcasts result of its handleDeleteRuns()
-                //method in an Intent so it can be displayed to the user.
-               Log.i(TAG,"Entered ACTION_DELETED_RUNS section of ResultsReceiver");
+                /*The Runnable deletion tasks broadcast results of their operations method in
+                 *Intents so they can be displayed to the user.
+                 */
                String resultsString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
-               //This HashMap keeps track of which of the Runs requested to be deleted were
-               //actually successfully deleted. If a Run wasn't successfully deleted, its View
-               //in the RecyclerView should not be deleted. A LinkedHashMap is needed so that
-               //the Views will be deleted in the correct order, highest numbered view to lowest.
-               //Map<Integer, Boolean> shouldDeleteView = (LinkedHashMap<Integer, Boolean>)intent.getSerializableExtra(Constants.EXTRA_VIEW_HASHMAP);
-               //Set<Integer> keys = shouldDeleteView.keySet();
-               Map<Long, Boolean> wasRunDeleted = (LinkedHashMap<Long, Boolean>)intent.getSerializableExtra(Constants.EXTRA_VIEW_HASHMAP);
+               /*This HashMap keeps track of which of the Runs requested to be deleted were
+                *actually successfully deleted so  that the adapter can be notified of the items
+                *that were deleted. A LinkedHashMap is needed so that the notifications will be
+                *in the correct order, highest numbered view to lowest.
+                */
+               @SuppressWarnings("unchecked") Map<Long, Boolean> wasRunDeleted = (LinkedHashMap<Long, Boolean>)intent
+                                                .getSerializableExtra(Constants.EXTRA_VIEW_HASHMAP);
                Set<Long> keys = wasRunDeleted.keySet();
                for(Long k:keys){
                    if (wasRunDeleted.get(k)){
-                       Log.i(TAG, "Removing Run at position " + k + " in the adapter");
-
-                       /*if (mRunListRecyclerView.getChildAt(k) != null){
-                           Log.i(TAG, "Now removing view at position " + k + " from RecyclerView");
-                           mRunListRecyclerView.removeViewAt(k);
-                       } else {
-                           Log.i(TAG, "View at position " + k + " was null, already deleted");
-                       }*/
                        int l = k.intValue();
                        mAdapter.notifyItemRemoved(l);
                        mAdapter.notifyItemRangeChanged(l, mAdapter.getItemCount());
                    } else {
-                       Log.d(TAG, "Run " + k + " was not deleted, so not notifying the adapter it was deleted");
+                       Log.d(TAG, "Run " + k + " was not deleted, so not notifying the adapter "
+                               + "it was deleted");
                    }
                }
-               //I wish this method to iterate over each key in a HashMap were available in Android
-               //versions earlier than Nougat!
-               /*shouldDeleteView.forEach((k, v) -> {
-                   //First  check to see that the Run was deleted so that the View should also be deleted and the Adapter
-                   //notified that the Run was removed
-                   if(v){
-                       mAdapter.notifyItemRemoved(k);
-                       if (mRunListRecyclerView.getChildAt(k) != null){
-                           mRunListRecyclerView.removeViewAt(k);
-                           Log.i(TAG, "Removed View at position " + k);
-                       }
-                       Log.i(TAG, "Notifying Adapter of change to range " + k + " to "  + mAdapter.getItemCount());
-                   } else {
-                       Log.i(TAG, "Run displayed at position " + k + " was not deleted, so that View was also not deleted.");
-                   }
-               });*/
                //Now give the user a summary of the results of the deletion operation
-               //Toast.makeText(getContext(), resultsString, Toast.LENGTH_LONG).show();
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext())
                         .setPositiveButton("OK", (dialogInterface, i) -> dialogInterface.dismiss())
@@ -646,10 +665,11 @@ public class RunRecyclerListFragment extends Fragment
                         .getStringExtra(Constants.ACTION_ATTEMPTED);
                 switch (actionAttempted) {
                     case Constants.ACTION_INSERT_RUN:
-                        //Now that the Intent Service has gotten the new Run inserted into the Run table
-                        //of the database, we have a RunId assigned to it that can be used to start the
-                        //RunPagerActivity with the new Run's CombinedFragment as the current item in the
-                        //ViewPager.
+                        /*Now that the Runnable task has gotten the new Run inserted into the Run
+                         *table of the database, we have a RunId assigned to it that can be used to
+                         *start the RunPagerActivity with the new Run's CombinedFragment as the
+                         *current item in the ViewPager.
+                         */
                         Run run = intent.getParcelableExtra(Constants.EXTENDED_RESULTS_DATA);
                         long runId = run.getId();
                         if (runId != -1) {
@@ -666,14 +686,15 @@ public class RunRecyclerListFragment extends Fragment
                         }
                         break;
                     case Constants.ACTION_INSERT_LOCATION:
-                        //Results of location insertions are reported only if there's an error
+                        //Results of location insertions are reported only if there's an error.
                         String resultString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
                         Toast.makeText(getContext(), resultString, Toast.LENGTH_LONG).show();
                         break;
                     case Constants.ACTION_UPDATE_END_ADDRESS:
                         int results = intent.getIntExtra(Constants.EXTENDED_RESULTS_DATA, -1);
-                        //Successful updates are not reported by the IntentService, so no need to check
-                        //for them
+                        /*Successful updates are not reported by the Runnable task, so no need to
+                         *check for them.
+                         */
                         if (results > 1) {
                             Toast.makeText(getActivity(),
                                     R.string.multiple_runs_end_addresses_updated,
