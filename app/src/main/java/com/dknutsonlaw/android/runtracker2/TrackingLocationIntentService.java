@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
  *
  * 11/11/15 - Added checkEndAddress method
  */
+@SuppressWarnings("unused")
 public class TrackingLocationIntentService extends IntentService{
     private static final String TAG = "IntentService";
 
@@ -159,7 +160,7 @@ public class TrackingLocationIntentService extends IntentService{
                 long runId = intent.getLongExtra(Constants.PARAM_RUN_IDS, -1);
                 handleActionDeleteRun(runId);
             } else if (Constants.ACTION_DELETE_RUNS.equals(action)) {
-                ArrayList<Long> runIds = (ArrayList<Long>)intent.getSerializableExtra(Constants.PARAM_RUN_IDS);
+                @SuppressWarnings("unchecked") ArrayList<Long> runIds = (ArrayList<Long>)intent.getSerializableExtra(Constants.PARAM_RUN_IDS);
                 //ArrayList<Integer> viewsToDelete = intent.getIntegerArrayListExtra(Constants.VIEWS_TO_DELETE);
                 handleActionDeleteRuns(runIds/*, viewsToDelete*/);
             } else if (Constants.ACTION_INSERT_LOCATION.equals(action)) {
@@ -187,6 +188,7 @@ public class TrackingLocationIntentService extends IntentService{
      * Call the DatabaseHelper's method to insert a new Run into the Run table on
      * the provided background thread.
      */
+    @SuppressWarnings("ConstantConditions")
     private void handleActionInsertRun(Run run) {
         Log.i(TAG, "Reached handleActionInsertRun");
         ContentValues cv = new ContentValues();
@@ -231,6 +233,7 @@ public class TrackingLocationIntentService extends IntentService{
      * Handle action InsertLocation in the provided background thread with the provided runId
      * and location parameters
      */
+    @SuppressWarnings("ConstantConditions")
     private void handleActionInsertLocation(long runId, Location location) {
         long viewRunId = RunTracker2.getPrefs().getLong(Constants.CURRENTLY_VIEWED_RUN, -1);
         if (runId != viewRunId || Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){

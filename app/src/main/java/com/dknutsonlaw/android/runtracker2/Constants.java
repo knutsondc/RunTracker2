@@ -137,6 +137,8 @@ final class Constants {
     static final String EXTRA_VIEW_HASHMAP = "com.dknutsonlaw.android.runtracker2.view_hash_map";
     //Label to identify type of fragment that called DeleteRunsDialog
     static final String FRAGMENT = "com.dknutsonlaw.android.runtracker2.fragment";
+    //Label for placing number of locations deleted in a broadcast intent reporting results
+    static final String LOCATIONS_DELETED = "com.dknutsonlaw.android.runtracker2.locations.deleted";
     //Label for distance/altitude measurement system
     static final String MEASUREMENT_SYSTEM =
             "com.dknutsonlaw.android.runtracker2.measurement_system";
@@ -156,6 +158,7 @@ final class Constants {
     //Label used to identify file used in SystemPreferences operations
     static final String PREFS_FILE = "runs";
     static final String PRIMARY_CHANNEL = "primary.channel";
+    static final String RUNS_DELETED = "coma.dknutsonlaw.android.runtracker2.runs.deleted";
     //Label used to identify run id retrieved from SystemPreferences
     static final String SAVED_RUN_ID = "com.dknutsonlaw.android.runtracker2.saved_run_id";
     //Label to store boolean in shared preferences for whether a mapview should be scrollable

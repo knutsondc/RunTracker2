@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    tools:context="com.dknutsonlaw.android.runtracker2.HeadlessActivity">
+    tools:context="com.dknutsonlaw.android.runtracker2.HeadlessActivity"
+    tools:keep="@layout/content_headless">
     <!--
     tools:showIn="@layout/activity_headless">
     -->

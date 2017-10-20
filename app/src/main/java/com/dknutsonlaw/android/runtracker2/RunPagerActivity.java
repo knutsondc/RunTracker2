@@ -1,5 +1,6 @@
 package com.dknutsonlaw.android.runtracker2;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 //import android.content.ComponentName;
 import android.content.ComponentName;
@@ -191,6 +192,7 @@ public class RunPagerActivity extends AppCompatActivity
         bindService(bindIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
+    @SuppressLint("Recycle")
     private Bundle setupAdapterAndLoader(){
         /*Set up the Adapter and  Loader by constructing the initial data cursor based upon
          *the selected sort order.
@@ -600,6 +602,7 @@ public class RunPagerActivity extends AppCompatActivity
     private class ResultsReceiver extends BroadcastReceiver{
         @Override
         public void onReceive(Context context, Intent intent){
+            Resources r = getResources();
             String action = intent.getAction();
             switch (action) {
                 case Constants.SEND_RESULT_ACTION:
@@ -627,8 +630,33 @@ public class RunPagerActivity extends AppCompatActivity
                      */
                     break;
                 case Constants.ACTION_DELETE_RUN:
+                    Log.i(TAG, "In ResultsReceiver for ACTION_DELETE_RUN in RunPagerActivity");
                     //Display a dialog displaying the results of the deletion operation.
-                    String resultsString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
+                    //String resultsString = intent.getStringExtra(Constants.EXTENDED_RESULTS_DATA);
+                    long runId = intent.getLongExtra(Constants.PARAM_RUN, -2);
+                    int runsDeleted = intent.getIntExtra(Constants.RUNS_DELETED, -2);
+                    int locationsDeleted = intent.getIntExtra(Constants.LOCATIONS_DELETED, -2);
+                    Log.d(TAG, "Now building resultsString");
+                    StringBuilder stringBuilder = new StringBuilder();
+                    if (runsDeleted == 1){
+                        stringBuilder.append(r.getString(R.string.delete_run_success, mRunId));
+                    } else if (runsDeleted == -1){
+                        stringBuilder.append(r.getString(R.string.delete_run_error, mRunId));
+                    } else if (runsDeleted == 0){
+                        stringBuilder.append(r.getString(R.string.delete_run_failure, mRunId));
+                    } else {
+                        stringBuilder.append(r.getString(R.string.delete_run_unexpected_return, mRunId));
+                    }
+                    if (locationsDeleted == -1){
+                        stringBuilder.append(r.getString(R.string.delete_locations_error, mRunId));
+                    } else if (locationsDeleted >= 0){
+                        stringBuilder.append(r.getQuantityString(R.plurals.location_deletion_results,
+                                locationsDeleted, locationsDeleted, mRunId));
+                    } else {
+                        stringBuilder.append(r.getString(R.string.delete_locations_unexpected_return, mRunId));
+                    }
+                    String resultsString = stringBuilder.toString();
+                    Log.d(TAG, "Now displaying dialog reporting results");
                     AlertDialog.Builder builder = new AlertDialog.Builder(RunPagerActivity.this)
                         .setPositiveButton("OK", (dialogInterface, i) -> dialogInterface.dismiss())
                         .setTitle("Run Deletion Report")
@@ -645,6 +673,7 @@ public class RunPagerActivity extends AppCompatActivity
                      *child view before the deletion, we know we just deleted the last Run so we
                      *can just finish this activity and go back to RunRecyclerView.
                      */
+                    Log.d(TAG, "Now cleaning up the ViewPager");
                     if (mViewPager.getChildCount() == 1){
                         mAdapter.finishUpdate(mViewPager);
                         finish();
@@ -671,6 +700,7 @@ public class RunPagerActivity extends AppCompatActivity
                         mViewPager.setCurrentItem(index);
                         CombinedFragment fragment = (CombinedFragment) mAdapter.getItem(index);
                         mRunId = fragment.getArguments().getLong(Constants.ARG_RUN_ID);
+                        mAdapter.notifyDataSetChanged();
                     }
                     /*Now that we've got a "legal" mRunId, we can fetch a new cursor, reconstruct
                      *the adapter, and set the subtitle accordingly.

@@ -2,12 +2,10 @@ package com.dknutsonlaw.android.runtracker2;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
-//import android.app.TaskStackBuilder;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-//import android.content.SharedPreferences;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -16,7 +14,6 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.net.Uri;
 import android.support.annotation.NonNull;
-//import android.support.v4.app.NotificationCompat;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.util.LongSparseArray;
@@ -32,6 +29,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +59,6 @@ public class RunManager {
      *when we're not tracking runs
      */
     private static ScheduledFuture<?> sScheduledFuture;
-    private static RunDatabaseHelper sHelper = null;
     private static long sCurrentRunId;
     private ResultsReceiver mResultsReceiver;
 
@@ -69,7 +66,10 @@ public class RunManager {
     private RunManager (Context appContext) {
         //Use the application context to avoid leaking activities
         sAppContext = appContext.getApplicationContext();
-        sHelper = new RunDatabaseHelper(appContext);
+        /*//This reference to a RunDatabaseHelper isn't used directly, but is needed to make static
+         *methods in that class immediately available.
+        */
+        @SuppressWarnings("unused") RunDatabaseHelper helper = new RunDatabaseHelper(appContext);
     }
 
     public static RunManager get(Context c) {
@@ -211,6 +211,7 @@ public class RunManager {
     }
 
     //Save the SparseArray associating a given Run with its LocationCount
+    @SuppressWarnings("unused")
     static void saveLocationCount(Long runId, int locationCount){
         sLocationCountMap.put(runId, locationCount);
     }
@@ -225,6 +226,7 @@ public class RunManager {
         sPointsMap.put(runId, new WeakReference<>(points));
     }
     //Retrieve the list of locations, expressed as LatLngs, associated with a given Run
+    @SuppressWarnings("unused")
     @Nullable
     static List<LatLng> retrievePoints(Long runId){
         WeakReference<List<LatLng>> listWeakReference = sPointsMap.get(runId);
@@ -406,21 +408,26 @@ public class RunManager {
 
             String result = intent.getAction();
 
-            switch(result){
-                case Constants.ACTION_START_UPDATING_END_ADDRESS:
-                    //Start recurring task of updating Ending Address
-                    sScheduledFuture = sExecutor.scheduleAtFixedRate(new updateEndAddressTask(
-                                                                        getRun(sCurrentRunId)),
-                            20,
-                            10,
-                            TimeUnit.SECONDS);
-                    break;
-                case Constants.ACTION_STOP_UPDATING_END_ADDRESS:
-                    //Cancel the recurring updates when no longer tracking a Run.
-                    if (sScheduledFuture != null){
-                        sScheduledFuture.cancel(true);
-                    }
-                    stopTrackingRun();
+            if (result != null) {
+                switch (result) {
+                    case Constants.ACTION_START_UPDATING_END_ADDRESS:
+                        //Start recurring task of updating Ending Address
+                        sScheduledFuture = sExecutor.scheduleAtFixedRate(new updateEndAddressTask(
+                                        getRun(sCurrentRunId)),
+                                20,
+                                10,
+                                TimeUnit.SECONDS);
+                        break;
+                    case Constants.ACTION_STOP_UPDATING_END_ADDRESS:
+                        //Cancel the recurring updates when no longer tracking a Run.
+                        if (sScheduledFuture != null) {
+                            sScheduledFuture.cancel(true);
+                        }
+                        stopTrackingRun();
+                        break;
+                    default:
+                        Log.d(TAG, "You should never get here!!");
+                }
             }
         }
     }
@@ -481,22 +488,27 @@ public class RunManager {
             Uri runResultUri = RunTracker2.getInstance().getContentResolver()
                                         .insert(Constants.URI_TABLE_RUN, cv);
             //Construct a String describing the results of the operation.
-            String stringRunId = "";
+            String stringRunId;
             try {
                 stringRunId = runResultUri != null ? runResultUri.getLastPathSegment() : null;
+                /*Assign the Run its ID if the operation was successful and notify the ContentResolver
+                 *that the Run table has been changed.
+                 */
+                if (!stringRunId.equals("")) {
+                    @SuppressWarnings("ConstantConditions") long runId =
+                                                Long.valueOf(runResultUri.getLastPathSegment());
+                    try {
+                        mRun.setId(runId);
+                        RunTracker2.getInstance().getContentResolver()
+                                .notifyChange(Constants.URI_TABLE_RUN, null);
+                    } catch (NumberFormatException nfe){
+                        Log.d(TAG, "Last path segment of URI can't be parsed to a Long!!");
+                    }
+                }
             } catch (NullPointerException npe){
                 Log.e(TAG, "Caught an NPE while extracting a path segment from a Uri");
             }
-            /*Assign the Run its ID if the operation was successful and notify the ContentResolver
-             *that the Run table has been changed.
-             */
-            if (!stringRunId.equals("")) {
-                long runId = Long.valueOf(runResultUri != null ?
-                                                        runResultUri.getLastPathSegment() : null);
-                mRun.setId(runId);
-                RunTracker2.getInstance().getContentResolver()
-                        .notifyChange(Constants.URI_TABLE_RUN, null);
-            }
+
 
             /*Create an Intent with Extras to report the results of the operation. If the new Run
              *was created from the the RunRecyclerListFragment, the intent will return the Run to
@@ -537,6 +549,9 @@ public class RunManager {
                 //Don't insert a Location unless there's valid RunId to go with it.
                 Log.d(TAG, "RunId is -1 in attempt to insert location");
                 return;
+            } else if (mRunId == 0){
+                Log.d(TAG, "RunId is 0 in attempt to insert location.");
+                return;
             }
             Resources r = RunTracker2.getInstance().getResources();
             double distance;
@@ -548,11 +563,12 @@ public class RunManager {
             StringBuilder builder = new StringBuilder(resultString);
             Run run = null;
             //Retrieve the Run specified in the method argument to make sure it's valid
-            Cursor cursor = RunTracker2.getInstance().getContentResolver().query(Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(mRunId)),
-                    null,
-                    Constants.COLUMN_RUN_ID + " = ?",
-                    new String[]{String.valueOf(mRunId)},
-                    null);
+            Cursor cursor = RunTracker2.getInstance().getContentResolver()
+                    .query(Uri.withAppendedPath(Constants.URI_TABLE_RUN, String.valueOf(mRunId)),
+                        null,
+                        Constants.COLUMN_RUN_ID + " = ?",
+                        new String[]{String.valueOf(mRunId)},
+                        null);
             if (cursor != null) {
                 cursor.moveToFirst();
                 if (!cursor.isAfterLast()) {
@@ -596,6 +612,7 @@ public class RunManager {
                 if (mLocation.distanceTo(oldLocation) > Constants.CONTINUATION_DISTANCE_LIMIT &&
                         (mLocation.getTime() - oldLocation.getTime() > Constants.CONTINUATION_TIME_LIMIT)){
                     Log.i(TAG, "Aborting Run " + mRunId + " for exceeding continuation distance limit.");
+                    Log.i(TAG, "Old Location: " + oldLocation.toString() + " Current Location: " + mLocation.toString());
                     //Construct an error message and send it to the UI by broadcast intent.
                     builder.append(r.getString(R.string.current_location_too_distant));
                     resultString = builder.toString();
@@ -633,25 +650,26 @@ public class RunManager {
 
             Uri resultUri = RunTracker2.getInstance().getContentResolver()
                                                      .insert(Constants.URI_TABLE_LOCATION, cv);
-            String locationResult = "";
+            String locationResult;
             try {
                 locationResult = resultUri != null ? resultUri.getLastPathSegment() : null;
-            } catch(NullPointerException npe){
-                Log.e(TAG, "Caught an NPE while trying to extract a path segment from a Uri");
-            }
-            if (!locationResult.equals("")) {
-                //A -1 return from the ContentResolver means the operation failed - report that.
-                if (Integer.parseInt(resultUri != null ? resultUri.getLastPathSegment() : null) == -1) {
-                    builder.append(r.getString(R.string.location_insert_failed, mRunId));
-                } else {
+                if (!Objects.equals(locationResult, "")) {
+                    //A -1 return from the ContentResolver means the operation failed - report that.
+                    if (Integer.parseInt(resultUri != null ? resultUri.getLastPathSegment() : null) == -1) {
+                        builder.append(r.getString(R.string.location_insert_failed, mRunId));
+                    } else {
                     /*Upon successful insertion, notify the ContentResolver the Location table has
                      *changed.
                      */
-                    RunTracker2.getInstance().getContentResolver()
-                             .notifyChange(Constants.URI_TABLE_LOCATION, null);
+                        RunTracker2.getInstance().getContentResolver()
+                                .notifyChange(Constants.URI_TABLE_LOCATION, null);
+                    }
                 }
+            } catch(NullPointerException npe){
+                Log.e(TAG, "Caught an NPE while trying to extract a path segment from a Uri");
             }
             //With a valid new location, the Run's distance and duration can be updated.
+            //noinspection ConstantConditions
             distance = run.getDistance();
             duration = run.getDuration();
 
@@ -858,7 +876,8 @@ public class RunManager {
                  */
                 if (i != 1) {
                     //Send the results of the update operation to the UI using a local broadcast
-                    LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(RunTracker2.getInstance());
+                    LocalBroadcastManager localBroadcastManager = LocalBroadcastManager
+                                                        .getInstance(RunTracker2.getInstance());
                     Intent resultIntent = new Intent(Constants.SEND_RESULT_ACTION)
                             .putExtra(Constants.ACTION_ATTEMPTED,
                                     Constants.ACTION_UPDATE_END_ADDRESS)
@@ -939,7 +958,7 @@ public class RunManager {
                             .notifyChange(Constants.URI_TABLE_RUN, null);
                 }
                 if (deletedRun == 1) {
-                    /*One Run deleted means success, to mark it as so in the LinkedHashMap and append
+                    /*One Run deleted means success, so mark it as so in the LinkedHashMap and append
                      *the result to the report of the entire operation.
                      */
                     stringBuilder.append(r.getString(R.string.delete_run_success, mRunIds.get(i)));
@@ -958,7 +977,8 @@ public class RunManager {
                     stringBuilder.append(r.getString(R.string.delete_run_error, mRunIds.get(i)));
                     wasRunDeleted.put(mRunIds.get(i), false);
                 } else {
-                    stringBuilder.append(r.getString(R.string.delete_run_unexpected_return, mRunIds.get(i)));
+                    stringBuilder.append(r.getString(R.string.delete_run_unexpected_return,
+                                                     mRunIds.get(i)));
                     wasRunDeleted.put(mRunIds.get(i), false);
                 }
                 //Append report on deletion of locations for this Run to the report on the Run.
@@ -998,7 +1018,8 @@ public class RunManager {
     }
 
     /*This Runnable task deletes a single Run. It is used from the RunPagerActivity where only a
-     *single Run at a time can be selected for deletion - the Run currently displayed by the ViewPager.
+     *single Run at a time can be selected for deletion - the Run currently displayed by the
+     *ViewPager.
      */
     private static class deleteRunTask implements Runnable {
 
@@ -1010,6 +1031,7 @@ public class RunManager {
 
         @Override
         public void run(){
+            Resources r = RunTracker2.getInstance().getResources();
             String resultsString;
             StringBuilder builder = new StringBuilder();
             //First delete the locations for the selected Run.
@@ -1018,21 +1040,9 @@ public class RunManager {
                     Constants.COLUMN_LOCATION_RUN_ID + " = ?",
                     new String[]{String.valueOf(mRunId)}
             );
-            if (locationsDeleted == -1){
-                builder.append("There was an error deleting locations associated with Run ")
-                        .append(mRunId).append(".\n");
-            } else if (locationsDeleted == 0){
-                builder.append("There were no locations associated with Run ").append(mRunId)
-                        .append(" to delete.\n");
-            } else if (locationsDeleted > 0){
-                //On success, notify the ContentResolver that the Location table has changed.
-                RunTracker2.getInstance().getContentResolver()
-                        .notifyChange(Constants.URI_TABLE_LOCATION, null);
-                builder.append(locationsDeleted).append(" locations associated with Run ")
-                        .append(mRunId).append(" were also deleted.\n");
-            } else {
-                builder.append("There was an unexpected result from the ContentProvider while " +
-                        "attempting to delete locations for Run ").append(mRunId).append(".\n");
+            if (locationsDeleted > 0){
+                RunTracker2.getInstance().getContentResolver().notifyChange(Constants.URI_TABLE_LOCATION, null);
+                Log.d(TAG, "Notified ContentResolver of change in location table for deletion of Run " + mRunId);
             }
             //Now delete the selected Run.
             int runsDeleted = RunTracker2.getInstance().getContentResolver().delete(
@@ -1040,25 +1050,23 @@ public class RunManager {
                     Constants.COLUMN_RUN_ID + " = ?",
                     new String[]{String.valueOf(mRunId)}
             );
-            if (runsDeleted == -1){
-                builder.insert(0, "There was an error attempting to delete Run " + mRunId + ".\n");
-            } else if (runsDeleted == 0){
-                builder.insert(0, "Failed to deleted Run " + mRunId + ".\n");
-            } else if (runsDeleted == 1){
+            Log.d(TAG, runsDeleted + " Run deleted for Run " + mRunId);
+            Log.d(TAG, locationsDeleted + " locations deleted for Run " + mRunId);
+            if (runsDeleted > 0){
                 RunTracker2.getInstance().getContentResolver()
                         .notifyChange(Constants.URI_TABLE_RUN, null);
-                builder.insert(0, "Successfully deleted Run " + mRunId + ".\n");
-            } else {
-                builder.insert(0, "Unknown response from ContentProvider in attempting to delete Run " + mRunId + ".\n");
+                Log.d(TAG, "Notified ContentResolver of change in Run table for deletion of Run " + mRunId);
             }
-            resultsString = builder.toString();
-
             Intent responseIntent = new Intent(Constants.ACTION_DELETE_RUN)
-                    .putExtra(Constants.EXTENDED_RESULTS_DATA, resultsString)
-                    /*Put the runId here so the CombinedFragment of the Run being deleted can know
-                     *to call finish().
-                     */
-                    .putExtra(Constants.PARAM_RUN, mRunId);
+                /*Send results of the deletion operation to the RunPagerActivity, which can then
+                 *assemble a dialog advising the user of the results.
+                 */
+                .putExtra(Constants.PARAM_RUN, mRunId)
+                .putExtra(Constants.LOCATIONS_DELETED, locationsDeleted)
+                /*Put the runId here so the RunPagerActivity will know which Run has been
+                 *deleted.
+                 */
+                .putExtra(Constants.RUNS_DELETED, runsDeleted);
             LocalBroadcastManager localBroadcastManager =
                                     LocalBroadcastManager.getInstance(RunTracker2.getInstance());
             boolean receiver = localBroadcastManager.sendBroadcast(responseIntent);

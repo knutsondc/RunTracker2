@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <string name="app_name">RunTracker2</string>
     <string name="run_fragment_started">Started:</string>
-    <string name="run_id">Run #%1d</string>
-    <string name="position">%1$s Lat., %2$s Long.</string>
     <string name="starting_position">Start Point:</string>
     <string name="starting_altitude">Start Alt.:</string>
     <string name="elapsed_time">Duration:</string>
@@ -94,7 +92,7 @@
         originally ended; you can\'t \"continue\" it from here. Cancelling further
         tracking of this run.\n
     </string>
-    <string name="location_insert_failed">Insertion of location for Run %1$d failed!\n</string>
+    <string name="location_insert_failed" tools:ignore="PluralsCandidate">Insertion of location for Run %1$d failed!\n</string>
     <string name="duration_and_distance_update_failure">Error updating Distance and Duration for Run %1$d.\n</string>
     <string name="update_run_start_date_success">Successfully updated Starting Date</string>
     <string name="update_run_start_date_failed">Starting Date update failed! No rows were updated!
@@ -123,12 +121,12 @@
     <string name="unknown_end_address_update_error">Error! Unknown return value from Ending Address
         update!
     </string>
-    <string name="delete_run_success">Run %1$d successfully deleted.\n</string>
+    <string name="delete_run_success" tools:ignore="PluralsCandidate">Run %1$d successfully deleted.\n</string>
     <string name="delete_run_error">There was an error attempting to delete Run %1$d.\n</string>
-    <string name="delete_run_failure">Run %1$d was not deleted.\n</string>
+    <string name="delete_run_failure" tools:ignore="PluralsCandidate">Run %1$d was not deleted.\n</string>
     <string name="delete_run_unexpected_return">Unexpected return value while attempting to delete Run %1$d.\n</string>
-    <string name="update_run_error">Error updating Run!</string>
     <string name="delete_locations_error">There was an error deleting locations associated with Run %1$d.\n</string>
+    <string name="delete_locations_unexpected_return">There was an unexpected result from the ContentProvider while attempting to delete locations for Run %1$d.\n</string>
     <plurals name="location_deletion_results">
         <item quantity="zero">No locations associated with Run %2$d were deleted.\n\n</item>
         <item quantity="one">One location associated with Run %2$d was deleted.\n\n</item>
@@ -152,21 +150,12 @@
     <string name="track_start_point">Track Starting Point</string>
     <string name="tracking_off">Tracking Off</string>
     <string name="empty_view_button_text">Press here to start recording a run!</string>
-    <string name="connection_suspended_service_disconnected">GoogleApiClient connection suspended -
-        Remote service disconnected! Trying to fix…
-    </string>
-    <string name="connection_suspended_network_lost">GoogleApiClient suspended - network connection
-        lost! Trying to fix …
-    </string>
     <string name="run_list_run_number">Run #%1$d, RunID #%2$d</string>
     <string name="imperial">Switch to Metric</string>
     <string name="metric">Switch to Imperial</string>
     <string name="map_scrolling_on">Turn Scrolling On</string>
     <string name="map_scrolling_off">Turn Scrolling Off</string>
     <string name="settings_menu">Settings</string>
-    <string name="title_activity_dialog">DialogActivity</string>
     <string name="title_activity_headless">HeadlessActivity</string>
-    <string name="shared_prefs">com.dknutsonlaw.android.runtracker2.shared_prefs</string>
-    <string name="authorities">com.dknutsonlaw.android.runtracker2</string>
     <string name="ok">OK</string>
 </resources>

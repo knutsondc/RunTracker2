@@ -5,6 +5,7 @@ package com.dknutsonlaw.android.runtracker2;
   utilizing a loader serving up a cursor holding data concerning all the Runs in the database.
  */
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 //import android.content.ComponentName;
 import android.content.ComponentName;
@@ -288,7 +289,7 @@ public class RunRecyclerListFragment extends Fragment
         itemAnimator.setRemoveDuration(1000);
         itemAnimator.setAddDuration(1000);
         mRunListRecyclerView.setItemAnimator(itemAnimator);
-        Cursor cursor = getContext().getContentResolver().query(
+        @SuppressLint("Recycle") Cursor cursor = getContext().getContentResolver().query(
                 Constants.URI_TABLE_RUN,
                 null,
                 null,

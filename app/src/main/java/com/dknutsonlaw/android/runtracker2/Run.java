@@ -89,6 +89,7 @@ public class Run implements Parcelable {
         mEndAddress = endAddress;
     }
 
+    @SuppressWarnings("unused")
     public static final Parcelable.Creator<Run> CREATOR = new Creator<Run>() {
         public Run createFromParcel(Parcel source) {
             Run run = new Run();

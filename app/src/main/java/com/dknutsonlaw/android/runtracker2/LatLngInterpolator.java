@@ -17,6 +17,7 @@ import static java.lang.Math.toRadians;
 public interface LatLngInterpolator {
     LatLng interpolate(float fraction, LatLng a, LatLng b);
 
+    @SuppressWarnings("unused")
     class Linear implements LatLngInterpolator {
         @Override
         public LatLng interpolate(float fraction, LatLng a, LatLng b) {
@@ -41,6 +42,7 @@ public interface LatLngInterpolator {
         }
     }
 
+    @SuppressWarnings("unused")
     class Spherical implements LatLngInterpolator {
 
         /* From github.com/googlemaps/android-maps-utils */

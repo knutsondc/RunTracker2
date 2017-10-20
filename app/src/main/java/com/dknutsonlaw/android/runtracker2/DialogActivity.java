@@ -3,16 +3,18 @@ package com.dknutsonlaw.android.runtracker2;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
 public class DialogActivity extends AppCompatActivity {
 
-    public final static String TAG = "DialogActivity";
+    private final static String TAG = "DialogActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.i(TAG, "Reached DialogActivity onCreate.");
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_dialog);

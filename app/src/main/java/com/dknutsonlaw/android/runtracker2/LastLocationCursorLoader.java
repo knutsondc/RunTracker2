@@ -10,6 +10,7 @@ import android.util.Log;
  * directly
  */
 
+@SuppressWarnings("unused")
 class LastLocationCursorLoader extends MySQLiteCursorLoader{
     private static final String TAG = "lastLocCursorLoader";
 

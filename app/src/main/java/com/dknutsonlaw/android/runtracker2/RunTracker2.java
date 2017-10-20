@@ -28,7 +28,7 @@ public class RunTracker2 extends Application {
          *methods in its RunDataBaseHelper member are immediately accessible to create the opening
          *RunRecyclerListFragment.
          */
-        RunManager sRunManager = RunManager.get(getApplicationContext());
+        @SuppressWarnings("unused") RunManager sRunManager = RunManager.get(getApplicationContext());
     }
 
     public static synchronized RunTracker2 getInstance(){

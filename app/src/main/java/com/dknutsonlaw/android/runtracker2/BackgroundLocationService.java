@@ -7,7 +7,6 @@ package com.dknutsonlaw.android.runtracker2;
  * elements have unbound to make sure location updates continue without interruption.
  */
 
-import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -38,10 +37,7 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 //import com.google.android.gms.location.LocationSettingsRequest;
 //import com.google.android.gms.location.LocationSettingsResult;
 //import com.google.android.gms.location.LocationSettingsStatusCodes;
@@ -50,7 +46,6 @@ import com.google.android.gms.tasks.Task;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 
@@ -223,7 +218,7 @@ public class BackgroundLocationService extends Service {
                     .setOnlyAlertOnce(true);
             return builder.build();
         } else {
-            NotificationCompat.Builder builder =
+            @SuppressWarnings("deprecation") NotificationCompat.Builder builder =
                     new NotificationCompat.Builder(context)
 
                             .setSmallIcon(android.R.drawable.ic_menu_report_image)
@@ -244,7 +239,7 @@ public class BackgroundLocationService extends Service {
          *with the Location object in the PendingIntent.
          */
         Log.i(TAG, "Reached startLocationUpdates() for Run " + runId);
-        Run mRun = RunManager.getRun(runId);
+
         /*Calling the getPendingIntent() method from RunManager each time we start or stop location
          *updates instead of assigning the PendingIntent to an instance variable seems to be required
          *to make sure that we use the same PendingIntent and thereby successfully stop location

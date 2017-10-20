@@ -12,6 +12,7 @@ import android.net.Uri;
  * Created by dck on 11/14/15. Created to replace a loader that simply returns a run object
  */
 class RunCursorLoader extends MySQLiteCursorLoader{
+    @SuppressWarnings("unused")
     private static final String TAG = "runCursorLoader";
 
     private final long mRunId;
