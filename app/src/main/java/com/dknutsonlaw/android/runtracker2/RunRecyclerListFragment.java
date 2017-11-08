@@ -24,6 +24,7 @@ import android.os.Bundle;
 //import android.os.Messenger;
 //import android.os.RemoteException;
 import android.os.IBinder;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
@@ -58,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@SuppressWarnings("ConstantConditions")
 public class RunRecyclerListFragment extends Fragment
         implements LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -255,7 +257,7 @@ public class RunRecyclerListFragment extends Fragment
     }
 
     @Override
-    public void onSaveInstanceState(Bundle saveInstanceState) {
+    public void onSaveInstanceState(@NonNull Bundle saveInstanceState) {
         super.onSaveInstanceState(saveInstanceState);
         //We need to save the sort order for the runs when configurations change.
         saveInstanceState.putInt(Constants.SORT_ORDER, mSortOrder);
@@ -278,7 +280,7 @@ public class RunRecyclerListFragment extends Fragment
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState){
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState){
         super.onCreateView(inflater,  parent, savedInstanceState);
 
         View v = inflater.inflate(R.layout.fragment_recycler_run_list, parent, false);
@@ -528,6 +530,7 @@ public class RunRecyclerListFragment extends Fragment
     /*ViewHolder class for use with RecyclerListView. Big Nerd Ranch's SwappingHolder swaps state
      *depending upon whether the ViewHolder has been selected.
      */
+    @SuppressWarnings("ConstantConditions")
     private class RunHolder extends SwappingHolder
             implements View.OnClickListener, View.OnLongClickListener{
         Run mRun;
@@ -625,6 +628,7 @@ public class RunRecyclerListFragment extends Fragment
     }
 
     //Broadcast Receiver to receiver reports of results of operations this Fragment is interested in.
+    @SuppressWarnings("ConstantConditions")
     private class ResultsReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {

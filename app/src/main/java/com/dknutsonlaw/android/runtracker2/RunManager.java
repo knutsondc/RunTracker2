@@ -120,6 +120,7 @@ public class RunManager {
      */
     private void stopTrackingRun(){
         Log.i(TAG, "Entered stopRun() in RunManager");
+        //stopTrackingRun();
         LocalBroadcastManager.getInstance(sAppContext).unregisterReceiver(mResultsReceiver);
     }
 
@@ -150,7 +151,7 @@ public class RunManager {
      *insertLocationTask and Executor service to do so off the main, UI thread.
      */
     void insertLocation(Location loc) {
-        Log.d(TAG, "In RunManager insertLocation(), sCurrentRunId is: " + sCurrentRunId);
+        //Log.d(TAG, "In RunManager insertLocation(), sCurrentRunId is: " + sCurrentRunId);
         if (sCurrentRunId != -1) {
             sExecutor.execute(new insertLocationTask(sCurrentRunId, loc));
         } else {
@@ -247,13 +248,13 @@ public class RunManager {
         //an error message, depending upon result.
         String filterAddress = "";
         Geocoder geocoder = new Geocoder(context);
-        Log.i(TAG, "Geocoder is: " + geocoder);
+        //Log.i(TAG, "Geocoder is: " + geocoder);
         if (loc == null) {
             Log.i(TAG, "Location is null in geocoding getString()");
             filterAddress = context.getString(R.string.lastlocation_null);
         } else if (Geocoder.isPresent()){
             //need to check whether the getFromLocation() method is available
-            Log.i(TAG, "Geocoder is present");
+            //Log.i(TAG, "Geocoder is present");
             try {
                 //The geocoder will return a list of addresses. We want only one, hence the final
                 //argument to this method.
@@ -419,8 +420,13 @@ public class RunManager {
                                 TimeUnit.SECONDS);
                         break;
                     case Constants.ACTION_STOP_UPDATING_END_ADDRESS:
-                        //Cancel the recurring updates when no longer tracking a Run.
+                        //Cancel the recurring updates of EndAddress when no longer tracking a Run.
                         if (sScheduledFuture != null) {
+                            Log.d(TAG, "Reached ACTION_STOP_UPDATING_END_ADDRESS in RunManager"
+                                            + " ResultsReceiver");
+                            /*This interrupts the thread running the task so that an Exception gets
+                             *thrown, thus stopping further execution of the task.
+                            */
                             sScheduledFuture.cancel(true);
                         }
                         stopTrackingRun();
@@ -494,7 +500,7 @@ public class RunManager {
                 /*Assign the Run its ID if the operation was successful and notify the ContentResolver
                  *that the Run table has been changed.
                  */
-                if (!stringRunId.equals("")) {
+                if (!(stringRunId != null && stringRunId.equals(""))) {
                     @SuppressWarnings("ConstantConditions") long runId =
                                                 Long.valueOf(runResultUri.getLastPathSegment());
                     try {
@@ -855,8 +861,12 @@ public class RunManager {
         public void run() {
             Log.i(TAG, "In run() function for updateEndAddressTask in BackgroundLocationService for Run " + mRun.getId());
 
-            //Get address from Geocoder for latest location received for this Run.
             try {
+                //If we're not tracking any Runs, throw an Exception to stop running update EndAddress tasks.
+                if (!isTrackingRun()){
+                    throw new RuntimeException("Exception to stop EndAddress updates");
+                }
+                //Get address from Geocoder for latest location received for this Run.
                 Location location = RunManager.getLastLocationForRun(mRun.getId());
                 LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
                 String endAddress = RunManager.getAddress(RunTracker2.getInstance(), latLng);
@@ -877,7 +887,7 @@ public class RunManager {
                 if (i != 1) {
                     //Send the results of the update operation to the UI using a local broadcast
                     LocalBroadcastManager localBroadcastManager = LocalBroadcastManager
-                                                        .getInstance(RunTracker2.getInstance());
+                            .getInstance(RunTracker2.getInstance());
                     Intent resultIntent = new Intent(Constants.SEND_RESULT_ACTION)
                             .putExtra(Constants.ACTION_ATTEMPTED,
                                     Constants.ACTION_UPDATE_END_ADDRESS)
@@ -891,16 +901,14 @@ public class RunManager {
                     RunTracker2.getInstance().getContentResolver()
                             .notifyChange(Constants.URI_TABLE_RUN, null);
                 }
-            } catch (NullPointerException npe){
+
+            } catch (NullPointerException npe) {
                 Log.i(TAG, "No Last Location available - updateEndAddressTask skipped");
-            } catch (RuntimeException re){
-                Log.i(TAG, "In run(), Runtime Exception!!!");
-                re.printStackTrace();
-            } catch (Exception e){
-                Log.i(TAG, " in run(), Exception!!!");
-                e.getCause();
-                e.printStackTrace();
             }
+            /*Null Pointer is the only Exception we want to catch here - we have to have an uncaught
+             *Exception to stop EndAddress updating, so the RunTimeException we throw has to go
+             *uncaught to serve its intended purpose.
+             */
         }
     }
 

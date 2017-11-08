@@ -129,8 +129,8 @@
     <string name="delete_locations_unexpected_return">There was an unexpected result from the ContentProvider while attempting to delete locations for Run %1$d.\n</string>
     <plurals name="location_deletion_results">
         <item quantity="zero">No locations associated with Run %2$d were deleted.\n\n</item>
-        <item quantity="one">One location associated with Run %2$d was deleted.\n\n</item>
-        <item quantity="other">%1$d locations associated with Run %2$d were deleted.\n\n </item>
+        <item quantity="one">One location associated with Run %2$d also was deleted.\n\n</item>
+        <item quantity="other">%1$d locations associated with Run %2$d also were deleted.\n\n </item>
     </plurals>
     <plurals name="runs_deletion_results">
         <item quantity="zero">Failed to delete any Runs!\n\n</item>

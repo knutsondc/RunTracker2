@@ -19,7 +19,7 @@ import android.support.v7.app.AlertDialog;
  * marked for deletion.
  */
 
-@SuppressWarnings("Convert2Lambda")
+@SuppressWarnings({"Convert2Lambda", "ConstantConditions"})
 public class DeleteRunsDialog extends DialogFragment {
 
     private int mNumberOfRuns;
@@ -37,7 +37,7 @@ public class DeleteRunsDialog extends DialogFragment {
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         Bundle bundle = getArguments();
-        mNumberOfRuns = bundle.getInt(Constants.NUMBER_OF_RUNS);
+        mNumberOfRuns = bundle != null ? bundle.getInt(Constants.NUMBER_OF_RUNS) : 0;
         mWhichFragment = bundle.getInt(Constants.FRAGMENT);
     }
 

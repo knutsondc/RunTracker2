@@ -639,21 +639,21 @@ public class RunPagerActivity extends AppCompatActivity
                     Log.d(TAG, "Now building resultsString");
                     StringBuilder stringBuilder = new StringBuilder();
                     if (runsDeleted == 1){
-                        stringBuilder.append(r.getString(R.string.delete_run_success, mRunId));
+                        stringBuilder.append(r.getString(R.string.delete_run_success, runId));
                     } else if (runsDeleted == -1){
-                        stringBuilder.append(r.getString(R.string.delete_run_error, mRunId));
+                        stringBuilder.append(r.getString(R.string.delete_run_error, runId));
                     } else if (runsDeleted == 0){
-                        stringBuilder.append(r.getString(R.string.delete_run_failure, mRunId));
+                        stringBuilder.append(r.getString(R.string.delete_run_failure, runId));
                     } else {
-                        stringBuilder.append(r.getString(R.string.delete_run_unexpected_return, mRunId));
+                        stringBuilder.append(r.getString(R.string.delete_run_unexpected_return, runId));
                     }
                     if (locationsDeleted == -1){
-                        stringBuilder.append(r.getString(R.string.delete_locations_error, mRunId));
+                        stringBuilder.append(r.getString(R.string.delete_locations_error, runId));
                     } else if (locationsDeleted >= 0){
                         stringBuilder.append(r.getQuantityString(R.plurals.location_deletion_results,
-                                locationsDeleted, locationsDeleted, mRunId));
+                                locationsDeleted, locationsDeleted, runId));
                     } else {
-                        stringBuilder.append(r.getString(R.string.delete_locations_unexpected_return, mRunId));
+                        stringBuilder.append(r.getString(R.string.delete_locations_unexpected_return, runId));
                     }
                     String resultsString = stringBuilder.toString();
                     Log.d(TAG, "Now displaying dialog reporting results");

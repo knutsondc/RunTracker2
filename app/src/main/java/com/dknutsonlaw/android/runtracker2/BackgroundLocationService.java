@@ -59,8 +59,8 @@ public class BackgroundLocationService extends Service {
    //Executor service to run database operations and end address updates on separate non-UI threads.
    private static final ScheduledThreadPoolExecutor sStpe  = new ScheduledThreadPoolExecutor(
                                         Runtime.getRuntime().availableProcessors() + 1);
-    private static final Notification sNotification = createNotification(RunTracker2.getInstance());
-    private boolean mBound  = false;
+   private static final Notification sNotification = createNotification(RunTracker2.getInstance());
+   private boolean mBound  = false;
 
    class LocationBinder extends Binder {
        BackgroundLocationService getService(){
@@ -106,6 +106,7 @@ public class BackgroundLocationService extends Service {
         //Use high accuracy
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         locationRequest.setInterval(1000);
+        //locationRequest.setSmallestDisplacement(2.5f);
         return locationRequest;
     }
 
@@ -277,8 +278,8 @@ public class BackgroundLocationService extends Service {
                 }
             })
             .addOnSuccessListener(aVoid -> {
-                /*Now that the request for location updates has succeeded, start calling task to
-                 *update Ending Address.
+                /*Now that the request for location updates has succeeded, tell RunManager to
+                 *start the task that periodically updates EndingAddress.
                  */
                 Intent updatesStarted = new Intent(Constants.ACTION_START_UPDATING_END_ADDRESS);
                 LocalBroadcastManager localBroadcastManager =

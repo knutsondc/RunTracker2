@@ -65,7 +65,7 @@ final class Constants {
      *to be considered a "continuation" of a run.
      */
     static final long CONTINUATION_DISTANCE_LIMIT = 100; //100 meters
-    static final long CONTINUATION_TIME_LIMIT = 30000; //30 seconds
+    static final long CONTINUATION_TIME_LIMIT = 60 * 1000; //60 seconds
 
    /*Labels used in creating Intents used to invoke TrackingLocationIntentService and to report the
     *results of the operations to UI elements.

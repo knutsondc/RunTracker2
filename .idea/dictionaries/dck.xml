@@ -6,10 +6,12 @@
       <w>combinedfragment</w>
       <w>combinedrunfragment</w>
       <w>dataset</w>
+      <w>dknutsonlaw</w>
       <w>errordialog</w>
       <w>fgyp</w>
       <w>foregound</w>
       <w>geocoder</w>
+      <w>geocoding</w>
       <w>github</w>
       <w>googleapiclient</w>
       <w>googlemaps</w>
@@ -17,7 +19,9 @@
       <w>haversine's</w>
       <w>lastlocation</w>
       <w>latlng</w>
+      <w>lngs</w>
       <w>mapview</w>
+      <w>menuitem</w>
       <w>multiselect</w>
       <w>multiselector</w>
       <w>pice</w>
@@ -27,13 +31,16 @@
       <w>reenabled</w>
       <w>restartloaders</w>
       <w>runfragment</w>
+      <w>runids</w>
       <w>runlistcursorloader</w>
       <w>runmapfragment</w>
       <w>runmappageractivity</w>
       <w>runpageractivity</w>
+      <w>runtracker</w>
       <w>skyfishjy</w>
       <w>sqlite</w>
       <w>stpe</w>
+      <w>textview</w>
       <w>textviews</w>
     </words>
   </dictionary>

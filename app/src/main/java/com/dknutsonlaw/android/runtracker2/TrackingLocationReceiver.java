@@ -30,6 +30,7 @@ public class TrackingLocationReceiver extends LocationReceiver {
     protected void onLocationReceived(Context c, Location loc) {
 
        if (!loc.hasAccuracy()) {
+
             Log.i(TAG, "Location rejected - no accuracy value");
        } else if(!loc.hasAltitude()){
            /*Reject all location updates that have no altitude value - this insures that only
@@ -46,7 +47,6 @@ public class TrackingLocationReceiver extends LocationReceiver {
              *Use of the Runnable task keeps the database work off the main, UI thread.
              */
            RunManager.get(c).insertLocation(loc);
-
        }
     }
 }
